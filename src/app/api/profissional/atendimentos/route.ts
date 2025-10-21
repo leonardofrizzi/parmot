@@ -21,60 +21,103 @@ export async function GET(request: NextRequest) {
         solicitacao_id,
         contato_liberado,
         exclusivo,
-        created_at,
-        solicitacoes:solicitacao_id (
-          id,
-          titulo,
-          descricao,
-          status,
-          created_at,
-          categoria_id,
-          subcategoria_id,
-          cliente_id,
-          categorias:categoria_id(nome, slug, icone),
-          subcategorias:subcategoria_id(nome, slug),
-          clientes:cliente_id(nome, email, telefone, cidade, estado)
-        )
+        created_at
       `)
       .eq('profissional_id', profissional_id)
       .eq('contato_liberado', true)
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Erro ao buscar atendimentos:', error)
+      console.error('Erro ao buscar respostas:', error)
       return NextResponse.json(
-        { error: 'Erro ao buscar atendimentos' },
+        { error: 'Erro ao buscar respostas' },
         { status: 500 }
       )
     }
 
-    // Formatar os dados
-    const atendimentosFormatados = respostas.map((resposta: any) => {
-      const solicitacao = resposta.solicitacoes
+    // Buscar detalhes de cada solicitação
+    const atendimentosComDetalhes = await Promise.all(
+      respostas.map(async (resposta: any) => {
+        const { data: solicitacao } = await supabase
+          .from('solicitacoes')
+          .select(`
+            id,
+            titulo,
+            descricao,
+            status,
+            created_at,
+            categoria_id,
+            subcategoria_id,
+            cliente_id
+          `)
+          .eq('id', resposta.solicitacao_id)
+          .single()
 
+        const { data: categoria } = await supabase
+          .from('categorias')
+          .select('nome, icone')
+          .eq('id', solicitacao?.categoria_id)
+          .single()
+
+        const { data: subcategoria } = await supabase
+          .from('subcategorias')
+          .select('nome')
+          .eq('id', solicitacao?.subcategoria_id)
+          .single()
+
+        const { data: cliente } = await supabase
+          .from('clientes')
+          .select('nome, email, telefone, cidade, estado')
+          .eq('id', solicitacao?.cliente_id)
+          .single()
+
+        // Verificar se existe solicitação de reembolso para esta resposta
+        const { data: reembolso } = await supabase
+          .from('solicitacoes_reembolso')
+          .select('id, status')
+          .eq('resposta_id', resposta.id)
+          .single()
+
+        return {
+          resposta,
+          solicitacao,
+          categoria,
+          subcategoria,
+          cliente,
+          reembolso
+        }
+      })
+    )
+
+    // Formatar os dados
+    const atendimentosFormatados = atendimentosComDetalhes.map((item: any) => {
       return {
-        resposta_id: resposta.id,
-        solicitacao_id: resposta.solicitacao_id,
-        exclusivo: resposta.exclusivo,
-        data_liberacao: resposta.created_at,
+        resposta_id: item.resposta.id,
+        solicitacao_id: item.resposta.solicitacao_id,
+        exclusivo: item.resposta.exclusivo,
+        data_liberacao: item.resposta.created_at,
 
         // Dados da solicitação
-        titulo: solicitacao?.titulo || '',
-        descricao: solicitacao?.descricao || '',
-        status: solicitacao?.status || '',
-        data_solicitacao: solicitacao?.created_at || '',
+        titulo: item.solicitacao?.titulo || '',
+        descricao: item.solicitacao?.descricao || '',
+        status: item.solicitacao?.status || '',
+        data_solicitacao: item.solicitacao?.created_at || '',
 
         // Categoria
-        categoria_nome: solicitacao?.categorias?.nome || '',
-        categoria_icone: solicitacao?.categorias?.icone || '',
-        subcategoria_nome: solicitacao?.subcategorias?.nome || '',
+        categoria_nome: item.categoria?.nome || '',
+        categoria_icone: item.categoria?.icone || '',
+        subcategoria_nome: item.subcategoria?.nome || '',
 
         // Dados do cliente (agora liberados)
-        cliente_nome: solicitacao?.clientes?.nome || '',
-        cliente_email: solicitacao?.clientes?.email || '',
-        cliente_telefone: solicitacao?.clientes?.telefone || '',
-        cliente_cidade: solicitacao?.clientes?.cidade || '',
-        cliente_estado: solicitacao?.clientes?.estado || '',
+        cliente_nome: item.cliente?.nome || '',
+        cliente_email: item.cliente?.email || '',
+        cliente_telefone: item.cliente?.telefone || '',
+        cliente_cidade: item.cliente?.cidade || '',
+        cliente_estado: item.cliente?.estado || '',
+
+        // Dados de reembolso
+        tem_reembolso: !!item.reembolso,
+        reembolso_status: item.reembolso?.status || null,
       }
     })
 

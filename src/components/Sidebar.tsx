@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck } from "lucide-react"
+import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -29,6 +29,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
     { icon: Search, label: "Buscar Serviços", href: "/dashboard/profissional/solicitacoes" },
     { icon: ClipboardCheck, label: "Meus Atendimentos", href: "/dashboard/profissional/atendimentos" },
     { icon: Coins, label: "Comprar Moedas", href: "/dashboard/profissional/moedas" },
+    { icon: DollarSign, label: "Reembolsos", href: "/dashboard/profissional/reembolsos" },
     { icon: User, label: "Meu Perfil", href: "/dashboard/profissional/perfil" },
   ]
 

@@ -4,48 +4,55 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Solicitacao } from "@/types/database"
-import { ArrowLeft, Calendar, MapPin, MessageSquare, User } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AvaliacaoModal } from "@/components/AvaliacaoModal"
+import { StarRating } from "@/components/StarRating"
+import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, Crown, Star, MessageSquare, XCircle, CheckCircle, PlayCircle, Ban } from "lucide-react"
 import * as Icons from "lucide-react"
 
-interface Resposta {
-  id: string
-  profissional_id: string
-  mensagem: string
-  contato_liberado: boolean
-  created_at: string
-  profissional_nome?: string
-  profissional_telefone?: string
-  profissional_email?: string
-}
-
-export default function DetalheSolicitacao() {
+export default function DetalheSolicitacaoCliente() {
   const router = useRouter()
   const params = useParams()
-  const solicitacaoId = params.id as string
-
-  const [solicitacao, setSolicitacao] = useState<Solicitacao | null>(null)
-  const [respostas, setRespostas] = useState<Resposta[]>([])
+  const [solicitacao, setSolicitacao] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [cliente, setCliente] = useState<any>(null)
+  const [showAvaliacaoModal, setShowAvaliacaoModal] = useState(false)
+  const [profissionalParaAvaliar, setProfissionalParaAvaliar] = useState<any>(null)
+  const [avaliacaoExistente, setAvaliacaoExistente] = useState<any>(null)
+  const [showStatusDialog, setShowStatusDialog] = useState(false)
+  const [statusParaAtualizar, setStatusParaAtualizar] = useState<string>("")
+  const [loadingStatus, setLoadingStatus] = useState(false)
 
   useEffect(() => {
-    fetchDetalhes()
-  }, [solicitacaoId])
+    const usuarioData = localStorage.getItem('usuario')
+    if (usuarioData) {
+      setCliente(JSON.parse(usuarioData))
+    }
 
-  const fetchDetalhes = async () => {
+    if (params.id) {
+      fetchSolicitacao(params.id as string)
+    }
+  }, [params.id])
+
+  useEffect(() => {
+    if (solicitacao && solicitacao.status === 'finalizada') {
+      verificarAvaliacao()
+    }
+  }, [solicitacao])
+
+  const fetchSolicitacao = async (id: string) => {
     try {
-      const response = await fetch(`/api/solicitacoes/${solicitacaoId}`)
+      const response = await fetch(`/api/cliente/solicitacoes/${id}`)
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || "Erro ao carregar detalhes")
+        setError(data.error || "Erro ao carregar solicitação")
         setLoading(false)
         return
       }
 
       setSolicitacao(data.solicitacao)
-      setRespostas(data.respostas || [])
       setLoading(false)
     } catch (err) {
       setError("Erro ao conectar com o servidor")
@@ -53,24 +60,90 @@ export default function DetalheSolicitacao() {
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'aberta': 'Aguardando propostas',
-      'em_andamento': 'Em andamento',
-      'finalizada': 'Concluído',
-      'cancelada': 'Cancelado'
+  const verificarAvaliacao = async () => {
+    try {
+      const response = await fetch(`/api/avaliacoes/solicitacao?solicitacao_id=${solicitacao.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAvaliacaoExistente(data.avaliacao)
+      }
+    } catch (err) {
+      console.error('Erro ao verificar avaliação:', err)
     }
-    return labels[status] || status
   }
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'aberta': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'em_andamento': 'bg-blue-100 text-blue-800 border-blue-200',
-      'finalizada': 'bg-green-100 text-green-800 border-green-200',
-      'cancelada': 'bg-gray-100 text-gray-800 border-gray-200'
+  const handleAvaliar = (profissional: any) => {
+    setProfissionalParaAvaliar(profissional)
+    setShowAvaliacaoModal(true)
+  }
+
+  const handleAvaliacaoEnviada = () => {
+    verificarAvaliacao()
+    fetchSolicitacao(params.id as string)
+  }
+
+  const handleAbrirDialogStatus = (novoStatus: string) => {
+    setStatusParaAtualizar(novoStatus)
+    setShowStatusDialog(true)
+  }
+
+  const handleAtualizarStatus = async () => {
+    if (!cliente || !solicitacao) return
+
+    setLoadingStatus(true)
+
+    try {
+      const response = await fetch(`/api/cliente/solicitacoes/${solicitacao.id}/atualizar-status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: statusParaAtualizar,
+          cliente_id: cliente.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert('Erro: ' + data.error)
+        setLoadingStatus(false)
+        return
+      }
+
+      // Atualizar solicitação local
+      setSolicitacao({ ...solicitacao, status: statusParaAtualizar })
+      setShowStatusDialog(false)
+      setLoadingStatus(false)
+
+      // Recarregar dados
+      fetchSolicitacao(params.id as string)
+
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err)
+      alert('Erro ao conectar com o servidor')
+      setLoadingStatus(false)
     }
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+
+  const getStatusInfo = (status: string) => {
+    const statusConfig: Record<string, { label: string; descricao: string; icon: any }> = {
+      em_andamento: {
+        label: 'Em Andamento',
+        descricao: 'Marque como em andamento quando começar a trabalhar com o profissional.',
+        icon: PlayCircle
+      },
+      finalizada: {
+        label: 'Concluído',
+        descricao: 'Marque como concluído quando o serviço for finalizado. Isso permitirá que você avalie o profissional.',
+        icon: CheckCircle
+      },
+      cancelada: {
+        label: 'Cancelado',
+        descricao: 'Cancele esta solicitação se não precisar mais do serviço.',
+        icon: Ban
+      }
+    }
+    return statusConfig[status]
   }
 
   const renderIcone = (nomeIcone?: string) => {
@@ -89,10 +162,27 @@ export default function DetalheSolicitacao() {
     })
   }
 
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { label: string; color: string }> = {
+      aberta: { label: "Aberta", color: "bg-blue-100 text-blue-700" },
+      em_andamento: { label: "Em andamento", color: "bg-yellow-100 text-yellow-700" },
+      finalizada: { label: "Concluída", color: "bg-green-100 text-green-700" },
+      cancelada: { label: "Cancelada", color: "bg-red-100 text-red-700" },
+    }
+
+    const config = statusConfig[status] || { label: status, color: "bg-gray-100 text-gray-700" }
+
+    return (
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
+        {config.label}
+      </span>
+    )
+  }
+
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center">
-        <p className="text-gray-600">Carregando detalhes...</p>
+        <p className="text-gray-600">Carregando...</p>
       </div>
     )
   }
@@ -101,12 +191,15 @@ export default function DetalheSolicitacao() {
     return (
       <div className="p-8">
         <div className="max-w-4xl mx-auto">
-          <Button variant="outline" onClick={() => router.back()} className="mb-6">
-            <ArrowLeft size={16} className="mr-2" /> Voltar
-          </Button>
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-red-600">{error || "Solicitação não encontrada"}</p>
+              <XCircle size={64} className="mx-auto mb-4 text-red-400" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {error || "Solicitação não encontrada"}
+              </h3>
+              <Button onClick={() => router.push('/dashboard/cliente/solicitacoes')}>
+                Voltar para lista
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -115,114 +208,150 @@ export default function DetalheSolicitacao() {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <Button variant="outline" onClick={() => router.back()} className="mb-6">
-          <ArrowLeft size={16} className="mr-2" /> Voltar
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <Button variant="ghost" onClick={() => router.push('/dashboard/cliente/solicitacoes')} className="mb-6">
+          <ArrowLeft size={18} className="mr-2" />
+          Voltar
         </Button>
 
-        {/* Detalhes da Solicitação */}
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="text-primary-600">
-                  {renderIcone(solicitacao.categoria_icone)}
-                </div>
-                <div>
-                  <CardTitle className="text-2xl mb-2">{solicitacao.titulo}</CardTitle>
-                  <CardDescription className="flex items-center flex-wrap gap-4 text-sm">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={14} />
-                      {formatData(solicitacao.created_at)}
-                    </span>
-                    <span>
-                      {solicitacao.categoria_nome} → {solicitacao.subcategoria_nome}
-                    </span>
-                    {solicitacao.cliente_cidade && solicitacao.cliente_estado && (
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
+                    {renderIcone(solicitacao.categoria_icone)}
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl mb-1">{solicitacao.titulo}</CardTitle>
+                    <CardDescription>
                       <span className="flex items-center gap-1">
-                        <MapPin size={14} />
-                        {solicitacao.cliente_cidade}, {solicitacao.cliente_estado}
+                        <Calendar size={14} />
+                        {formatData(solicitacao.created_at)}
                       </span>
-                    )}
-                  </CardDescription>
+                    </CardDescription>
+                  </div>
                 </div>
-              </div>
-              <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(solicitacao.status)}`}>
-                {getStatusLabel(solicitacao.status)}
+                <div className="flex items-center gap-3">
+                  {getStatusBadge(solicitacao.status)}
+                  {solicitacao.tem_exclusivo && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-sm font-medium">
+                      <Crown size={14} />
+                      Exclusivo
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Descrição do serviço</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{solicitacao.descricao}</p>
-            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">Descrição</h3>
+            <p className="text-gray-700 mb-4">{solicitacao.descricao}</p>
+
+            {/* Ações de Status - apenas para solicitações não finalizadas */}
+            {solicitacao.status !== 'finalizada' && solicitacao.status !== 'cancelada' && (
+              <div className="pt-4 border-t">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Ações</h4>
+                <div className="flex flex-wrap gap-2">
+                  {solicitacao.status === 'aberta' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAbrirDialogStatus('em_andamento')}
+                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      <PlayCircle size={16} className="mr-2" />
+                      Marcar Em Andamento
+                    </Button>
+                  )}
+                  {(solicitacao.status === 'aberta' || solicitacao.status === 'em_andamento') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAbrirDialogStatus('finalizada')}
+                      className="border-green-300 text-green-700 hover:bg-green-50"
+                    >
+                      <CheckCircle size={16} className="mr-2" />
+                      Marcar como Concluído
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAbrirDialogStatus('cancelada')}
+                    className="border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    <Ban size={16} className="mr-2" />
+                    Cancelar Solicitação
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Profissionais Interessados */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <User size={20} />
-              <CardTitle>Profissionais Interessados ({respostas.length})</CardTitle>
-            </div>
+            <CardTitle>Profissionais Interessados</CardTitle>
             <CardDescription>
-              Profissionais que liberaram contato para realizar este serviço
+              {solicitacao.total_profissionais === 0 ? 'Nenhum profissional interessado ainda' : `${solicitacao.total_profissionais} profissional(is)`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {respostas.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+            {solicitacao.total_profissionais === 0 ? (
+              <div className="text-center py-8">
                 <User size={48} className="mx-auto mb-3 text-gray-300" />
-                <p>Nenhum profissional interessado ainda.</p>
-                <p className="text-sm mt-1">Aguarde profissionais visualizarem sua solicitação.</p>
+                <p className="text-gray-600">Aguardando profissionais interessados</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {respostas.map((resposta) => (
-                  <Card key={resposta.id} className="border-l-4 border-l-primary-500">
+                {solicitacao.profissionais_interessados.map((item: any) => (
+                  <Card key={item.resposta_id} className="border-2">
                     <CardContent className="pt-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                            <User size={24} className="text-primary-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-lg">
-                              {resposta.profissional_nome || "Profissional"}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              Liberou contato em {formatData(resposta.created_at)}
-                            </p>
-                          </div>
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
+                          {item.profissional?.nome?.charAt(0)}
                         </div>
-                      </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-lg">{item.profissional?.nome}</h4>
+                          {item.exclusivo && <span className="text-xs text-purple-600">Exclusivo</span>}
+                          <div className="grid grid-cols-2 gap-2 mt-3">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Phone size={14} />
+                              <a href={`tel:${item.profissional?.telefone}`} className="text-primary-600">{item.profissional?.telefone}</a>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Mail size={14} />
+                              <a href={`mailto:${item.profissional?.email}`} className="text-primary-600">{item.profissional?.email}</a>
+                            </div>
+                          </div>
 
-                      <div className="bg-primary-50 rounded-lg p-4 border border-primary-200">
-                        <p className="text-sm font-semibold text-gray-900 mb-3">Entre em contato:</p>
-                        <div className="space-y-2">
-                          {resposta.profissional_telefone && (
-                            <a
-                              href={`https://wa.me/55${resposta.profissional_telefone.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors"
-                            >
-                              <MessageSquare size={16} />
-                              <span><strong>WhatsApp:</strong> {resposta.profissional_telefone}</span>
-                            </a>
+                          {/* Botão de avaliar para serviços concluídos */}
+                          {solicitacao.status === 'finalizada' && !avaliacaoExistente && (
+                            <div className="mt-4">
+                              <Button
+                                size="sm"
+                                onClick={() => handleAvaliar(item.profissional)}
+                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                              >
+                                <Star size={16} className="mr-2" />
+                                Avaliar Profissional
+                              </Button>
+                            </div>
                           )}
-                          {resposta.profissional_email && (
-                            <a
-                              href={`mailto:${resposta.profissional_email}`}
-                              className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600 transition-colors"
-                            >
-                              <span>📧</span>
-                              <span><strong>Email:</strong> {resposta.profissional_email}</span>
-                            </a>
+
+                          {/* Mostrar avaliação existente */}
+                          {solicitacao.status === 'finalizada' && avaliacaoExistente && (
+                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-700">Sua avaliação:</span>
+                                <StarRating rating={avaliacaoExistente.nota} readonly size={18} />
+                              </div>
+                              {avaliacaoExistente.comentario && (
+                                <p className="text-sm text-gray-600 italic">"{avaliacaoExistente.comentario}"</p>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -233,6 +362,59 @@ export default function DetalheSolicitacao() {
             )}
           </CardContent>
         </Card>
+
+        {/* Modal de Avaliação */}
+        {profissionalParaAvaliar && cliente && (
+          <AvaliacaoModal
+            open={showAvaliacaoModal}
+            onOpenChange={setShowAvaliacaoModal}
+            solicitacaoId={solicitacao.id}
+            profissionalId={profissionalParaAvaliar.id}
+            profissionalNome={profissionalParaAvaliar.nome}
+            clienteId={cliente.id}
+            onAvaliacaoEnviada={handleAvaliacaoEnviada}
+          />
+        )}
+
+        {/* Dialog de Confirmação de Status */}
+        <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {statusParaAtualizar && (() => {
+                  const StatusIcon = getStatusInfo(statusParaAtualizar)?.icon
+                  return StatusIcon ? <StatusIcon size={24} /> : null
+                })()}
+                {getStatusInfo(statusParaAtualizar)?.label}
+              </DialogTitle>
+              <DialogDescription>
+                {getStatusInfo(statusParaAtualizar)?.descricao}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowStatusDialog(false)}
+                disabled={loadingStatus}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAtualizarStatus}
+                disabled={loadingStatus}
+                className={
+                  statusParaAtualizar === 'finalizada'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : statusParaAtualizar === 'cancelada'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }
+              >
+                {loadingStatus ? 'Atualizando...' : 'Confirmar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

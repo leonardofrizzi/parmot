@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Coins, Check, Sparkles, TrendingUp, Shield, Zap, ArrowRight, Star } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Coins, Check, Sparkles, TrendingUp, Shield, Zap, ArrowRight, Star, CheckCircle2 } from "lucide-react"
 
 interface PlanoMoedas {
   id: string
@@ -22,6 +24,8 @@ export default function ComprarMoedas() {
   const [profissional, setProfissional] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [planoSelecionado, setPlanoSelecionado] = useState<string | null>(null)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [successData, setSuccessData] = useState<any>(null)
 
   useEffect(() => {
     const usuarioData = localStorage.getItem('usuario')
@@ -29,6 +33,38 @@ export default function ComprarMoedas() {
       setProfissional(JSON.parse(usuarioData))
     }
   }, [])
+
+  const adicionarMoedasTeste = async () => {
+    if (!profissional) return
+
+    try {
+      const response = await fetch('/api/profissional/adicionar-moedas-teste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profissional_id: profissional.id,
+          quantidade: 100
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Atualizar localStorage
+        const updatedUser = { ...profissional, saldo_moedas: data.novo_saldo }
+        localStorage.setItem('usuario', JSON.stringify(updatedUser))
+        setProfissional(updatedUser)
+
+        // Mostrar dialog de sucesso
+        setSuccessData(data)
+        setShowSuccessDialog(true)
+      } else {
+        alert('Erro ao adicionar moedas: ' + data.error)
+      }
+    } catch (error) {
+      alert('Erro ao conectar com o servidor')
+    }
+  }
 
   const planos: PlanoMoedas[] = [
     {
@@ -117,6 +153,46 @@ export default function ComprarMoedas() {
     }
   }
 
+  if (!profissional) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="p-8">
+          <div className="max-w-7xl mx-auto">
+            {/* Header Skeleton */}
+            <div className="text-center mb-12">
+              <Skeleton className="w-16 h-16 rounded-full mx-auto mb-4" />
+              <Skeleton className="h-10 w-64 mx-auto mb-4" />
+              <Skeleton className="h-6 w-96 mx-auto mb-4" />
+              <Skeleton className="h-10 w-48 mx-auto rounded-full" />
+            </div>
+
+            {/* Plans Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-32 mb-2" />
+                    <Skeleton className="h-10 w-24 mb-2" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4].map((j) => (
+                        <Skeleton key={j} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Skeleton className="h-10 w-full" />
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="p-8">
@@ -133,9 +209,20 @@ export default function ComprarMoedas() {
               Adquira moedas e tenha acesso a contatos de clientes que precisam dos seus serviços
             </p>
             {profissional && (
-              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full">
-                <Coins size={18} />
-                <span className="font-semibold">Saldo atual: {profissional.saldo_moedas} moedas</span>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full">
+                  <Coins size={18} />
+                  <span className="font-semibold">Saldo atual: {profissional.saldo_moedas} moedas</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={adicionarMoedasTeste}
+                  className="text-xs"
+                  title="Apenas para testes - adiciona 100 moedas"
+                >
+                  + 100 moedas (teste)
+                </Button>
               </div>
             )}
           </div>
@@ -346,6 +433,42 @@ export default function ComprarMoedas() {
           </Card>
         </div>
       </div>
+
+      {/* Dialog de Sucesso */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={32} className="text-green-600" />
+            </div>
+            <DialogTitle className="text-center text-2xl">Moedas Adicionadas!</DialogTitle>
+            <DialogDescription className="text-center">
+              {successData?.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Saldo anterior:</span>
+                <span className="font-semibold">{successData?.saldo_anterior} moedas</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Moedas adicionadas:</span>
+                <span className="font-semibold text-green-600">+100 moedas</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between">
+                <span className="font-semibold text-gray-900">Novo saldo:</span>
+                <span className="font-bold text-primary-600 text-lg">{successData?.novo_saldo} moedas</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => window.location.reload()} className="w-full">
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

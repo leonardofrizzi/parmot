@@ -4,12 +4,13 @@ import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, MessageSquare, Plus, Search, Users, Crown, Edit, Trash2 } from "lucide-react"
 import * as Icons from "lucide-react"
 
-type FiltroStatus = "todos" | "aberta" | "em_andamento" | "concluida" | "cancelada"
+type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
 export default function MinhasSolicitacoes() {
   const router = useRouter()
@@ -100,8 +101,50 @@ export default function MinhasSolicitacoes() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <p className="text-gray-600">Carregando solicitações...</p>
+      <div className="p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <Skeleton className="h-9 w-64 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+            <Skeleton className="h-10 w-40" />
+          </div>
+
+          {/* Search Skeleton */}
+          <div className="mb-6">
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Cards Skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Skeleton className="h-5 w-5" />
+                        <Skeleton className="h-6 w-64" />
+                      </div>
+                      <Skeleton className="h-4 w-96" />
+                    </div>
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-4" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-8 w-28" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }

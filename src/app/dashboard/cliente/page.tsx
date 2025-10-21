@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
 import { Plus, FileText, Users, Clock, CheckCircle, Calendar } from "lucide-react"
 import * as Icons from "lucide-react"
@@ -54,7 +55,7 @@ export default function DashboardCliente() {
           total: solicitacoesData.length,
           abertas: solicitacoesData.filter((s: any) => s.status === 'aberta').length,
           em_andamento: solicitacoesData.filter((s: any) => s.status === 'em_andamento').length,
-          finalizadas: solicitacoesData.filter((s: any) => s.status === 'concluida').length,
+          finalizadas: solicitacoesData.filter((s: any) => s.status === 'finalizada').length,
         }
         setStats(stats)
       }
@@ -79,8 +80,68 @@ export default function DashboardCliente() {
     })
   }
 
-  if (!cliente) {
-    return <div className="flex items-center justify-center h-full">Carregando...</div>
+  if (!cliente || loading) {
+    return (
+      <div className="p-8">
+        {/* Header Skeleton */}
+        <div className="mb-8">
+          <Skeleton className="h-9 w-48 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-8 w-12" />
+                  </div>
+                  <Skeleton className="w-12 h-12 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* CTA Skeleton */}
+        <div className="mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-96 mb-4" />
+              <Skeleton className="h-10 w-40" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Solicitações Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div className="flex items-center gap-3 flex-1">
+                    <Skeleton className="h-5 w-5" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-64 mb-2" />
+                      <Skeleton className="h-4 w-96" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -200,9 +261,7 @@ export default function DashboardCliente() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <p className="text-gray-600 text-center py-8">Carregando...</p>
-          ) : solicitacoes.length === 0 ? (
+          {solicitacoes.length === 0 ? (
             <div className="text-center py-8">
               <FileText size={48} className="mx-auto mb-3 text-gray-300" />
               <p className="text-gray-600 mb-4">Você ainda não tem solicitações</p>

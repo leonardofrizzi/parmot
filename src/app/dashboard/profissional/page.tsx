@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Coins, Search, CheckCircle, TrendingUp, Calendar, MapPin } from "lucide-react"
 
 interface Profissional {
@@ -42,13 +43,14 @@ export default function DashboardProfissional() {
 
   const fetchStats = async (profissionalId: string) => {
     try {
-      // TODO: Implementar API para buscar estatísticas
-      // Por enquanto, valores mockados
-      setStats({
-        solicitacoes_disponiveis: 0,
-        contatos_liberados: 0,
-        moedas_gastas: 0
-      })
+      const response = await fetch(`/api/profissional/stats?profissional_id=${profissionalId}`)
+
+      if (!response.ok) {
+        throw new Error('Erro ao buscar estatísticas')
+      }
+
+      const data = await response.json()
+      setStats(data)
       setLoading(false)
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err)
@@ -56,8 +58,82 @@ export default function DashboardProfissional() {
     }
   }
 
-  if (!profissional) {
-    return <div className="flex items-center justify-center h-full">Carregando...</div>
+  if (!profissional || loading) {
+    return (
+      <div className="p-8">
+        <div className="mb-8">
+          <Skeleton className="h-9 w-64 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+
+        {/* Saldo de Moedas Skeleton */}
+        <div className="mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-32 mb-2" />
+                  <Skeleton className="h-12 w-24 mb-2" />
+                  <Skeleton className="h-4 w-64 mb-4" />
+                  <Skeleton className="h-10 w-40" />
+                </div>
+                <div className="hidden md:block">
+                  <Skeleton className="w-32 h-32 rounded-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Estatísticas Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-8 w-16 mb-1" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="w-12 h-12 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* CTA Skeleton */}
+        <div className="mb-8">
+          <Card>
+            <CardContent className="pt-6">
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-96 mb-4" />
+              <Skeleton className="h-10 w-40" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (

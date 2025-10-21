@@ -7,10 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ReembolsoModal } from "@/components/ReembolsoModal"
+import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users, DollarSign, ExternalLink, Clock, CheckCircle2, XCircle } from "lucide-react"
 import * as Icons from "lucide-react"
 
-type FiltroStatus = "todos" | "aberta" | "em_andamento" | "concluida" | "cancelada"
+type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
 interface Atendimento {
   resposta_id: string
@@ -29,6 +31,8 @@ interface Atendimento {
   cliente_telefone: string
   cliente_cidade: string
   cliente_estado: string
+  tem_reembolso?: boolean
+  reembolso_status?: string
 }
 
 export default function AtendimentosProfissional() {
@@ -39,6 +43,8 @@ export default function AtendimentosProfissional() {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos")
+  const [showReembolsoModal, setShowReembolsoModal] = useState(false)
+  const [atendimentoSelecionado, setAtendimentoSelecionado] = useState<Atendimento | null>(null)
 
   useEffect(() => {
     const usuarioData = localStorage.getItem('usuario')
@@ -82,11 +88,24 @@ export default function AtendimentosProfissional() {
     })
   }
 
+  const handleSolicitarReembolso = (atendimento: Atendimento) => {
+    setAtendimentoSelecionado(atendimento)
+    setShowReembolsoModal(true)
+  }
+
+  const handleReembolsoSolicitado = () => {
+    alert('Solicitação de reembolso enviada com sucesso! Aguarde análise do administrador.')
+    // Recarregar atendimentos para mostrar que já foi solicitado
+    if (profissional) {
+      fetchAtendimentos(profissional.id)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; color: string }> = {
       aberta: { label: "Em aberto", color: "bg-blue-100 text-blue-700" },
       em_andamento: { label: "Em andamento", color: "bg-yellow-100 text-yellow-700" },
-      concluida: { label: "Concluída", color: "bg-green-100 text-green-700" },
+      finalizada: { label: "Concluída", color: "bg-green-100 text-green-700" },
       cancelada: { label: "Cancelada", color: "bg-red-100 text-red-700" },
     }
 
@@ -125,8 +144,49 @@ export default function AtendimentosProfissional() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <p className="text-gray-600">Carregando atendimentos...</p>
+      <div className="p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="mb-8">
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-80" />
+          </div>
+
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent className="pt-6">
+                  <Skeleton className="h-8 w-16 mb-1" />
+                  <Skeleton className="h-4 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Atendimentos Skeleton */}
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-6 w-48 mb-2" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -162,7 +222,7 @@ export default function AtendimentosProfissional() {
                     <SelectItem value="todos">Todos os status</SelectItem>
                     <SelectItem value="aberta">Em aberto</SelectItem>
                     <SelectItem value="em_andamento">Em andamento</SelectItem>
-                    <SelectItem value="concluida">Concluída</SelectItem>
+                    <SelectItem value="finalizada">Concluída</SelectItem>
                     <SelectItem value="cancelada">Cancelada</SelectItem>
                   </SelectContent>
                 </Select>
@@ -217,7 +277,7 @@ export default function AtendimentosProfissional() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-2xl font-bold text-green-600">
-                    {atendimentos.filter(a => a.status === 'concluida').length}
+                    {atendimentos.filter(a => a.status === 'finalizada').length}
                   </div>
                   <p className="text-xs text-gray-600">Concluídas</p>
                 </CardContent>
@@ -336,15 +396,62 @@ export default function AtendimentosProfissional() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
                     <div className="text-sm text-gray-500">
                       Solicitado em {formatData(atendimento.data_solicitacao)}
                     </div>
+
+                    {/* Botão Dinâmico de Reembolso */}
+                    {atendimento.tem_reembolso ? (
+                      // Já tem reembolso solicitado
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => router.push('/dashboard/profissional/reembolsos')}
+                        className={
+                          atendimento.reembolso_status === 'pendente'
+                            ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50'
+                            : atendimento.reembolso_status === 'aprovado'
+                            ? 'border-green-300 text-green-700 hover:bg-green-50'
+                            : 'border-red-300 text-red-700 hover:bg-red-50'
+                        }
+                      >
+                        {atendimento.reembolso_status === 'pendente' && <Clock size={16} className="mr-2" />}
+                        {atendimento.reembolso_status === 'aprovado' && <CheckCircle2 size={16} className="mr-2" />}
+                        {atendimento.reembolso_status === 'negado' && <XCircle size={16} className="mr-2" />}
+                        {atendimento.reembolso_status === 'pendente' && 'Reembolso Pendente'}
+                        {atendimento.reembolso_status === 'aprovado' && 'Reembolso Aprovado'}
+                        {atendimento.reembolso_status === 'negado' && 'Reembolso Negado'}
+                        <ExternalLink size={14} className="ml-2" />
+                      </Button>
+                    ) : (
+                      // Não tem reembolso - mostrar botão para solicitar
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSolicitarReembolso(atendimento)}
+                        className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                      >
+                        <DollarSign size={16} className="mr-2" />
+                        Solicitar Reembolso
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
+        )}
+
+        {/* Modal de Reembolso */}
+        {atendimentoSelecionado && profissional && (
+          <ReembolsoModal
+            open={showReembolsoModal}
+            onOpenChange={setShowReembolsoModal}
+            atendimento={atendimentoSelecionado}
+            profissionalId={profissional.id}
+            onReembolsoSolicitado={handleReembolsoSolicitado}
+          />
         )}
       </div>
     </div>

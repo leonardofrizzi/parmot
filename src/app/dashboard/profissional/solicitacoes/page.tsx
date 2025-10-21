@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
 import { Calendar, MapPin, Search, Lock, CheckCircle2, Users } from "lucide-react"
 import * as Icons from "lucide-react"
@@ -101,8 +102,50 @@ export default function SolicitacoesProfissional() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <p className="text-gray-600">Carregando solicitações...</p>
+      <div className="p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header Skeleton */}
+          <div className="mb-8">
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+
+          {/* Filters Skeleton */}
+          <div className="mb-6 flex gap-4">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-10 flex-1" />
+          </div>
+
+          {/* Cards Skeleton */}
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Skeleton className="h-5 w-5 rounded" />
+                        <Skeleton className="h-6 w-64" />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-48" />
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-4" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-9 w-28" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
