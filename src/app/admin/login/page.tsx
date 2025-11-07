@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Lock, Mail } from "lucide-react"
+import { Shield } from "lucide-react"
 
 export default function AdminLogin() {
   const router = useRouter()
@@ -58,31 +58,32 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-slate-700 shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto">
-            <Shield size={32} className="text-white" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+              <Shield size={20} className="text-white" />
+            </div>
           </div>
-          <CardTitle className="text-3xl font-bold">Painel Admin</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-2xl font-bold text-center">
+            Painel Administrativo
+          </CardTitle>
+          <CardDescription className="text-center">
             Acesso restrito a administradores
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail size={16} />
-                Email
-              </Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 name="email"
@@ -91,15 +92,11 @@ export default function AdminLogin() {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="h-12"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="senha" className="flex items-center gap-2">
-                <Lock size={16} />
-                Senha
-              </Label>
+              <Label htmlFor="senha">Senha</Label>
               <Input
                 id="senha"
                 name="senha"
@@ -108,26 +105,22 @@ export default function AdminLogin() {
                 value={formData.senha}
                 onChange={handleChange}
                 required
-                className="h-12"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+              className="w-full"
               disabled={loading}
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
 
-            <div className="text-center text-sm text-gray-500">
-              <p>Credenciais padrão:</p>
-              <p className="font-mono text-xs mt-1">
-                admin@parmot.com / admin123
-              </p>
+            <div className="text-center text-xs text-gray-500 pt-2">
+              <p>Credenciais padrão: <span className="font-mono">admin@parmot.com / admin123</span></p>
             </div>
-          </form>
-        </CardContent>
+          </CardContent>
+        </form>
       </Card>
     </div>
   )

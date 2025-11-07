@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Categoria, Subcategoria } from "@/types/database"
-import { ChevronRight, ChevronLeft, Check } from "lucide-react"
+import { ChevronRight, ChevronLeft, Check, CheckCircle2, Clock } from "lucide-react"
 import * as Icons from "lucide-react"
 
 export default function SolicitarServico() {
@@ -75,9 +76,7 @@ export default function SolicitarServico() {
       }
 
       setSuccess(true)
-      setTimeout(() => {
-        router.push('/dashboard/cliente/solicitacoes')
-      }, 2000)
+      setLoading(false)
 
     } catch (err) {
       setError("Erro ao conectar com o servidor")
@@ -125,11 +124,6 @@ export default function SolicitarServico() {
           </div>
         )}
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-            Solicitação criada com sucesso! Redirecionando...
-          </div>
-        )}
 
         {/* Step 1: Selecionar Categoria */}
         {step === 1 && (
@@ -261,6 +255,47 @@ export default function SolicitarServico() {
             </div>
           </div>
         )}
+
+        {/* Dialog de Sucesso */}
+        <Dialog open={success} onOpenChange={(open) => {
+          if (!open) {
+            router.push('/dashboard/cliente/solicitacoes')
+          }
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 size={40} className="text-green-600" />
+              </div>
+              <DialogTitle className="text-center text-2xl">Solicitação Enviada com Sucesso!</DialogTitle>
+              <DialogDescription className="text-center space-y-3 pt-4">
+                <p className="text-base">
+                  Obrigado por utilizar nossos serviços! Sua solicitação está sendo analisada pela nossa equipe.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                  <div className="flex items-start gap-2">
+                    <Clock className="text-blue-600 mt-0.5 flex-shrink-0" size={18} />
+                    <div className="text-sm text-blue-900">
+                      <p className="font-semibold mb-1">Próximos passos:</p>
+                      <p>
+                        Assim que sua solicitação for aprovada, ela ficará disponível para os profissionais da sua região.
+                        Você poderá acompanhar as respostas na aba <strong>Minhas Solicitações</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                onClick={() => router.push('/dashboard/cliente/solicitacoes')}
+                className="w-full"
+              >
+                Ver Minhas Solicitações
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

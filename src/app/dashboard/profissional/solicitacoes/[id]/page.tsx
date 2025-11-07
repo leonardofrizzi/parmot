@@ -292,14 +292,20 @@ export default function DetalheSolicitacaoProfissional() {
                 </ul>
                 <Button
                   onClick={() => handleLiberar(false)}
-                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < CUSTO_CONTATO_NORMAL}
+                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < CUSTO_CONTATO_NORMAL || !profissional.aprovado}
                   className="w-full"
+                  title={!profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
                 >
-                  {unlocking ? "Liberando..." : `Liberar por ${CUSTO_CONTATO_NORMAL} moedas`}
+                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Liberar por ${CUSTO_CONTATO_NORMAL} moedas`}
                 </Button>
                 {profissional.saldo_moedas < CUSTO_CONTATO_NORMAL && (
                   <p className="text-xs text-red-600 mt-2 text-center">
                     Saldo insuficiente
+                  </p>
+                )}
+                {!profissional.aprovado && (
+                  <p className="text-xs text-yellow-600 mt-2 text-center">
+                    Aguardando aprovação da conta
                   </p>
                 )}
               </CardContent>
@@ -339,14 +345,20 @@ export default function DetalheSolicitacaoProfissional() {
                 </ul>
                 <Button
                   onClick={() => handleLiberar(true)}
-                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < CUSTO_CONTATO_EXCLUSIVO}
+                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < CUSTO_CONTATO_EXCLUSIVO || !profissional.aprovado}
                   className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
+                  title={!profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
                 >
-                  {unlocking ? "Liberando..." : `Garantir Exclusividade por ${CUSTO_CONTATO_EXCLUSIVO} moedas`}
+                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Garantir Exclusividade por ${CUSTO_CONTATO_EXCLUSIVO} moedas`}
                 </Button>
                 {profissional.saldo_moedas < CUSTO_CONTATO_EXCLUSIVO && (
                   <p className="text-xs text-red-600 mt-2 text-center">
                     Saldo insuficiente
+                  </p>
+                )}
+                {!profissional.aprovado && (
+                  <p className="text-xs text-yellow-600 mt-2 text-center">
+                    Aguardando aprovação da conta
                   </p>
                 )}
               </CardContent>

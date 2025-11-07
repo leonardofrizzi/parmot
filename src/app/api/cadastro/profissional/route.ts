@@ -1,28 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import bcrypt from 'bcryptjs'
-import { CadastroProfissionalDTO } from '@/types/database'
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CadastroProfissionalDTO = await request.json()
+    const formData = await request.formData()
+
+    // Extrair campos do FormData
+    const tipo = formData.get('tipo') as string
+    const nome = formData.get('nome') as string
+    const razaoSocial = formData.get('razaoSocial') as string | null
+    const email = formData.get('email') as string
+    const telefone = formData.get('telefone') as string
+    const cpfCnpj = formData.get('cpfCnpj') as string
+    const cidade = formData.get('cidade') as string
+    const estado = formData.get('estado') as string
+    const senha = formData.get('senha') as string
+    const documento = formData.get('documento') as File | null
 
     // Validações básicas
-    if (!body.nome || !body.email || !body.telefone || !body.cpfCnpj || !body.cidade || !body.estado || !body.senha) {
+    if (!nome || !email || !telefone || !cpfCnpj || !cidade || !estado || !senha) {
       return NextResponse.json(
         { error: 'Todos os campos são obrigatórios' },
         { status: 400 }
       )
     }
 
-    if (body.tipo === 'empresa' && !body.razaoSocial) {
+    if (tipo === 'empresa' && !razaoSocial) {
       return NextResponse.json(
         { error: 'Razão social é obrigatória para empresas' },
         { status: 400 }
       )
     }
 
-    if (body.senha.length < 6) {
+    if (senha.length < 6) {
       return NextResponse.json(
         { error: 'A senha deve ter no mínimo 6 caracteres' },
         { status: 400 }
@@ -33,7 +44,7 @@ export async function POST(request: NextRequest) {
     const { data: emailExists } = await supabase
       .from('profissionais')
       .select('id')
-      .eq('email', body.email)
+      .eq('email', email)
       .single()
 
     if (emailExists) {
@@ -47,7 +58,7 @@ export async function POST(request: NextRequest) {
     const { data: cpfCnpjExists } = await supabase
       .from('profissionais')
       .select('id')
-      .eq('cpf_cnpj', body.cpfCnpj)
+      .eq('cpf_cnpj', cpfCnpj)
       .single()
 
     if (cpfCnpjExists) {
@@ -58,22 +69,62 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash da senha
-    const senhaHash = await bcrypt.hash(body.senha, 10)
+    const senhaHash = await bcrypt.hash(senha, 10)
+
+    let documentoUrl: string | null = null
+
+    // Se houver documento, fazer upload para o Supabase Storage
+    if (documento && documento.size > 0) {
+      try {
+        const fileExt = documento.name.split('.').pop()
+        const fileName = `${cpfCnpj.replace(/[^\d]/g, '')}_${Date.now()}.${fileExt}`
+        const filePath = `documentos/${fileName}`
+
+        // Converter File para ArrayBuffer
+        const arrayBuffer = await documento.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        // Upload para Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('profissionais-documentos')
+          .upload(filePath, buffer, {
+            contentType: documento.type,
+            upsert: false
+          })
+
+        if (uploadError) {
+          console.error('Erro ao fazer upload do documento:', uploadError)
+          // Não bloqueia o cadastro se o upload falhar
+        } else {
+          // Gerar URL pública do arquivo
+          const { data: urlData } = supabase.storage
+            .from('profissionais-documentos')
+            .getPublicUrl(filePath)
+
+          documentoUrl = urlData.publicUrl
+        }
+      } catch (uploadErr) {
+        console.error('Erro no processo de upload:', uploadErr)
+        // Não bloqueia o cadastro
+      }
+    }
 
     // Inserir profissional
     const { data, error } = await supabase
       .from('profissionais')
       .insert({
-        tipo: body.tipo,
-        nome: body.nome,
-        razao_social: body.razaoSocial || null,
-        email: body.email,
-        telefone: body.telefone,
-        cpf_cnpj: body.cpfCnpj,
-        cidade: body.cidade,
-        estado: body.estado,
+        tipo,
+        nome,
+        razao_social: razaoSocial || null,
+        email,
+        telefone,
+        cpf_cnpj: cpfCnpj,
+        cidade,
+        estado,
         senha_hash: senhaHash,
         saldo_moedas: 0,
+        documento_url: documentoUrl,
+        aprovado: false
       })
       .select()
       .single()

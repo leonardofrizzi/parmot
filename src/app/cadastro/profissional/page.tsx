@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { LocationSelects } from "@/components/LocationSelects"
+import { Upload, FileText, X } from "lucide-react"
 
 type TipoProfissional = "autonomo" | "empresa"
 
@@ -23,6 +24,7 @@ export default function CadastroProfissional() {
     senha: "",
     confirmarSenha: "",
   })
+  const [documento, setDocumento] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
@@ -39,23 +41,34 @@ export default function CadastroProfissional() {
       return
     }
 
+    // Validar documento (opcional mas recomendado)
+    if (!documento) {
+      const confirmar = confirm(
+        "Você não enviou nenhum documento. Isso pode atrasar a aprovação da sua conta. Deseja continuar mesmo assim?"
+      )
+      if (!confirmar) {
+        setLoading(false)
+        return
+      }
+    }
+
     try {
+      // Primeiro, cadastrar o profissional
+      const formDataToSend = new FormData()
+      formDataToSend.append("tipo", tipo)
+      formDataToSend.append("nome", formData.nome)
+      if (formData.razaoSocial) formDataToSend.append("razaoSocial", formData.razaoSocial)
+      formDataToSend.append("email", formData.email)
+      formDataToSend.append("telefone", formData.telefone)
+      formDataToSend.append("cpfCnpj", formData.cpfCnpj)
+      formDataToSend.append("cidade", formData.cidade)
+      formDataToSend.append("estado", formData.estado)
+      formDataToSend.append("senha", formData.senha)
+      if (documento) formDataToSend.append("documento", documento)
+
       const response = await fetch("/api/cadastro/profissional", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tipo,
-          nome: formData.nome,
-          razaoSocial: formData.razaoSocial || undefined,
-          email: formData.email,
-          telefone: formData.telefone,
-          cpfCnpj: formData.cpfCnpj,
-          cidade: formData.cidade,
-          estado: formData.estado,
-          senha: formData.senha,
-        }),
+        body: formDataToSend,
       })
 
       const data = await response.json()
@@ -75,6 +88,25 @@ export default function CadastroProfissional() {
     } catch (err) {
       setError("Erro ao conectar com o servidor")
       setLoading(false)
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar tamanho (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("O arquivo deve ter no máximo 5MB")
+        return
+      }
+      // Validar tipo
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        return
+      }
+      setDocumento(file)
+      setError("")
     }
   }
 
@@ -190,6 +222,61 @@ export default function CadastroProfissional() {
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            {/* Campo de Upload de Documento */}
+            <div className="space-y-2">
+              <Label htmlFor="documento">
+                Documento de Identificação (opcional)
+              </Label>
+              <p className="text-xs text-gray-500 mb-2">
+                {tipo === "autonomo"
+                  ? "RG, CNH ou Certificado MEI (recomendado para aprovação mais rápida)"
+                  : "Contrato Social ou Cartão CNPJ (recomendado para aprovação mais rápida)"}
+              </p>
+
+              {!documento ? (
+                <label
+                  htmlFor="documento"
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 mb-2 text-gray-400" />
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
+                    </p>
+                    <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</p>
+                  </div>
+                  <input
+                    id="documento"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                  />
+                </label>
+              ) : (
+                <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{documento.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {(documento.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDocumento(null)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             <LocationSelects

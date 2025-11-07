@@ -304,6 +304,8 @@ export default function SolicitacoesProfissional() {
                     <Button
                       size="sm"
                       onClick={() => router.push(`/dashboard/profissional/solicitacoes/${solicitacao.id}`)}
+                      disabled={profissional && !profissional.aprovado}
+                      title={profissional && !profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
                     >
                       Ver detalhes
                     </Button>

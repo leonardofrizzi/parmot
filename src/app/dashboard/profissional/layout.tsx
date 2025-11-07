@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Sidebar from "@/components/Sidebar"
+import { ProfissionalPendenteAlert } from "@/components/ProfissionalPendenteAlert"
 
 export default function ProfissionalLayout({
   children,
@@ -11,6 +12,7 @@ export default function ProfissionalLayout({
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [profissional, setProfissional] = useState<any>(null)
 
   useEffect(() => {
     // Verificar autenticação
@@ -22,6 +24,8 @@ export default function ProfissionalLayout({
       return
     }
 
+    const user = JSON.parse(usuarioData)
+    setProfissional(user)
     setLoading(false)
   }, [router])
 
@@ -37,6 +41,13 @@ export default function ProfissionalLayout({
     <div className="flex h-screen overflow-hidden">
       <Sidebar tipo="profissional" />
       <main className="flex-1 overflow-y-auto bg-gray-50">
+        {profissional && !profissional.aprovado && (
+          <div className="sticky top-0 z-10 bg-gray-50 p-4 pb-0">
+            <div className="max-w-7xl mx-auto">
+              <ProfissionalPendenteAlert />
+            </div>
+          </div>
+        )}
         {children}
       </main>
     </div>

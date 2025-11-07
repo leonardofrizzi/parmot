@@ -220,6 +220,7 @@ export default function ComprarMoedas() {
                   onClick={adicionarMoedasTeste}
                   className="text-xs"
                   title="Apenas para testes - adiciona 100 moedas"
+                  disabled={profissional && !profissional.aprovado}
                 >
                   + 100 moedas (teste)
                 </Button>
@@ -288,11 +289,14 @@ export default function ComprarMoedas() {
                     className="w-full"
                     size="lg"
                     onClick={() => handleComprar(plano.id)}
-                    disabled={loading}
+                    disabled={loading || (profissional && !profissional.aprovado)}
                     variant={plano.recomendado ? "default" : "outline"}
+                    title={profissional && !profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
                   >
                     {loading && planoSelecionado === plano.id ? (
                       "Processando..."
+                    ) : profissional && !profissional.aprovado ? (
+                      "Conta pendente de aprovação"
                     ) : (
                       <>
                         Comprar agora
