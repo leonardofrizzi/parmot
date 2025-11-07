@@ -20,8 +20,12 @@ interface SolicitacaoReembolso {
   analisado_em: string | null
 }
 
+interface Profissional {
+  id: string
+}
+
 export default function ReembolsosProfissional() {
-  const [profissional, setProfissional] = useState<any>(null)
+  const [profissional, setProfissional] = useState<Profissional | null>(null)
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoReembolso[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -65,7 +69,7 @@ export default function ReembolsosProfissional() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+    const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ size?: number }> }> = {
       pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-700 border-yellow-300", icon: Clock },
       aprovado: { label: "Aprovado", color: "bg-green-100 text-green-700 border-green-300", icon: CheckCircle2 },
       negado: { label: "Negado", color: "bg-red-100 text-red-700 border-red-300", icon: XCircle },

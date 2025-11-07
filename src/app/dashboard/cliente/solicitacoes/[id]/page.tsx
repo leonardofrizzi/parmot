@@ -10,16 +10,61 @@ import { StarRating } from "@/components/StarRating"
 import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, Crown, Star, MessageSquare, XCircle, CheckCircle, PlayCircle, Ban } from "lucide-react"
 import * as Icons from "lucide-react"
 
+interface Cliente {
+  id: string
+}
+
+interface Profissional {
+  resposta_id: string
+  profissional_id: string
+  id?: string
+  nome?: string
+  profissional_nome?: string
+  profissional?: {
+    nome?: string
+    telefone?: string
+    email?: string
+  }
+  email: string
+  telefone: string
+  media_avaliacoes: number | null
+  total_avaliacoes: number
+  exclusivo: boolean
+  ja_avaliou?: boolean
+}
+
+interface Solicitacao {
+  id: string
+  titulo: string
+  descricao: string
+  status: string
+  categoria_nome: string
+  subcategoria_nome: string
+  categoria_icone?: string
+  created_at: string
+  cliente_cidade?: string
+  cliente_estado?: string
+  profissionais_interessados: Profissional[]
+  total_profissionais?: number
+  tem_exclusivo?: boolean
+}
+
+interface Avaliacao {
+  id: string
+  nota: number
+  comentario: string
+}
+
 export default function DetalheSolicitacaoCliente() {
   const router = useRouter()
   const params = useParams()
-  const [solicitacao, setSolicitacao] = useState<any>(null)
+  const [solicitacao, setSolicitacao] = useState<Solicitacao | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
-  const [cliente, setCliente] = useState<any>(null)
+  const [cliente, setCliente] = useState<Cliente | null>(null)
   const [showAvaliacaoModal, setShowAvaliacaoModal] = useState(false)
-  const [profissionalParaAvaliar, setProfissionalParaAvaliar] = useState<any>(null)
-  const [avaliacaoExistente, setAvaliacaoExistente] = useState<any>(null)
+  const [profissionalParaAvaliar, setProfissionalParaAvaliar] = useState<Profissional | null>(null)
+  const [avaliacaoExistente, setAvaliacaoExistente] = useState<Avaliacao | null>(null)
   const [showStatusDialog, setShowStatusDialog] = useState(false)
   const [statusParaAtualizar, setStatusParaAtualizar] = useState<string>("")
   const [loadingStatus, setLoadingStatus] = useState(false)
@@ -61,6 +106,8 @@ export default function DetalheSolicitacaoCliente() {
   }
 
   const verificarAvaliacao = async () => {
+    if (!solicitacao) return
+
     try {
       const response = await fetch(`/api/avaliacoes/solicitacao?solicitacao_id=${solicitacao.id}`)
       if (response.ok) {
@@ -72,7 +119,7 @@ export default function DetalheSolicitacaoCliente() {
     }
   }
 
-  const handleAvaliar = (profissional: any) => {
+  const handleAvaliar = (profissional: Profissional) => {
     setProfissionalParaAvaliar(profissional)
     setShowAvaliacaoModal(true)
   }
@@ -126,7 +173,7 @@ export default function DetalheSolicitacaoCliente() {
   }
 
   const getStatusInfo = (status: string) => {
-    const statusConfig: Record<string, { label: string; descricao: string; icon: any }> = {
+    const statusConfig: Record<string, { label: string; descricao: string; icon: React.ComponentType<{ size?: number }> }> = {
       em_andamento: {
         label: 'Em Andamento',
         descricao: 'Marque como em andamento quando começar a trabalhar com o profissional.',
@@ -306,7 +353,7 @@ export default function DetalheSolicitacaoCliente() {
               </div>
             ) : (
               <div className="space-y-4">
-                {solicitacao.profissionais_interessados.map((item: any) => (
+                {solicitacao.profissionais_interessados.map((item) => (
                   <Card key={item.resposta_id} className="border-2">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
@@ -328,11 +375,11 @@ export default function DetalheSolicitacaoCliente() {
                           </div>
 
                           {/* Botão de avaliar para serviços concluídos */}
-                          {solicitacao.status === 'finalizada' && !avaliacaoExistente && (
+                          {solicitacao.status === 'finalizada' && !avaliacaoExistente && item.profissional && (
                             <div className="mt-4">
                               <Button
                                 size="sm"
-                                onClick={() => handleAvaliar(item.profissional)}
+                                onClick={() => handleAvaliar(item as Profissional)}
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white"
                               >
                                 <Star size={16} className="mr-2" />
@@ -364,13 +411,13 @@ export default function DetalheSolicitacaoCliente() {
         </Card>
 
         {/* Modal de Avaliação */}
-        {profissionalParaAvaliar && cliente && (
+        {profissionalParaAvaliar && profissionalParaAvaliar.id && cliente && solicitacao && (
           <AvaliacaoModal
             open={showAvaliacaoModal}
             onOpenChange={setShowAvaliacaoModal}
             solicitacaoId={solicitacao.id}
             profissionalId={profissionalParaAvaliar.id}
-            profissionalNome={profissionalParaAvaliar.nome}
+            profissionalNome={profissionalParaAvaliar.nome || 'Profissional'}
             clienteId={cliente.id}
             onAvaliacaoEnviada={handleAvaliacaoEnviada}
           />

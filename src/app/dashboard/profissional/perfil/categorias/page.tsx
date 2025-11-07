@@ -10,9 +10,18 @@ import { Categoria } from "@/types/database"
 import { ArrowLeft, Check } from "lucide-react"
 import * as Icons from "lucide-react"
 
+interface Profissional {
+  id: string
+  atende_online?: boolean
+}
+
+interface ProfissionalCategoria {
+  categoria_id: string
+}
+
 export default function CategoriasProfissional() {
   const router = useRouter()
-  const [profissional, setProfissional] = useState<any>(null)
+  const [profissional, setProfissional] = useState<Profissional | null>(null)
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [categoriasSelecionadas, setCategoriasSelecionadas] = useState<string[]>([])
   const [atendeOnline, setAtendeOnline] = useState(false)
@@ -46,7 +55,7 @@ export default function CategoriasProfissional() {
       const dataProfCat = await responseProfCat.json()
 
       if (responseProfCat.ok) {
-        setCategoriasSelecionadas(dataProfCat.categorias.map((c: any) => c.categoria_id))
+        setCategoriasSelecionadas(dataProfCat.categorias.map((c: ProfissionalCategoria) => c.categoria_id))
       }
 
       setLoading(false)
@@ -66,6 +75,11 @@ export default function CategoriasProfissional() {
   }
 
   const handleSave = async () => {
+    if (!profissional) {
+      setError("Profissional não encontrado")
+      return
+    }
+
     if (categoriasSelecionadas.length === 0) {
       setError("Selecione pelo menos uma categoria")
       return

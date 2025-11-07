@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertCircle, Clock } from "lucide-react"
+import { Clock } from "lucide-react"
 
 export function ProfissionalPendenteAlert() {
   return (

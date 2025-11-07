@@ -25,10 +25,14 @@ interface Stats {
   finalizadas: number
 }
 
+interface SolicitacaoComInteressados extends Solicitacao {
+  total_profissionais_interessados?: number
+}
+
 export default function DashboardCliente() {
   const router = useRouter()
   const [cliente, setCliente] = useState<Cliente | null>(null)
-  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
+  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoComInteressados[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, abertas: 0, em_andamento: 0, finalizadas: 0 })
   const [loading, setLoading] = useState(true)
 
@@ -47,15 +51,15 @@ export default function DashboardCliente() {
       const data = await response.json()
 
       if (response.ok) {
-        const solicitacoesData = data.solicitacoes
+        const solicitacoesData = data.solicitacoes as SolicitacaoComInteressados[]
         setSolicitacoes(solicitacoesData.slice(0, 5)) // Pegar apenas as 5 mais recentes
 
         // Calcular estatísticas
         const stats = {
           total: solicitacoesData.length,
-          abertas: solicitacoesData.filter((s: any) => s.status === 'aberta').length,
-          em_andamento: solicitacoesData.filter((s: any) => s.status === 'em_andamento').length,
-          finalizadas: solicitacoesData.filter((s: any) => s.status === 'finalizada').length,
+          abertas: solicitacoesData.filter((s) => s.status === 'aberta').length,
+          em_andamento: solicitacoesData.filter((s) => s.status === 'em_andamento').length,
+          finalizadas: solicitacoesData.filter((s) => s.status === 'finalizada').length,
         }
         setStats(stats)
       }
@@ -68,7 +72,7 @@ export default function DashboardCliente() {
 
   const renderIcone = (nomeIcone?: string) => {
     if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
+    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as React.ComponentType<{ size?: number }>
     return IconComponent ? <IconComponent size={16} /> : null
   }
 
@@ -291,12 +295,12 @@ export default function DashboardCliente() {
                         </span>
                         <span>•</span>
                         <span>{solicitacao.categoria_nome}</span>
-                        {(solicitacao as any).total_profissionais_interessados > 0 && (
+                        {solicitacao.total_profissionais_interessados && solicitacao.total_profissionais_interessados > 0 && (
                           <>
                             <span>•</span>
                             <span className="flex items-center gap-1 text-green-600 font-semibold">
                               <Users size={12} />
-                              {(solicitacao as any).total_profissionais_interessados} profissional(is) interessado(s)
+                              {solicitacao.total_profissionais_interessados} profissional(is) interessado(s)
                             </span>
                           </>
                         )}

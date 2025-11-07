@@ -13,10 +13,24 @@ import * as Icons from "lucide-react"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
 
+interface Profissional {
+  id: string
+  estado: string
+  cidade: string
+  atende_online?: boolean
+}
+
+interface SolicitacaoComStatus extends Solicitacao {
+  ja_liberou?: boolean
+  vagas_disponiveis?: number
+  cliente_cidade?: string
+  cliente_estado?: string
+}
+
 export default function SolicitacoesProfissional() {
   const router = useRouter()
-  const [profissional, setProfissional] = useState<any>(null)
-  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
+  const [profissional, setProfissional] = useState<Profissional | null>(null)
+  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoComStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
@@ -50,7 +64,7 @@ export default function SolicitacoesProfissional() {
         return
       }
 
-      setSolicitacoes(data.solicitacoes)
+      setSolicitacoes(data.solicitacoes as SolicitacaoComStatus[])
       setLoading(false)
     } catch (err) {
       setError("Erro ao conectar com o servidor")
@@ -60,7 +74,7 @@ export default function SolicitacoesProfissional() {
 
   const renderIcone = (nomeIcone?: string) => {
     if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
+    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as React.ComponentType<{ size?: number }>
     return IconComponent ? <IconComponent size={20} /> : null
   }
 
@@ -78,11 +92,11 @@ export default function SolicitacoesProfissional() {
 
     // Aplicar filtro de status
     if (filtroStatus === "nao_liberados") {
-      resultado = resultado.filter((s: any) => !s.ja_liberou)
+      resultado = resultado.filter((s) => !s.ja_liberou)
     } else if (filtroStatus === "liberados") {
-      resultado = resultado.filter((s: any) => s.ja_liberou)
+      resultado = resultado.filter((s) => s.ja_liberou)
     } else if (filtroStatus === "com_vagas") {
-      resultado = resultado.filter((s: any) => !s.ja_liberou && (s.vagas_disponiveis || 0) > 0)
+      resultado = resultado.filter((s) => !s.ja_liberou && (s.vagas_disponiveis || 0) > 0)
     }
 
     // Aplicar filtro de pesquisa
@@ -244,7 +258,7 @@ export default function SolicitacoesProfissional() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {solicitacoesFiltradas.map((solicitacao: any) => (
+            {solicitacoesFiltradas.map((solicitacao) => (
               <Card key={solicitacao.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">

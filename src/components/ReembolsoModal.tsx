@@ -8,10 +8,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DollarSign, FileText, Link as LinkIcon, X, CheckCircle2 } from "lucide-react"
 
+interface Atendimento {
+  resposta_id: string
+  cliente_nome: string
+  exclusivo: boolean
+}
+
 interface ReembolsoModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  atendimento: any
+  atendimento: Atendimento
   profissionalId: string
   onReembolsoSolicitado?: () => void
 }

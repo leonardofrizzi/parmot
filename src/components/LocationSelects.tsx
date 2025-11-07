@@ -59,7 +59,7 @@ export function LocationSelects({
           setLoadingCidades(false)
         })
     }
-  }, [estado])
+  }, [estado, onCidadeChange])
 
   return (
     <>
