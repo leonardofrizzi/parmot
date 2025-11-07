@@ -96,12 +96,14 @@ export async function POST(request: NextRequest) {
           console.error('Erro ao fazer upload do documento:', uploadError)
           // Não bloqueia o cadastro se o upload falhar
         } else {
-          // Gerar URL pública do arquivo
-          const { data: urlData } = supabase.storage
+          // Gerar URL assinada (válida por 1 ano) para bucket privado
+          const { data: urlData, error: urlError } = await supabase.storage
             .from('profissionais-documentos')
-            .getPublicUrl(filePath)
+            .createSignedUrl(filePath, 31536000) // 365 dias em segundos
 
-          documentoUrl = urlData.publicUrl
+          if (!urlError && urlData) {
+            documentoUrl = urlData.signedUrl
+          }
         }
       } catch (uploadErr) {
         console.error('Erro no processo de upload:', uploadErr)
