@@ -16,12 +16,16 @@ export async function GET(request: NextRequest) {
         created_at,
         categoria_id,
         subcategoria_id,
-        cliente_id
+        cliente_id,
+        aprovado_admin,
+        aprovado_admin_em
       `)
       .order('created_at', { ascending: false })
 
     // Aplicar filtro
-    if (filtro !== 'todas') {
+    if (filtro === 'pendentes') {
+      query = query.eq('aprovado_admin', false)
+    } else if (filtro !== 'todas') {
       query = query.eq('status', filtro)
     }
 
@@ -77,7 +81,9 @@ export async function GET(request: NextRequest) {
           cliente_estado: cliente?.estado || 'N/A',
           categoria_nome: categoria?.nome || 'N/A',
           subcategoria_nome: subcategoria?.nome || 'N/A',
-          total_respostas: total_respostas || 0
+          total_respostas: total_respostas || 0,
+          aprovado_admin: sol.aprovado_admin || false,
+          aprovado_admin_em: sol.aprovado_admin_em
         }
       })
     )

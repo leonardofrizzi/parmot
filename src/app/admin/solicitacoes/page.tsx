@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { FileText, User, Calendar, MapPin, Tag } from "lucide-react"
+import { FileText, User, Calendar, MapPin, Tag, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
 
 interface Solicitacao {
   id: string
@@ -20,12 +20,15 @@ interface Solicitacao {
   categoria_nome: string
   subcategoria_nome: string
   total_respostas: number
+  aprovado_admin: boolean
+  aprovado_admin_em: string | null
 }
 
 export default function AdminSolicitacoes() {
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
   const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro] = useState<'todas' | 'aberta' | 'finalizada'>('todas')
+  const [filtro, setFiltro] = useState<'todas' | 'aberta' | 'finalizada' | 'pendentes'>('pendentes')
+  const [loadingAcao, setLoadingAcao] = useState(false)
 
   useEffect(() => {
     fetchSolicitacoes()
@@ -36,14 +39,55 @@ export default function AdminSolicitacoes() {
       const response = await fetch(`/api/admin/solicitacoes?filtro=${filtro}`)
       const data = await response.json()
 
+      console.log('Response status:', response.status)
+      console.log('Solicitações recebidas:', data)
+
       if (response.ok) {
-        setSolicitacoes(data.solicitacoes)
+        setSolicitacoes(data.solicitacoes || [])
+      } else {
+        console.error('Erro na resposta:', data)
       }
       setLoading(false)
     } catch (err) {
       console.error('Erro ao carregar solicitações:', err)
       setLoading(false)
     }
+  }
+
+  const handleAprovar = async (solicitacaoId: string) => {
+    setLoadingAcao(true)
+    try {
+      const response = await fetch('/api/admin/solicitacoes/aprovar', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solicitacao_id: solicitacaoId, aprovado: true })
+      })
+
+      if (response.ok) {
+        fetchSolicitacoes()
+      }
+    } catch (err) {
+      console.error('Erro ao aprovar solicitação:', err)
+    }
+    setLoadingAcao(false)
+  }
+
+  const handleRecusar = async (solicitacaoId: string) => {
+    setLoadingAcao(true)
+    try {
+      const response = await fetch('/api/admin/solicitacoes/aprovar', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solicitacao_id: solicitacaoId, aprovado: false })
+      })
+
+      if (response.ok) {
+        fetchSolicitacoes()
+      }
+    } catch (err) {
+      console.error('Erro ao recusar solicitação:', err)
+    }
+    setLoadingAcao(false)
   }
 
   const formatData = (data: string) => {
@@ -106,6 +150,12 @@ export default function AdminSolicitacoes() {
 
         {/* Filtros */}
         <div className="flex gap-2 mb-6">
+          <Button
+            variant={filtro === 'pendentes' ? 'default' : 'outline'}
+            onClick={() => setFiltro('pendentes')}
+          >
+            Pendentes de Aprovação
+          </Button>
           <Button
             variant={filtro === 'todas' ? 'default' : 'outline'}
             onClick={() => setFiltro('todas')}
@@ -195,6 +245,51 @@ export default function AdminSolicitacoes() {
                       {sol.total_respostas} resposta(s) de profissionais
                     </span>
                   </div>
+
+                  {/* Status de Aprovação */}
+                  {sol.aprovado_admin ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                      <CheckCircle2 size={18} className="text-green-600" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-800">Solicitação Aprovada</p>
+                        {sol.aprovado_admin_em && (
+                          <p className="text-xs text-green-600">
+                            Aprovada em {formatData(sol.aprovado_admin_em)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertCircle size={18} className="text-yellow-600" />
+                        <p className="text-sm font-medium text-yellow-800">
+                          Aguardando aprovação do administrador
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                          onClick={() => handleAprovar(sol.id)}
+                          disabled={loadingAcao}
+                        >
+                          <CheckCircle2 size={16} className="mr-1" />
+                          Aprovar Solicitação
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
+                          onClick={() => handleRecusar(sol.id)}
+                          disabled={loadingAcao}
+                        >
+                          <XCircle size={16} className="mr-1" />
+                          Recusar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

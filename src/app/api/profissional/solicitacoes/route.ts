@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ solicitacoes: [] })
     }
 
-    // Buscar solicitações abertas das categorias do profissional
+    // Buscar solicitações abertas E APROVADAS das categorias do profissional
     const { data, error } = await supabase
       .from('solicitacoes')
       .select(`
@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
         clientes:cliente_id(cidade, estado)
       `)
       .eq('status', 'aberta')
+      .eq('aprovado_admin', true)
       .in('categoria_id', categoriaIds)
       .order('created_at', { ascending: false })
 
