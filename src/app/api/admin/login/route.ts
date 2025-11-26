@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar admin por email
     const { data: admin, error: adminError } = await supabase
-      .from('admins')
+      .from('administradores')
       .select('*')
       .eq('email', email)
       .eq('ativo', true)
