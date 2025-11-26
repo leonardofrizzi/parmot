@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign, ArrowLeftRight, Briefcase, Users, Clock, Upload, X } from "lucide-react"
+import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign, ArrowLeftRight, Briefcase, Users, Clock, Upload, X, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -343,10 +343,15 @@ export default function Sidebar({ tipo }: SidebarProps) {
         {/* Logo / Header */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           {expanded ? (
-            <h1 className="text-xl font-bold text-primary-600">Parmot</h1>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <GraduationCap size={20} className="text-white" />
+              </div>
+              <span className="text-xl font-bold text-gray-900">Parmot</span>
+            </div>
           ) : (
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold mx-auto">
-              P
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center mx-auto">
+              <GraduationCap size={20} className="text-white" />
             </div>
           )}
         </div>
