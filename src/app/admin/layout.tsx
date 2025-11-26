@@ -13,9 +13,13 @@ export default function AdminLayout({
   const pathname = usePathname()
   const [loading, setLoading] = useState(true)
 
+  // Páginas públicas do admin (sem autenticação)
+  const publicPages = ['/admin/login', '/admin/configurar']
+  const isPublicPage = publicPages.includes(pathname)
+
   useEffect(() => {
-    // Não verificar autenticação na página de login
-    if (pathname === '/admin/login') {
+    // Não verificar autenticação em páginas públicas
+    if (isPublicPage) {
       setLoading(false)
       return
     }
@@ -29,10 +33,10 @@ export default function AdminLayout({
     }
 
     setLoading(false)
-  }, [router, pathname])
+  }, [router, pathname, isPublicPage])
 
-  // Página de login não usa o layout com sidebar
-  if (pathname === '/admin/login') {
+  // Páginas públicas não usam o layout com sidebar
+  if (isPublicPage) {
     return <>{children}</>
   }
 

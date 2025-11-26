@@ -88,7 +88,7 @@ export default function AdminLogin() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="admin@parmot.com"
+                placeholder="seu@email.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -115,10 +115,6 @@ export default function AdminLogin() {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
-
-            <div className="text-center text-xs text-gray-500 pt-2">
-              <p>Credenciais padrão: <span className="font-mono">admin@parmot.com / admin123</span></p>
-            </div>
           </CardContent>
         </form>
       </Card>
