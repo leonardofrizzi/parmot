@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -85,8 +86,8 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await documento.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        // Upload para Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        // Upload para Supabase Storage (usando admin client)
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
           .from('profissionais-documentos')
           .upload(filePath, buffer, {
             contentType: documento.type,
@@ -95,20 +96,26 @@ export async function POST(request: NextRequest) {
 
         if (uploadError) {
           console.error('Erro ao fazer upload do documento:', uploadError)
-          // Não bloqueia o cadastro se o upload falhar
+          return NextResponse.json(
+            { error: 'Erro ao fazer upload do documento. Tente novamente.' },
+            { status: 500 }
+          )
         } else {
-          // Gerar URL assinada (válida por 1 ano) para bucket privado
-          const { data: urlData, error: urlError } = await supabase.storage
+          // Gerar URL pública (bucket público)
+          const { data: urlData } = supabaseAdmin.storage
             .from('profissionais-documentos')
-            .createSignedUrl(filePath, 31536000) // 365 dias em segundos
+            .getPublicUrl(filePath)
 
-          if (!urlError && urlData) {
-            documentoUrl = urlData.signedUrl
+          if (urlData) {
+            documentoUrl = urlData.publicUrl
           }
         }
       } catch (uploadErr) {
         console.error('Erro no processo de upload:', uploadErr)
-        // Não bloqueia o cadastro
+        return NextResponse.json(
+          { error: 'Erro ao processar o documento. Tente novamente.' },
+          { status: 500 }
+        )
       }
     }
 

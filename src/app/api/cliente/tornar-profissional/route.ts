@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await documento.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabaseAdmin.storage
           .from('profissionais-documentos')
           .upload(filePath, buffer, {
             contentType: documento.type,
@@ -103,20 +104,26 @@ export async function POST(request: NextRequest) {
 
         if (uploadError) {
           console.error('Erro ao fazer upload do documento:', uploadError)
-          // Continua sem o documento, não é obrigatório
+          return NextResponse.json(
+            { error: 'Erro ao fazer upload do documento. Tente novamente.' },
+            { status: 500 }
+          )
         } else {
-          // Gerar URL assinada para bucket privado
-          const { data: urlData, error: urlError } = await supabase.storage
+          // Gerar URL pública (bucket público)
+          const { data: urlData } = supabaseAdmin.storage
             .from('profissionais-documentos')
-            .createSignedUrl(filePath, 31536000) // 365 dias
+            .getPublicUrl(filePath)
 
-          if (!urlError && urlData) {
-            documentoUrl = urlData.signedUrl
+          if (urlData) {
+            documentoUrl = urlData.publicUrl
           }
         }
       } catch (uploadErr) {
         console.error('Erro no processo de upload:', uploadErr)
-        // Continua sem o documento
+        return NextResponse.json(
+          { error: 'Erro ao processar o documento. Tente novamente.' },
+          { status: 500 }
+        )
       }
     }
 
