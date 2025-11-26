@@ -68,47 +68,46 @@ export default function ComprarMoedas() {
 
   const planos: PlanoMoedas[] = [
     {
-      id: "pacote_bronze",
-      nome: "Pacote Bronze",
-      moedas: 50,
+      id: "pacote_inicial",
+      nome: "Pacote Inicial",
+      moedas: 30,
       preco: 29.90,
       vantagens: [
-        "50 moedas",
-        "Até 10 contatos padrão",
-        "Ou 2 contatos exclusivos",
-        "Validade de 90 dias"
+        "30 moedas",
+        "Até 2 contatos padrão",
+        "Moedas nunca expiram",
+        "Ideal para começar"
       ]
     },
     {
-      id: "pacote_prata",
-      nome: "Pacote Prata",
-      moedas: 150,
-      preco: 79.90,
-      precoOriginal: 89.70,
-      desconto: "-11%",
+      id: "pacote_profissional",
+      nome: "Pacote Profissional",
+      moedas: 80,
+      preco: 69.90,
+      precoOriginal: 79.90,
+      desconto: "-12%",
       recomendado: true,
       vantagens: [
-        "150 moedas (bônus +20)",
-        "Até 30 contatos padrão",
-        "Ou 7 contatos exclusivos",
-        "Validade de 180 dias",
-        "Suporte prioritário"
+        "80 moedas",
+        "Até 5 contatos padrão",
+        "Ou 1 contato exclusivo",
+        "Moedas nunca expiram",
+        "Melhor custo-benefício"
       ]
     },
     {
-      id: "pacote_ouro",
-      nome: "Pacote Ouro",
-      moedas: 350,
-      preco: 169.90,
-      precoOriginal: 209.30,
-      desconto: "-19%",
+      id: "pacote_premium",
+      nome: "Pacote Premium",
+      moedas: 200,
+      preco: 149.90,
+      precoOriginal: 199.90,
+      desconto: "-25%",
       vantagens: [
-        "350 moedas (bônus +70)",
-        "Até 70 contatos padrão",
-        "Ou 17 contatos exclusivos",
-        "Validade de 1 ano",
-        "Suporte VIP 24/7",
-        "Acesso antecipado"
+        "200 moedas",
+        "Até 13 contatos padrão",
+        "Ou 4 contatos exclusivos",
+        "Moedas nunca expiram",
+        "Suporte prioritário"
       ]
     }
   ]
@@ -324,7 +323,7 @@ export default function ComprarMoedas() {
                     <Coins className="text-primary-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Contato Padrão - 5 moedas</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Contato Padrão - 15 moedas</h3>
                     <p className="text-sm text-gray-600">
                       Acesse o contato do cliente. Até 4 profissionais podem liberar o mesmo contato.
                     </p>
@@ -336,7 +335,7 @@ export default function ComprarMoedas() {
                     <Sparkles className="text-purple-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Exclusividade - 20 moedas</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Exclusividade - 50 moedas</h3>
                     <p className="text-sm text-gray-600">
                       Seja o único profissional com acesso ao contato. Nenhum outro profissional poderá liberar.
                     </p>
@@ -348,9 +347,9 @@ export default function ComprarMoedas() {
                     <TrendingUp className="text-green-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Mais moedas, mais economia</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Moedas não expiram</h3>
                     <p className="text-sm text-gray-600">
-                      Pacotes maiores possuem moedas bônus e melhor custo-benefício.
+                      Suas moedas nunca vencem. Use quando quiser, sem prazo de validade.
                     </p>
                   </div>
                 </div>
@@ -418,7 +417,7 @@ export default function ComprarMoedas() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">As moedas têm validade?</h4>
                 <p className="text-sm text-gray-600">
-                  Sim, cada pacote tem uma validade específica. Pacote Bronze: 90 dias, Prata: 180 dias, Ouro: 1 ano.
+                  Não! Suas moedas nunca expiram. Use quando quiser, sem pressa.
                 </p>
               </div>
               <div>
@@ -431,6 +430,12 @@ export default function ComprarMoedas() {
                 <h4 className="font-semibold text-gray-900 mb-1">Quais formas de pagamento são aceitas?</h4>
                 <p className="text-sm text-gray-600">
                   Aceitamos cartão de crédito, débito, PIX e boleto bancário via Mercado Pago.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-1">Qual a diferença entre contato padrão e exclusivo?</h4>
+                <p className="text-sm text-gray-600">
+                  No padrão (15 moedas), até 4 profissionais podem ver o contato. No exclusivo (50 moedas), só você tem acesso.
                 </p>
               </div>
             </CardContent>

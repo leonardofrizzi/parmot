@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-const CUSTO_CONTATO_NORMAL = 5
-const CUSTO_CONTATO_EXCLUSIVO = 20
+const CUSTO_CONTATO_NORMAL = 15
+const CUSTO_CONTATO_EXCLUSIVO = 50
 const MAX_PROFISSIONAIS = 4
 
 export async function POST(request: NextRequest) {

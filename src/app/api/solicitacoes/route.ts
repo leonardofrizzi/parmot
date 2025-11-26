@@ -5,7 +5,7 @@ import { SolicitacaoDTO } from '@/types/database'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { cliente_id, titulo, descricao, categoria_id, subcategoria_id } = body as SolicitacaoDTO & { cliente_id: string }
+    const { cliente_id, titulo, descricao, categoria_id, subcategoria_id, modalidade } = body as SolicitacaoDTO & { cliente_id: string, modalidade?: string }
 
     // Validações
     if (!cliente_id || !titulo || !descricao || !categoria_id || !subcategoria_id) {
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
         descricao,
         categoria_id,
         subcategoria_id,
+        modalidade: modalidade || 'presencial',
         status: 'aberta'
       })
       .select()

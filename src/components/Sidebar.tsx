@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign } from "lucide-react"
+import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign, ArrowLeftRight, Briefcase, Users, Clock, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -14,8 +17,111 @@ interface SidebarProps {
 
 export default function Sidebar({ tipo }: SidebarProps) {
   const [expanded, setExpanded] = useState(false)
+  const [saldoMoedas, setSaldoMoedas] = useState<number | null>(null)
+  const [outroPerfilId, setOutroPerfilId] = useState<string | null>(null)
+  const [outroPerfilAprovado, setOutroPerfilAprovado] = useState<boolean>(true)
+  const [switching, setSwitching] = useState(false)
+  const [usuario, setUsuario] = useState<any>(null)
   const pathname = usePathname()
   const router = useRouter()
+
+  // Modal states
+  const [showModal, setShowModal] = useState(false)
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalSuccess, setModalSuccess] = useState(false)
+  const [modalError, setModalError] = useState("")
+
+  // Form states para virar profissional (quando é cliente)
+  const [profForm, setProfForm] = useState({
+    tipo: "autonomo" as "autonomo" | "empresa",
+    cpf_cnpj: "",
+    razao_social: "",
+    telefone: "",
+    senha: "",
+    confirmarSenha: "",
+  })
+  const [documento, setDocumento] = useState<File | null>(null)
+
+  // Form states para virar cliente (quando é profissional)
+  const [clienteForm, setClienteForm] = useState({
+    senha: "",
+    confirmarSenha: "",
+  })
+
+  // Buscar dados atualizados do usuário e verificar se tem outro perfil
+  useEffect(() => {
+    const fetchUsuarioAtualizado = async () => {
+      const usuarioData = localStorage.getItem('usuario')
+      if (!usuarioData) return
+
+      const user = JSON.parse(usuarioData)
+      setUsuario(user)
+
+      // Buscar dados atualizados do banco para garantir que temos profissional_id/cliente_id correto
+      try {
+        const endpoint = tipo === "profissional"
+          ? `/api/profissional/${user.id}`
+          : `/api/cliente/dados/${user.id}`
+
+        const response = await fetch(endpoint)
+        if (response.ok) {
+          const data = await response.json()
+          const usuarioAtualizado = data.profissional || data.cliente
+
+          if (usuarioAtualizado) {
+            // Atualizar localStorage com dados mais recentes
+            localStorage.setItem('usuario', JSON.stringify(usuarioAtualizado))
+            setUsuario(usuarioAtualizado)
+
+            if (tipo === "profissional") {
+              fetchSaldo(user.id)
+              if (usuarioAtualizado.cliente_id) {
+                setOutroPerfilId(usuarioAtualizado.cliente_id)
+                setOutroPerfilAprovado(true) // Cliente não precisa aprovação
+              }
+            } else {
+              if (usuarioAtualizado.profissional_id) {
+                setOutroPerfilId(usuarioAtualizado.profissional_id)
+                // Buscar status de aprovação do profissional
+                const profResponse = await fetch(`/api/profissional/${usuarioAtualizado.profissional_id}`)
+                if (profResponse.ok) {
+                  const profData = await profResponse.json()
+                  setOutroPerfilAprovado(profData.profissional?.aprovado || false)
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados atualizados:", error)
+        // Fallback para dados do localStorage
+        if (tipo === "profissional") {
+          fetchSaldo(user.id)
+          if (user.cliente_id) {
+            setOutroPerfilId(user.cliente_id)
+          }
+        } else {
+          if (user.profissional_id) {
+            setOutroPerfilId(user.profissional_id)
+          }
+        }
+      }
+    }
+
+    fetchUsuarioAtualizado()
+  }, [tipo])
+
+  const fetchSaldo = async (profissionalId: string) => {
+    try {
+      const response = await fetch(`/api/profissional/saldo?profissional_id=${profissionalId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setSaldoMoedas(data.saldo)
+      }
+    } catch (error) {
+      console.error("Erro ao buscar saldo:", error)
+    }
+  }
 
   const menuItemsCliente = [
     { icon: Home, label: "Início", href: "/dashboard/cliente" },
@@ -41,6 +147,183 @@ export default function Sidebar({ tipo }: SidebarProps) {
     router.push('/login')
   }
 
+  // Função para clicar no toggle
+  const handleToggleClick = () => {
+    if (outroPerfilId) {
+      // Já tem outro perfil
+      if (tipo === "cliente" && !outroPerfilAprovado) {
+        // Profissional ainda não aprovado, não permitir switch
+        return
+      }
+      // Fazer switch direto
+      handleSwitchMode()
+    } else {
+      // Não tem outro perfil, abrir modal para criar
+      setShowModal(true)
+      setModalError("")
+      setModalSuccess(false)
+    }
+  }
+
+  // Função para alternar entre modos cliente/profissional (quando já tem ambos)
+  const handleSwitchMode = async () => {
+    if (!outroPerfilId || switching) return
+
+    setSwitching(true)
+
+    try {
+      const novoTipo = tipo === "cliente" ? "profissional" : "cliente"
+      const response = await fetch(`/api/${novoTipo === "profissional" ? "profissional" : "cliente/dados"}/${outroPerfilId}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem('usuario', JSON.stringify(data.usuario || data.profissional || data.cliente))
+        localStorage.setItem('tipoUsuario', novoTipo)
+        router.push(`/dashboard/${novoTipo}`)
+      } else {
+        console.error("Erro ao buscar dados do outro perfil")
+      }
+    } catch (error) {
+      console.error("Erro ao trocar de modo:", error)
+    } finally {
+      setSwitching(false)
+    }
+  }
+
+  // Handler para upload de documento
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar tamanho (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setModalError("O arquivo deve ter no máximo 5MB")
+        return
+      }
+      // Validar tipo
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setModalError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        return
+      }
+      setDocumento(file)
+      setModalError("")
+    }
+  }
+
+  // Criar conta de profissional (quando é cliente)
+  const handleCriarProfissional = async () => {
+    setModalError("")
+    setModalLoading(true)
+
+    if (profForm.senha !== profForm.confirmarSenha) {
+      setModalError("As senhas não coincidem")
+      setModalLoading(false)
+      return
+    }
+
+    if (profForm.senha.length < 6) {
+      setModalError("A senha deve ter no mínimo 6 caracteres")
+      setModalLoading(false)
+      return
+    }
+
+    if (!profForm.cpf_cnpj) {
+      setModalError(profForm.tipo === "autonomo" ? "CPF é obrigatório" : "CNPJ é obrigatório")
+      setModalLoading(false)
+      return
+    }
+
+    if (!profForm.telefone) {
+      setModalError("Telefone é obrigatório para profissionais")
+      setModalLoading(false)
+      return
+    }
+
+    try {
+      // Usar FormData para enviar documento
+      const formData = new FormData()
+      formData.append("cliente_id", usuario?.id)
+      formData.append("tipo", profForm.tipo)
+      formData.append("cpf_cnpj", profForm.cpf_cnpj)
+      formData.append("razao_social", profForm.razao_social || "")
+      formData.append("telefone", profForm.telefone)
+      formData.append("senha", profForm.senha)
+      if (documento) {
+        formData.append("documento", documento)
+      }
+
+      const response = await fetch("/api/cliente/tornar-profissional", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setModalError(data.error || "Erro ao criar conta de profissional")
+        setModalLoading(false)
+        return
+      }
+
+      setModalSuccess(true)
+      setModalLoading(false)
+      setDocumento(null) // Limpar documento após sucesso
+    } catch (err) {
+      setModalError("Erro ao conectar com o servidor")
+      setModalLoading(false)
+    }
+  }
+
+  // Criar conta de cliente (quando é profissional)
+  const handleCriarCliente = async () => {
+    setModalError("")
+    setModalLoading(true)
+
+    if (clienteForm.senha !== clienteForm.confirmarSenha) {
+      setModalError("As senhas não coincidem")
+      setModalLoading(false)
+      return
+    }
+
+    if (clienteForm.senha.length < 6) {
+      setModalError("A senha deve ter no mínimo 6 caracteres")
+      setModalLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch("/api/profissional/tornar-cliente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profissional_id: usuario?.id,
+          senha: clienteForm.senha,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setModalError(data.error || "Erro ao criar conta de cliente")
+        setModalLoading(false)
+        return
+      }
+
+      setModalSuccess(true)
+      setModalLoading(false)
+    } catch (err) {
+      setModalError("Erro ao conectar com o servidor")
+      setModalLoading(false)
+    }
+  }
+
+  const handleModalClose = () => {
+    setShowModal(false)
+    if (modalSuccess) {
+      window.location.reload()
+    }
+  }
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
@@ -49,7 +332,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
           expanded ? "w-64" : "w-20"
         )}
       >
-        {/* Botão de expandir/retrair - ABSOLUTE */}
+        {/* Botão de expandir/retrair */}
         <button
           onClick={() => setExpanded(!expanded)}
           className="absolute -right-3 top-8 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors z-10 shadow-sm"
@@ -67,6 +350,125 @@ export default function Sidebar({ tipo }: SidebarProps) {
             </div>
           )}
         </div>
+
+        {/* Toggle Modo Cliente/Profissional - SEMPRE APARECE */}
+        <div className={cn("mx-3 mt-4", !expanded && "mx-2")}>
+          {expanded ? (
+            <button
+              onClick={handleToggleClick}
+              disabled={switching}
+              className={cn(
+                "w-full p-3 rounded-lg border-2 transition-all",
+                tipo === "cliente"
+                  ? "bg-blue-50 border-blue-200 hover:bg-blue-100"
+                  : "bg-purple-50 border-purple-200 hover:bg-purple-100",
+                switching && "opacity-50 cursor-wait"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {tipo === "cliente" ? (
+                    <Users className="text-blue-600" size={18} />
+                  ) : (
+                    <Briefcase className="text-purple-600" size={18} />
+                  )}
+                  <span className={cn(
+                    "text-sm font-medium",
+                    tipo === "cliente" ? "text-blue-700" : "text-purple-700"
+                  )}>
+                    {tipo === "cliente" ? "Modo Cliente" : "Modo Profissional"}
+                  </span>
+                </div>
+                <ArrowLeftRight size={16} className={cn(
+                  tipo === "cliente" ? "text-blue-500" : "text-purple-500",
+                  switching && "animate-spin"
+                )} />
+              </div>
+              <p className={cn(
+                "text-xs mt-1 text-left",
+                tipo === "cliente"
+                  ? (outroPerfilId && !outroPerfilAprovado ? "text-orange-600" : "text-blue-600")
+                  : "text-purple-600"
+              )}>
+                {outroPerfilId
+                  ? (tipo === "cliente" && !outroPerfilAprovado
+                      ? "⏳ Aguardando aprovação do admin"
+                      : `Alternar para ${tipo === "cliente" ? "profissional" : "cliente"}`)
+                  : `Quero ${tipo === "cliente" ? "oferecer serviços" : "solicitar serviços"}`
+                }
+              </p>
+            </button>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleToggleClick}
+                  disabled={switching}
+                  className={cn(
+                    "w-full p-2 rounded-lg border-2 flex flex-col items-center transition-all",
+                    tipo === "cliente"
+                      ? "bg-blue-50 border-blue-200 hover:bg-blue-100"
+                      : "bg-purple-50 border-purple-200 hover:bg-purple-100",
+                    switching && "opacity-50 cursor-wait"
+                  )}
+                >
+                  {tipo === "cliente" ? (
+                    <Users className="text-blue-600" size={18} />
+                  ) : (
+                    <Briefcase className="text-purple-600" size={18} />
+                  )}
+                  <ArrowLeftRight size={12} className={cn(
+                    "mt-1",
+                    tipo === "cliente" ? "text-blue-500" : "text-purple-500",
+                    switching && "animate-spin"
+                  )} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>
+                  {outroPerfilId
+                    ? (tipo === "cliente" && !outroPerfilAprovado
+                        ? "Aguardando aprovação do admin"
+                        : `Alternar para ${tipo === "cliente" ? "profissional" : "cliente"}`)
+                    : `Tornar-se ${tipo === "cliente" ? "profissional" : "cliente"}`
+                  }
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Saldo de Moedas - Apenas para profissionais */}
+        {tipo === "profissional" && saldoMoedas !== null && (
+          <Link href="/dashboard/profissional/moedas">
+            <div className={cn(
+              "mx-3 mt-4 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg cursor-pointer hover:from-yellow-100 hover:to-amber-100 transition-colors",
+              !expanded && "p-2"
+            )}>
+              {expanded ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Coins className="text-yellow-600" size={20} />
+                    <span className="text-sm font-medium text-gray-700">Seu saldo</span>
+                  </div>
+                  <span className="text-lg font-bold text-yellow-700">{saldoMoedas}</span>
+                </div>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex flex-col items-center">
+                      <Coins className="text-yellow-600" size={18} />
+                      <span className="text-xs font-bold text-yellow-700 mt-1">{saldoMoedas}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Saldo: {saldoMoedas} moedas</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </Link>
+        )}
 
         {/* Menu Items */}
         <nav className="flex-1 px-3 py-6 space-y-1">
@@ -117,7 +519,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
 
         {/* Dark Mode & Logout */}
         <div className="px-3 py-4 border-t border-gray-200 space-y-1">
-          {/* Dark Mode */}
           {expanded ? (
             <Button
               variant="ghost"
@@ -143,7 +544,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
             </Tooltip>
           )}
 
-          {/* Logout */}
           {expanded ? (
             <Button
               variant="ghost"
@@ -172,6 +572,220 @@ export default function Sidebar({ tipo }: SidebarProps) {
           )}
         </div>
       </aside>
+
+      {/* Modal para criar outro perfil */}
+      <Dialog open={showModal} onOpenChange={handleModalClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          {!modalSuccess ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {tipo === "cliente" ? "Tornar-se Profissional" : "Tornar-se Cliente"}
+                </DialogTitle>
+                <DialogDescription>
+                  {tipo === "cliente"
+                    ? "Preencha os dados abaixo para oferecer seus serviços na plataforma"
+                    : "Defina uma senha para acessar como cliente"
+                  }
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {tipo === "cliente" ? (
+                  // Formulário para cliente virar profissional
+                  <>
+                    <div className="space-y-2">
+                      <Label>Tipo de cadastro</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          type="button"
+                          variant={profForm.tipo === "autonomo" ? "default" : "outline"}
+                          onClick={() => setProfForm({ ...profForm, tipo: "autonomo" })}
+                          className="w-full"
+                        >
+                          Autônomo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={profForm.tipo === "empresa" ? "default" : "outline"}
+                          onClick={() => setProfForm({ ...profForm, tipo: "empresa" })}
+                          className="w-full"
+                        >
+                          Empresa
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>{profForm.tipo === "autonomo" ? "CPF" : "CNPJ"} <span className="text-red-500">*</span></Label>
+                      <Input
+                        placeholder={profForm.tipo === "autonomo" ? "000.000.000-00" : "00.000.000/0000-00"}
+                        value={profForm.cpf_cnpj}
+                        onChange={(e) => setProfForm({ ...profForm, cpf_cnpj: e.target.value })}
+                      />
+                    </div>
+
+                    {profForm.tipo === "empresa" && (
+                      <div className="space-y-2">
+                        <Label>Razão Social <span className="text-red-500">*</span></Label>
+                        <Input
+                          placeholder="Nome da empresa"
+                          value={profForm.razao_social}
+                          onChange={(e) => setProfForm({ ...profForm, razao_social: e.target.value })}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>Telefone/WhatsApp <span className="text-red-500">*</span></Label>
+                      <Input
+                        type="tel"
+                        placeholder="(00) 00000-0000"
+                        value={profForm.telefone}
+                        onChange={(e) => setProfForm({ ...profForm, telefone: e.target.value })}
+                      />
+                    </div>
+
+                    {/* Upload de Documento */}
+                    <div className="space-y-2">
+                      <Label>Documento (opcional)</Label>
+                      <p className="text-xs text-gray-500">
+                        {profForm.tipo === "autonomo"
+                          ? "RG, CNH ou Certificado (recomendado)"
+                          : "Contrato Social ou Cartão CNPJ"}
+                      </p>
+
+                      {!documento ? (
+                        <label
+                          htmlFor="documento-modal"
+                          className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex flex-col items-center justify-center py-3">
+                            <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                            <p className="text-xs text-gray-500">
+                              <span className="font-semibold">Clique para enviar</span>
+                            </p>
+                            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
+                          </div>
+                          <input
+                            id="documento-modal"
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center justify-between p-2 border border-gray-300 rounded-lg bg-gray-50">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-primary-600" />
+                            <div>
+                              <p className="text-xs font-medium text-gray-900 truncate max-w-[180px]">{documento.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {(documento.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDocumento(null)}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Senha para acesso profissional <span className="text-red-500">*</span></Label>
+                      <Input
+                        type="password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={profForm.senha}
+                        onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Confirmar senha <span className="text-red-500">*</span></Label>
+                      <Input
+                        type="password"
+                        placeholder="Confirme sua senha"
+                        value={profForm.confirmarSenha}
+                        onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  // Formulário para profissional virar cliente
+                  <>
+                    <div className="space-y-2">
+                      <Label>Senha para acesso como cliente <span className="text-red-500">*</span></Label>
+                      <Input
+                        type="password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={clienteForm.senha}
+                        onChange={(e) => setClienteForm({ ...clienteForm, senha: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Confirmar senha <span className="text-red-500">*</span></Label>
+                      <Input
+                        type="password"
+                        placeholder="Confirme sua senha"
+                        value={clienteForm.confirmarSenha}
+                        onChange={(e) => setClienteForm({ ...clienteForm, confirmarSenha: e.target.value })}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {modalError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                    {modalError}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowModal(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={tipo === "cliente" ? handleCriarProfissional : handleCriarCliente}
+                  disabled={modalLoading}
+                >
+                  {modalLoading ? "Criando..." : "Criar conta"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock size={32} className="text-green-600" />
+                </div>
+                <DialogTitle className="text-center">Conta criada com sucesso!</DialogTitle>
+                <DialogDescription className="text-center">
+                  {tipo === "cliente"
+                    ? "Sua conta de profissional foi criada e está aguardando aprovação do administrador."
+                    : "Sua conta de cliente foi criada. Agora você pode solicitar serviços na plataforma."
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={handleModalClose} className="w-full">
+                  Entendi
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   )
 }

@@ -7,10 +7,10 @@ export async function POST(request: NextRequest) {
   try {
     const body: CadastroClienteDTO = await request.json()
 
-    // Validações básicas
-    if (!body.nome || !body.email || !body.telefone || !body.cidade || !body.estado || !body.senha) {
+    // Validações básicas (telefone é opcional para clientes)
+    if (!body.nome || !body.email || !body.cidade || !body.estado || !body.senha) {
       return NextResponse.json(
-        { error: 'Todos os campos são obrigatórios' },
+        { error: 'Preencha todos os campos obrigatórios' },
         { status: 400 }
       )
     }
@@ -39,16 +39,17 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const senhaHash = await bcrypt.hash(body.senha, 10)
 
-    // Inserir cliente
+    // Inserir cliente (telefone é opcional)
     const { data, error } = await supabase
       .from('clientes')
       .insert({
         nome: body.nome,
         email: body.email,
-        telefone: body.telefone,
+        telefone: body.telefone || null,
         cidade: body.cidade,
         estado: body.estado,
         senha_hash: senhaHash,
+        email_verificado: body.email_verificado || false,
       })
       .select()
       .single()

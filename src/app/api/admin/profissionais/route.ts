@@ -10,12 +10,14 @@ export async function GET(request: NextRequest) {
       .from('profissionais')
       .select(`
         id,
+        tipo,
         nome,
+        razao_social,
         email,
         telefone,
+        cpf_cnpj,
         cidade,
         estado,
-        profissao,
         aprovado,
         created_at
       `)

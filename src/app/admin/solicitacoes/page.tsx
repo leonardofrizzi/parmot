@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { FileText, User, Calendar, MapPin, Tag, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
+import { FileText, User, Calendar, MapPin, Tag, CheckCircle2, XCircle, AlertCircle, Monitor, Users, Globe } from "lucide-react"
 
 interface Solicitacao {
   id: string
   titulo: string
   descricao: string
   status: string
+  modalidade: 'presencial' | 'online' | 'ambos'
   created_at: string
   cliente_nome: string
   cliente_email: string
@@ -208,6 +209,16 @@ export default function AdminSolicitacoes() {
                         <span className="flex items-center gap-1">
                           <Tag size={14} />
                           {sol.categoria_nome} → {sol.subcategoria_nome}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          {sol.modalidade === 'online' ? (
+                            <Monitor size={14} />
+                          ) : sol.modalidade === 'ambos' ? (
+                            <Globe size={14} />
+                          ) : (
+                            <Users size={14} />
+                          )}
+                          {sol.modalidade === 'online' ? 'Online' : sol.modalidade === 'ambos' ? 'Presencial ou Online' : 'Presencial'}
                         </span>
                       </CardDescription>
                     </div>

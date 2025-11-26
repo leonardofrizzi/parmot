@@ -5,8 +5,9 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Solicitacao } from "@/types/database"
-import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building } from "lucide-react"
 import * as Icons from "lucide-react"
+import MapaLocalizacao from "@/components/MapaLocalizacao"
 
 interface Resposta {
   id: string
@@ -16,8 +17,8 @@ interface Resposta {
   created_at: string
 }
 
-const CUSTO_CONTATO_NORMAL = 5 // moedas
-const CUSTO_CONTATO_EXCLUSIVO = 20 // moedas
+const CUSTO_CONTATO_NORMAL = 15 // moedas
+const CUSTO_CONTATO_EXCLUSIVO = 50 // moedas
 const MAX_PROFISSIONAIS = 4
 
 export default function DetalheSolicitacaoProfissional() {
@@ -228,6 +229,51 @@ export default function DetalheSolicitacaoProfissional() {
                 {solicitacao.descricao}
               </p>
             </div>
+
+            {/* Modalidade de atendimento */}
+            {(solicitacao as any).modalidade && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Modalidade de atendimento</h3>
+                <div className="flex items-center gap-2">
+                  {(solicitacao as any).modalidade === 'online' && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                      <Video size={14} />
+                      Online
+                    </span>
+                  )}
+                  {(solicitacao as any).modalidade === 'presencial' && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                      <Building size={14} />
+                      Presencial
+                    </span>
+                  )}
+                  {(solicitacao as any).modalidade === 'ambos' && (
+                    <>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                        <Video size={14} />
+                        Online
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        <Building size={14} />
+                        Presencial
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Mapa de localização aproximada */}
+            {solicitacao.cliente_cidade && solicitacao.cliente_estado && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Localização aproximada</h3>
+                <MapaLocalizacao
+                  cidade={solicitacao.cliente_cidade}
+                  estado={solicitacao.cliente_estado}
+                  className="h-[250px]"
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

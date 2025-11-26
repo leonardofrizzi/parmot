@@ -6,21 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink } from "lucide-react"
+import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard } from "lucide-react"
 
 interface Profissional {
   id: string
+  tipo: 'autonomo' | 'empresa'
   nome: string
+  razao_social?: string
   email: string
   telefone: string
+  cpf_cnpj: string
   cidade: string
   estado: string
-  profissao: string
   aprovado: boolean
   created_at: string
   categorias: string[]
-  documento_url: string | null
-  cpf_cnpj: string
+  documento_url?: string | null
 }
 
 export default function AdminProfissionais() {
@@ -202,7 +203,11 @@ export default function AdminProfissionais() {
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <Briefcase size={14} />
-                      <span>{prof.profissao}</span>
+                      <span>{prof.tipo === 'empresa' ? `Empresa: ${prof.razao_social || 'N/A'}` : 'Autônomo'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <IdCard size={14} />
+                      <span>{prof.tipo === 'empresa' ? 'CNPJ' : 'CPF'}: {prof.cpf_cnpj}</span>
                     </div>
                   </div>
 

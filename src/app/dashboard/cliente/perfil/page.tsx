@@ -1,12 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LocationSelects } from "@/components/LocationSelects"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Briefcase, CheckCircle2, Clock } from "lucide-react"
 
 interface Cliente {
   id: string
@@ -15,14 +18,28 @@ interface Cliente {
   telefone: string
   cidade: string
   estado: string
+  profissional_id?: string
 }
 
 export default function PerfilCliente() {
+  const router = useRouter()
   const [cliente, setCliente] = useState<Cliente | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  // Estados para modal de tornar profissional
+  const [showProfModal, setShowProfModal] = useState(false)
+  const [profLoading, setProfLoading] = useState(false)
+  const [profSuccess, setProfSuccess] = useState(false)
+  const [profForm, setProfForm] = useState({
+    tipo: "autonomo" as "autonomo" | "empresa",
+    cpf_cnpj: "",
+    razao_social: "",
+    senha: "",
+    confirmarSenha: "",
+  })
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -89,6 +106,52 @@ export default function PerfilCliente() {
     } catch (err) {
       setError("Erro ao conectar com o servidor")
       setLoading(false)
+    }
+  }
+
+  const handleTornarProfissional = async () => {
+    setError("")
+    setProfLoading(true)
+
+    if (profForm.senha !== profForm.confirmarSenha) {
+      setError("As senhas não coincidem")
+      setProfLoading(false)
+      return
+    }
+
+    if (profForm.senha.length < 6) {
+      setError("A senha deve ter no mínimo 6 caracteres")
+      setProfLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch("/api/cliente/tornar-profissional", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cliente_id: cliente?.id,
+          tipo: profForm.tipo,
+          cpf_cnpj: profForm.cpf_cnpj,
+          razao_social: profForm.razao_social,
+          senha: profForm.senha,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Erro ao criar conta de profissional")
+        setProfLoading(false)
+        return
+      }
+
+      setProfSuccess(true)
+      setProfLoading(false)
+
+    } catch (err) {
+      setError("Erro ao conectar com o servidor")
+      setProfLoading(false)
     }
   }
 
@@ -259,7 +322,177 @@ export default function PerfilCliente() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Card Tornar-se Profissional */}
+        {!cliente.profissional_id && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5" />
+                Também sou profissional
+              </CardTitle>
+              <CardDescription>
+                Ofereça seus serviços na plataforma e receba solicitações de clientes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Ao ativar o modo profissional, você poderá oferecer seus serviços de educação
+                (aulas de música, reforço escolar, idiomas) e receber solicitações de clientes.
+              </p>
+              <Button onClick={() => setShowProfModal(true)}>
+                Quero oferecer meus serviços
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {cliente.profissional_id && (
+          <Card className="mt-6 border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-700">
+                <CheckCircle2 className="w-5 h-5" />
+                Você também é profissional
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-green-700 mb-4">
+                Você possui uma conta de profissional vinculada. Faça login como profissional para gerenciar seus serviços.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  localStorage.removeItem('usuario')
+                  localStorage.removeItem('tipoUsuario')
+                  router.push('/login')
+                }}
+              >
+                Acessar como Profissional
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Modal para Tornar-se Profissional */}
+      <Dialog open={showProfModal} onOpenChange={setShowProfModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          {!profSuccess ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Criar conta de Profissional</DialogTitle>
+                <DialogDescription>
+                  Preencha os dados abaixo para oferecer seus serviços na plataforma
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {/* Tipo */}
+                <div className="space-y-2">
+                  <Label>Tipo de cadastro</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={profForm.tipo === "autonomo" ? "default" : "outline"}
+                      onClick={() => setProfForm({ ...profForm, tipo: "autonomo" })}
+                      className="w-full"
+                    >
+                      Autônomo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={profForm.tipo === "empresa" ? "default" : "outline"}
+                      onClick={() => setProfForm({ ...profForm, tipo: "empresa" })}
+                      className="w-full"
+                    >
+                      Empresa
+                    </Button>
+                  </div>
+                </div>
+
+                {/* CPF/CNPJ */}
+                <div className="space-y-2">
+                  <Label>{profForm.tipo === "autonomo" ? "CPF" : "CNPJ"} <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder={profForm.tipo === "autonomo" ? "000.000.000-00" : "00.000.000/0000-00"}
+                    value={profForm.cpf_cnpj}
+                    onChange={(e) => setProfForm({ ...profForm, cpf_cnpj: e.target.value })}
+                  />
+                </div>
+
+                {/* Razão Social (só empresa) */}
+                {profForm.tipo === "empresa" && (
+                  <div className="space-y-2">
+                    <Label>Razão Social <span className="text-red-500">*</span></Label>
+                    <Input
+                      placeholder="Nome da empresa"
+                      value={profForm.razao_social}
+                      onChange={(e) => setProfForm({ ...profForm, razao_social: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {/* Senha */}
+                <div className="space-y-2">
+                  <Label>Senha para acesso profissional <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={profForm.senha}
+                    onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Confirmar senha <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="password"
+                    placeholder="Confirme sua senha"
+                    value={profForm.confirmarSenha}
+                    onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowProfModal(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleTornarProfissional} disabled={profLoading}>
+                  {profLoading ? "Criando..." : "Criar conta"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock size={32} className="text-green-600" />
+                </div>
+                <DialogTitle className="text-center">Conta criada com sucesso!</DialogTitle>
+                <DialogDescription className="text-center">
+                  Sua conta de profissional foi criada e está aguardando aprovação do administrador.
+                  Você receberá uma notificação quando for aprovado.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={() => {
+                  setShowProfModal(false)
+                  window.location.reload()
+                }} className="w-full">
+                  Entendi
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

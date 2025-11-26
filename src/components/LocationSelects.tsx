@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Label } from "@/components/ui/label"
 
 interface Estado {
@@ -32,6 +32,7 @@ export function LocationSelects({
   const [estados, setEstados] = useState<Estado[]>([])
   const [cidades, setCidades] = useState<Cidade[]>([])
   const [loadingCidades, setLoadingCidades] = useState(false)
+  const previousEstado = useRef(estado)
 
   useEffect(() => {
     // Carregar estados da API do IBGE
@@ -46,7 +47,12 @@ export function LocationSelects({
     if (estado) {
       setLoadingCidades(true)
       setCidades([])
-      onCidadeChange("")
+
+      // Só limpa a cidade se o estado realmente mudou
+      if (previousEstado.current !== estado) {
+        onCidadeChange("")
+        previousEstado.current = estado
+      }
 
       fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estado}/municipios?orderBy=nome`)
         .then(res => res.json())
@@ -59,7 +65,8 @@ export function LocationSelects({
           setLoadingCidades(false)
         })
     }
-  }, [estado, onCidadeChange])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estado])
 
   return (
     <>

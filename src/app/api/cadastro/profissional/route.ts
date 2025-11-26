@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     const estado = formData.get('estado') as string
     const senha = formData.get('senha') as string
     const documento = formData.get('documento') as File | null
+    const emailVerificado = formData.get('email_verificado') === 'true'
 
     // Validações básicas
     if (!nome || !email || !telefone || !cpfCnpj || !cidade || !estado || !senha) {
@@ -126,7 +127,8 @@ export async function POST(request: NextRequest) {
         senha_hash: senhaHash,
         saldo_moedas: 0,
         documento_url: documentoUrl,
-        aprovado: false
+        aprovado: false,
+        email_verificado: emailVerificado
       })
       .select()
       .single()

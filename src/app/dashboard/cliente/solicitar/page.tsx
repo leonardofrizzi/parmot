@@ -24,6 +24,7 @@ export default function SolicitarServico() {
     subcategoria_id: "",
     titulo: "",
     descricao: "",
+    modalidade: "presencial" as "presencial" | "online" | "ambos",
   })
 
   useEffect(() => {
@@ -219,7 +220,7 @@ export default function SolicitarServico() {
                   <Label htmlFor="titulo">Título da solicitação</Label>
                   <Input
                     id="titulo"
-                    placeholder="Ex: Preciso de um pintor para pintar 2 quartos"
+                    placeholder="Ex: Preciso de aulas de inglês para iniciantes"
                     value={formData.titulo}
                     onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                     maxLength={100}
@@ -238,6 +239,30 @@ export default function SolicitarServico() {
                     maxLength={500}
                   />
                   <p className="text-xs text-gray-500">{formData.descricao.length}/500</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Modalidade do serviço</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { value: "presencial", label: "Presencial", desc: "Na sua localidade" },
+                      { value: "online", label: "Online", desc: "Via internet" },
+                      { value: "ambos", label: "Ambos", desc: "Presencial ou online" },
+                    ].map((option) => (
+                      <div
+                        key={option.value}
+                        onClick={() => setFormData({ ...formData, modalidade: option.value as typeof formData.modalidade })}
+                        className={`cursor-pointer p-3 rounded-lg border-2 text-center transition-all ${
+                          formData.modalidade === option.value
+                            ? "border-primary-600 bg-primary-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <p className="font-medium text-sm">{option.label}</p>
+                        <p className="text-xs text-gray-500">{option.desc}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
