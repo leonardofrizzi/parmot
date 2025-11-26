@@ -5,6 +5,15 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar se a service role key está configurada
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY não configurada')
+      return NextResponse.json(
+        { error: 'Configuração do servidor incompleta. Contate o suporte.' },
+        { status: 500 }
+      )
+    }
+
     const formData = await request.formData()
 
     // Extrair campos do FormData

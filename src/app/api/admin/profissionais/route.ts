@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
         cidade,
         estado,
         aprovado,
-        created_at
+        created_at,
+        documento_url
       `)
       .order('created_at', { ascending: false })
 
