@@ -19,6 +19,14 @@ interface PlanoMoedas {
   vantagens: string[]
 }
 
+interface Configuracoes {
+  custo_contato_normal: number
+  custo_contato_exclusivo: number
+  max_profissionais_por_solicitacao: number
+  percentual_reembolso: number
+  dias_para_reembolso: number
+}
+
 export default function ComprarMoedas() {
   const router = useRouter()
   const [profissional, setProfissional] = useState<any>(null)
@@ -26,8 +34,21 @@ export default function ComprarMoedas() {
   const [planoSelecionado, setPlanoSelecionado] = useState<string | null>(null)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [successData, setSuccessData] = useState<any>(null)
+  const [config, setConfig] = useState<Configuracoes>({
+    custo_contato_normal: 15,
+    custo_contato_exclusivo: 50,
+    max_profissionais_por_solicitacao: 4,
+    percentual_reembolso: 30,
+    dias_para_reembolso: 7
+  })
 
   useEffect(() => {
+    // Buscar configurações de moedas
+    fetch('/api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error('Erro ao buscar configurações:', err))
+
     const usuarioData = localStorage.getItem('usuario')
     if (usuarioData) {
       setProfissional(JSON.parse(usuarioData))
@@ -66,51 +87,62 @@ export default function ComprarMoedas() {
     }
   }
 
-  const planos: PlanoMoedas[] = [
-    {
-      id: "pacote_inicial",
-      nome: "Pacote Inicial",
-      moedas: 30,
-      preco: 29.90,
-      vantagens: [
-        "30 moedas",
-        "Até 2 contatos padrão",
-        "Moedas nunca expiram",
-        "Ideal para começar"
-      ]
-    },
-    {
-      id: "pacote_profissional",
-      nome: "Pacote Profissional",
-      moedas: 80,
-      preco: 69.90,
-      precoOriginal: 79.90,
-      desconto: "-12%",
-      recomendado: true,
-      vantagens: [
-        "80 moedas",
-        "Até 5 contatos padrão",
-        "Ou 1 contato exclusivo",
-        "Moedas nunca expiram",
-        "Melhor custo-benefício"
-      ]
-    },
-    {
-      id: "pacote_premium",
-      nome: "Pacote Premium",
-      moedas: 200,
-      preco: 149.90,
-      precoOriginal: 199.90,
-      desconto: "-25%",
-      vantagens: [
-        "200 moedas",
-        "Até 13 contatos padrão",
-        "Ou 4 contatos exclusivos",
-        "Moedas nunca expiram",
-        "Suporte prioritário"
-      ]
-    }
-  ]
+  // Calcular quantos contatos cada pacote permite com base nas configurações
+  const getPlanos = (): PlanoMoedas[] => {
+    const contatosPadrao30 = Math.floor(30 / config.custo_contato_normal)
+    const contatosPadrao80 = Math.floor(80 / config.custo_contato_normal)
+    const contatosExclusivos80 = Math.floor(80 / config.custo_contato_exclusivo)
+    const contatosPadrao200 = Math.floor(200 / config.custo_contato_normal)
+    const contatosExclusivos200 = Math.floor(200 / config.custo_contato_exclusivo)
+
+    return [
+      {
+        id: "pacote_inicial",
+        nome: "Pacote Inicial",
+        moedas: 30,
+        preco: 29.90,
+        vantagens: [
+          "30 moedas",
+          `Até ${contatosPadrao30} contatos padrão`,
+          "Moedas nunca expiram",
+          "Ideal para começar"
+        ]
+      },
+      {
+        id: "pacote_profissional",
+        nome: "Pacote Profissional",
+        moedas: 80,
+        preco: 69.90,
+        precoOriginal: 79.90,
+        desconto: "-12%",
+        recomendado: true,
+        vantagens: [
+          "80 moedas",
+          `Até ${contatosPadrao80} contatos padrão`,
+          `Ou ${contatosExclusivos80} contato${contatosExclusivos80 > 1 ? 's' : ''} exclusivo${contatosExclusivos80 > 1 ? 's' : ''}`,
+          "Moedas nunca expiram",
+          "Melhor custo-benefício"
+        ]
+      },
+      {
+        id: "pacote_premium",
+        nome: "Pacote Premium",
+        moedas: 200,
+        preco: 149.90,
+        precoOriginal: 199.90,
+        desconto: "-25%",
+        vantagens: [
+          "200 moedas",
+          `Até ${contatosPadrao200} contatos padrão`,
+          `Ou ${contatosExclusivos200} contatos exclusivos`,
+          "Moedas nunca expiram",
+          "Suporte prioritário"
+        ]
+      }
+    ]
+  }
+
+  const planos = getPlanos()
 
   const handleComprar = async (planoId: string) => {
     setLoading(true)
@@ -323,9 +355,9 @@ export default function ComprarMoedas() {
                     <Coins className="text-primary-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Contato Padrão - 15 moedas</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Contato Padrão - {config.custo_contato_normal} moedas</h3>
                     <p className="text-sm text-gray-600">
-                      Acesse o contato do cliente. Até 4 profissionais podem liberar o mesmo contato.
+                      Acesse o contato do cliente. Até {config.max_profissionais_por_solicitacao} profissionais podem liberar o mesmo contato.
                     </p>
                   </div>
                 </div>
@@ -335,7 +367,7 @@ export default function ComprarMoedas() {
                     <Sparkles className="text-purple-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Exclusividade - 50 moedas</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Exclusividade - {config.custo_contato_exclusivo} moedas</h3>
                     <p className="text-sm text-gray-600">
                       Seja o único profissional com acesso ao contato. Nenhum outro profissional poderá liberar.
                     </p>
@@ -359,9 +391,9 @@ export default function ComprarMoedas() {
                     <Shield className="text-blue-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Sem mensalidade</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Reembolso de {config.percentual_reembolso}%</h3>
                     <p className="text-sm text-gray-600">
-                      Você só paga pelos contatos que liberar. Sem taxas fixas ou surpresas.
+                      Se não fechar negócio com o cliente, você recebe {config.percentual_reembolso}% das moedas de volta.
                     </p>
                   </div>
                 </div>
@@ -423,7 +455,7 @@ export default function ComprarMoedas() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">Posso pedir reembolso?</h4>
                 <p className="text-sm text-gray-600">
-                  Sim! Se você usar o contato exclusivo e o cliente não responder em 7 dias, devolveremos suas moedas.
+                  Sim! Se não fechar negócio com o cliente, você pode solicitar reembolso em até {config.dias_para_reembolso} dias e receber {config.percentual_reembolso}% das moedas de volta.
                 </p>
               </div>
               <div>
@@ -435,7 +467,7 @@ export default function ComprarMoedas() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">Qual a diferença entre contato padrão e exclusivo?</h4>
                 <p className="text-sm text-gray-600">
-                  No padrão (15 moedas), até 4 profissionais podem ver o contato. No exclusivo (50 moedas), só você tem acesso.
+                  No padrão ({config.custo_contato_normal} moedas), até {config.max_profissionais_por_solicitacao} profissionais podem ver o contato. No exclusivo ({config.custo_contato_exclusivo} moedas), só você tem acesso.
                 </p>
               </div>
             </CardContent>

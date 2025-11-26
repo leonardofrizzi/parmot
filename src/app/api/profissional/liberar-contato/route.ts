@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
-const CUSTO_CONTATO_NORMAL = 15
-const CUSTO_CONTATO_EXCLUSIVO = 50
-const MAX_PROFISSIONAIS = 4
+// Valores padrão (usados se não houver configuração no banco)
+const DEFAULT_CUSTO_NORMAL = 15
+const DEFAULT_CUSTO_EXCLUSIVO = 50
+const DEFAULT_MAX_PROFISSIONAIS = 4
+
+// Função para buscar configurações do banco
+async function getConfiguracoes() {
+  const { data: config } = await supabase
+    .from('configuracoes')
+    .select('*')
+    .single()
+
+  return {
+    custo_contato_normal: config?.custo_contato_normal ?? DEFAULT_CUSTO_NORMAL,
+    custo_contato_exclusivo: config?.custo_contato_exclusivo ?? DEFAULT_CUSTO_EXCLUSIVO,
+    max_profissionais_por_solicitacao: config?.max_profissionais_por_solicitacao ?? DEFAULT_MAX_PROFISSIONAIS,
+    percentual_reembolso: config?.percentual_reembolso ?? 30,
+    dias_para_reembolso: config?.dias_para_reembolso ?? 7
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +34,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const custo = exclusivo ? CUSTO_CONTATO_EXCLUSIVO : CUSTO_CONTATO_NORMAL
+    // Buscar configurações dinâmicas
+    const configuracoes = await getConfiguracoes()
+    const custo = exclusivo ? configuracoes.custo_contato_exclusivo : configuracoes.custo_contato_normal
+    const MAX_PROFISSIONAIS = configuracoes.max_profissionais_por_solicitacao
 
     // 1. Buscar profissional e verificar saldo
     const { data: profissional, error: profError } = await supabase

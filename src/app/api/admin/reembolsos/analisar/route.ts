@@ -6,6 +6,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// Função para buscar configurações do banco
+async function getConfiguracoes() {
+  const { data: config } = await supabase
+    .from('configuracoes')
+    .select('percentual_reembolso')
+    .single()
+
+  return {
+    percentual_reembolso: config?.percentual_reembolso ?? 30
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     const {
@@ -52,8 +64,15 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // Se APROVADO, devolver moedas ao profissional
+    // Se APROVADO, devolver moedas ao profissional (apenas percentual configurado)
     if (status === 'aprovado') {
+      // Buscar configurações para obter o percentual de reembolso
+      const configuracoes = await getConfiguracoes()
+      const percentualReembolso = configuracoes.percentual_reembolso
+
+      // Calcular valor do reembolso (apenas o percentual configurado)
+      const moedasReembolso = Math.round(reembolso.moedas_gastas * percentualReembolso / 100)
+
       // Buscar saldo atual do profissional
       const { data: profissional, error: profError } = await supabase
         .from('profissionais')
@@ -68,7 +87,7 @@ export async function PATCH(request: NextRequest) {
         )
       }
 
-      const novoSaldo = (profissional.saldo_moedas || 0) + reembolso.moedas_gastas
+      const novoSaldo = (profissional.saldo_moedas || 0) + moedasReembolso
 
       // Atualizar saldo do profissional
       const { error: updateSaldoError } = await supabase
@@ -88,13 +107,19 @@ export async function PATCH(request: NextRequest) {
       await supabase.from('transacoes_moedas').insert({
         profissional_id: reembolso.profissional_id,
         tipo: 'reembolso',
-        quantidade: reembolso.moedas_gastas,
-        descricao: `Reembolso aprovado - ${reembolso.solicitacao_id}`,
+        quantidade: moedasReembolso,
+        descricao: `Reembolso aprovado (${percentualReembolso}% de ${reembolso.moedas_gastas} moedas) - ${reembolso.solicitacao_id}`,
         saldo_anterior: profissional.saldo_moedas,
         saldo_novo: novoSaldo,
         payment_id: `REEMBOLSO-${reembolso_id}`,
         payment_status: 'approved'
       })
+
+      // Atualizar o reembolso com o valor real reembolsado
+      await supabase
+        .from('solicitacoes_reembolso')
+        .update({ moedas_reembolsadas: moedasReembolso })
+        .eq('id', reembolso_id)
     }
 
     // Atualizar status do reembolso

@@ -100,3 +100,27 @@ CREATE POLICY "Allow public insert" ON profissionais FOR INSERT WITH CHECK (true
 CREATE POLICY "Allow public access" ON solicitacoes FOR ALL USING (true);
 CREATE POLICY "Allow public access" ON respostas FOR ALL USING (true);
 CREATE POLICY "Allow public access" ON transacoes_moedas FOR ALL USING (true);
+
+-- Tabela de configurações do sistema
+CREATE TABLE IF NOT EXISTS configuracoes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  custo_contato_normal INTEGER DEFAULT 15,
+  custo_contato_exclusivo INTEGER DEFAULT 50,
+  max_profissionais_por_solicitacao INTEGER DEFAULT 4,
+  percentual_reembolso INTEGER DEFAULT 30,
+  dias_para_reembolso INTEGER DEFAULT 7,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Inserir configuração padrão se não existir
+INSERT INTO configuracoes (custo_contato_normal, custo_contato_exclusivo, max_profissionais_por_solicitacao, percentual_reembolso, dias_para_reembolso)
+SELECT 15, 50, 4, 30, 7
+WHERE NOT EXISTS (SELECT 1 FROM configuracoes);
+
+-- Trigger para updated_at da tabela configuracoes
+CREATE TRIGGER update_configuracoes_updated_at BEFORE UPDATE ON configuracoes
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Adicionar coluna moedas_reembolsadas na tabela de reembolsos (para registrar o valor real reembolsado)
+ALTER TABLE solicitacoes_reembolso ADD COLUMN IF NOT EXISTS moedas_reembolsadas INTEGER;

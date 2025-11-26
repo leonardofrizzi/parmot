@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, Users, FileText, DollarSign, LogOut, ChevronRight, ChevronLeft, Shield } from "lucide-react"
+import { Home, Users, FileText, DollarSign, LogOut, ChevronRight, ChevronLeft, Shield, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,7 @@ export default function AdminSidebar() {
     { icon: Users, label: "Profissionais", href: "/admin/profissionais" },
     { icon: FileText, label: "Solicitações", href: "/admin/solicitacoes" },
     { icon: DollarSign, label: "Reembolsos", href: "/admin/reembolsos" },
+    { icon: Settings, label: "Configurações", href: "/admin/configuracoes" },
   ]
 
   const handleLogout = () => {

@@ -17,9 +17,13 @@ interface Resposta {
   created_at: string
 }
 
-const CUSTO_CONTATO_NORMAL = 15 // moedas
-const CUSTO_CONTATO_EXCLUSIVO = 50 // moedas
-const MAX_PROFISSIONAIS = 4
+interface Configuracoes {
+  custo_contato_normal: number
+  custo_contato_exclusivo: number
+  max_profissionais_por_solicitacao: number
+  percentual_reembolso: number
+  dias_para_reembolso: number
+}
 
 export default function DetalheSolicitacaoProfissional() {
   const router = useRouter()
@@ -34,8 +38,21 @@ export default function DetalheSolicitacaoProfissional() {
   const [unlocking, setUnlocking] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [config, setConfig] = useState<Configuracoes>({
+    custo_contato_normal: 15,
+    custo_contato_exclusivo: 50,
+    max_profissionais_por_solicitacao: 4,
+    percentual_reembolso: 30,
+    dias_para_reembolso: 7
+  })
 
   useEffect(() => {
+    // Buscar configurações de moedas
+    fetch('/api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error('Erro ao buscar configurações:', err))
+
     const usuarioData = localStorage.getItem('usuario')
     if (usuarioData) {
       const user = JSON.parse(usuarioData)
@@ -66,7 +83,7 @@ export default function DetalheSolicitacaoProfissional() {
   }
 
   const handleLiberar = async (exclusivo: boolean) => {
-    const custo = exclusivo ? CUSTO_CONTATO_EXCLUSIVO : CUSTO_CONTATO_NORMAL
+    const custo = exclusivo ? config.custo_contato_exclusivo : config.custo_contato_normal
 
     if (profissional.saldo_moedas < custo) {
       setError(`Saldo insuficiente. Você precisa de ${custo} moedas.`)
@@ -75,7 +92,7 @@ export default function DetalheSolicitacaoProfissional() {
 
     if (window.confirm(
       `Deseja liberar o contato ${exclusivo ? 'COM EXCLUSIVIDADE' : ''} por ${custo} moedas?\n\n` +
-      (exclusivo ? 'Apenas você terá acesso ao contato do cliente!' : 'Até 4 profissionais podem liberar este contato.')
+      (exclusivo ? 'Apenas você terá acesso ao contato do cliente!' : `Até ${config.max_profissionais_por_solicitacao} profissionais podem liberar este contato.`)
     )) {
       setError("")
       setSuccess("")
@@ -139,7 +156,7 @@ export default function DetalheSolicitacaoProfissional() {
     })
   }
 
-  const vagasDisponiveis = MAX_PROFISSIONAIS - respostas.length
+  const vagasDisponiveis = config.max_profissionais_por_solicitacao - respostas.length
   const podeLiberar = vagasDisponiveis > 0 && !jaLiberou
 
   if (loading) {
@@ -290,7 +307,7 @@ export default function DetalheSolicitacaoProfissional() {
                     {vagasDisponiveis} {vagasDisponiveis === 1 ? 'vaga disponível' : 'vagas disponíveis'}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {respostas.length} de {MAX_PROFISSIONAIS} profissionais já liberaram o contato
+                    {respostas.length} de {config.max_profissionais_por_solicitacao} profissionais já liberaram o contato
                   </p>
                 </div>
               </div>
@@ -314,7 +331,7 @@ export default function DetalheSolicitacaoProfissional() {
                   <CardTitle className="text-lg">Contato Padrão</CardTitle>
                   <div className="flex items-center gap-1 text-orange-600 font-bold text-xl">
                     <Coins size={20} />
-                    {CUSTO_CONTATO_NORMAL}
+                    {config.custo_contato_normal}
                   </div>
                 </div>
                 <CardDescription>
@@ -329,22 +346,26 @@ export default function DetalheSolicitacaoProfissional() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Até {MAX_PROFISSIONAIS} profissionais podem liberar</span>
+                    <span>Até {config.max_profissionais_por_solicitacao} profissionais podem liberar</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-orange-600 mt-0.5">⚠</span>
                     <span>Outros profissionais podem concorrer</span>
                   </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 mt-0.5">ℹ</span>
+                    <span>Reembolso de {config.percentual_reembolso}% se não fechar negócio</span>
+                  </li>
                 </ul>
                 <Button
                   onClick={() => handleLiberar(false)}
-                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < CUSTO_CONTATO_NORMAL || !profissional.aprovado}
+                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_normal || !profissional.aprovado}
                   className="w-full"
                   title={!profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
                 >
-                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Liberar por ${CUSTO_CONTATO_NORMAL} moedas`}
+                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Liberar por ${config.custo_contato_normal} moedas`}
                 </Button>
-                {profissional.saldo_moedas < CUSTO_CONTATO_NORMAL && (
+                {profissional.saldo_moedas < config.custo_contato_normal && (
                   <p className="text-xs text-red-600 mt-2 text-center">
                     Saldo insuficiente
                   </p>
@@ -367,7 +388,7 @@ export default function DetalheSolicitacaoProfissional() {
                   </div>
                   <div className="flex items-center gap-1 text-orange-600 font-bold text-xl">
                     <Coins size={20} />
-                    {CUSTO_CONTATO_EXCLUSIVO}
+                    {config.custo_contato_exclusivo}
                   </div>
                 </div>
                 <CardDescription>
@@ -388,16 +409,20 @@ export default function DetalheSolicitacaoProfissional() {
                     <span className="text-green-600 mt-0.5">✓</span>
                     <span className="font-medium">Cliente receberá apenas seu contato</span>
                   </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 mt-0.5">ℹ</span>
+                    <span className="font-medium">Reembolso de {config.percentual_reembolso}% se não fechar negócio</span>
+                  </li>
                 </ul>
                 <Button
                   onClick={() => handleLiberar(true)}
-                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < CUSTO_CONTATO_EXCLUSIVO || !profissional.aprovado}
+                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_exclusivo || !profissional.aprovado}
                   className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
                   title={!profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
                 >
-                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Garantir Exclusividade por ${CUSTO_CONTATO_EXCLUSIVO} moedas`}
+                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Garantir Exclusividade por ${config.custo_contato_exclusivo} moedas`}
                 </Button>
-                {profissional.saldo_moedas < CUSTO_CONTATO_EXCLUSIVO && (
+                {profissional.saldo_moedas < config.custo_contato_exclusivo && (
                   <p className="text-xs text-red-600 mt-2 text-center">
                     Saldo insuficiente
                   </p>
@@ -418,7 +443,7 @@ export default function DetalheSolicitacaoProfissional() {
               <div className="flex items-center gap-3 text-red-800">
                 <Lock size={20} />
                 <p className="font-medium">
-                  Esta solicitação já atingiu o limite de {MAX_PROFISSIONAIS} profissionais interessados.
+                  Esta solicitação já atingiu o limite de {config.max_profissionais_por_solicitacao} profissionais interessados.
                 </p>
               </div>
             </CardContent>
