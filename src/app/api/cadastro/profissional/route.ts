@@ -26,8 +26,19 @@ export async function POST(request: NextRequest) {
     const cidade = formData.get('cidade') as string
     const estado = formData.get('estado') as string
     const senha = formData.get('senha') as string
-    const documento = formData.get('documento') as File | null
+    const documentoIdentidade = formData.get('documentoIdentidade') as File | null
+    const documentoEmpresa = formData.get('documentoEmpresa') as File | null
+    const diplomasCount = parseInt(formData.get('diplomasCount') as string || '0')
     const emailVerificado = formData.get('email_verificado') === 'true'
+
+    // Coletar diplomas
+    const diplomas: File[] = []
+    for (let i = 0; i < diplomasCount; i++) {
+      const diploma = formData.get(`diploma_${i}`) as File | null
+      if (diploma && diploma.size > 0) {
+        diplomas.push(diploma)
+      }
+    }
 
     // Validações básicas
     if (!nome || !email || !telefone || !cpfCnpj || !cidade || !estado || !senha) {
@@ -83,48 +94,71 @@ export async function POST(request: NextRequest) {
     const senhaHash = await bcrypt.hash(senha, 10)
 
     let documentoUrl: string | null = null
+    let documentoEmpresaUrl: string | null = null
+    const diplomaUrls: string[] = []
 
-    // Se houver documento, fazer upload para o Supabase Storage
-    if (documento && documento.size > 0) {
+    // Função auxiliar para fazer upload de arquivo
+    const uploadFile = async (file: File, folder: string): Promise<string | null> => {
       try {
-        const fileExt = documento.name.split('.').pop()
-        const fileName = `${cpfCnpj.replace(/[^\d]/g, '')}_${Date.now()}.${fileExt}`
-        const filePath = `documentos/${fileName}`
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${cpfCnpj.replace(/[^\d]/g, '')}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
+        const filePath = `${folder}/${fileName}`
 
-        // Converter File para ArrayBuffer
-        const arrayBuffer = await documento.arrayBuffer()
+        const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        // Upload para Supabase Storage (usando admin client)
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        const { error: uploadError } = await supabaseAdmin.storage
           .from('profissionais-documentos')
           .upload(filePath, buffer, {
-            contentType: documento.type,
+            contentType: file.type,
             upsert: false
           })
 
         if (uploadError) {
-          console.error('Erro ao fazer upload do documento:', uploadError)
-          return NextResponse.json(
-            { error: 'Erro ao fazer upload do documento. Tente novamente.' },
-            { status: 500 }
-          )
-        } else {
-          // Gerar URL pública (bucket público)
-          const { data: urlData } = supabaseAdmin.storage
-            .from('profissionais-documentos')
-            .getPublicUrl(filePath)
-
-          if (urlData) {
-            documentoUrl = urlData.publicUrl
-          }
+          console.error('Erro ao fazer upload:', uploadError)
+          return null
         }
-      } catch (uploadErr) {
-        console.error('Erro no processo de upload:', uploadErr)
+
+        const { data: urlData } = supabaseAdmin.storage
+          .from('profissionais-documentos')
+          .getPublicUrl(filePath)
+
+        return urlData?.publicUrl || null
+      } catch (err) {
+        console.error('Erro no upload:', err)
+        return null
+      }
+    }
+
+    // Upload do documento de identidade pessoal (obrigatório)
+    if (documentoIdentidade && documentoIdentidade.size > 0) {
+      const url = await uploadFile(documentoIdentidade, 'identidades')
+      if (!url) {
         return NextResponse.json(
-          { error: 'Erro ao processar o documento. Tente novamente.' },
+          { error: 'Erro ao fazer upload do documento de identidade. Tente novamente.' },
           { status: 500 }
         )
+      }
+      documentoUrl = url
+    }
+
+    // Upload do documento da empresa (obrigatório para empresas)
+    if (documentoEmpresa && documentoEmpresa.size > 0) {
+      const url = await uploadFile(documentoEmpresa, 'empresas')
+      if (!url) {
+        return NextResponse.json(
+          { error: 'Erro ao fazer upload do documento da empresa. Tente novamente.' },
+          { status: 500 }
+        )
+      }
+      documentoEmpresaUrl = url
+    }
+
+    // Upload dos diplomas (opcional)
+    for (const diploma of diplomas) {
+      const url = await uploadFile(diploma, 'diplomas')
+      if (url) {
+        diplomaUrls.push(url)
       }
     }
 
@@ -143,6 +177,8 @@ export async function POST(request: NextRequest) {
         senha_hash: senhaHash,
         saldo_moedas: 0,
         documento_url: documentoUrl,
+        documento_empresa_url: documentoEmpresaUrl,
+        diplomas_urls: diplomaUrls.length > 0 ? diplomaUrls : null,
         aprovado: false,
         email_verificado: emailVerificado
       })

@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
         estado,
         aprovado,
         created_at,
-        documento_url
+        documento_url,
+        documento_empresa_url,
+        diplomas_urls
       `)
       .order('created_at', { ascending: false })
 

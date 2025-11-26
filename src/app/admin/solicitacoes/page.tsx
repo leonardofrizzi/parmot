@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { FileText, User, Calendar, MapPin, Tag, CheckCircle2, XCircle, AlertCircle, Monitor, Users, Globe } from "lucide-react"
+import { FileText, User, Calendar, MapPin, Tag, CheckCircle2, XCircle, AlertCircle, Monitor, Users, Globe, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Solicitacao {
   id: string
@@ -28,8 +29,10 @@ interface Solicitacao {
 export default function AdminSolicitacoes() {
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([])
   const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro] = useState<'todas' | 'aberta' | 'finalizada' | 'pendentes'>('pendentes')
+  const [filtro, setFiltro] = useState<'todas' | 'aberta' | 'finalizada' | 'pendentes'>('todas')
   const [loadingAcao, setLoadingAcao] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [solicitacaoParaDeletar, setSolicitacaoParaDeletar] = useState<Solicitacao | null>(null)
 
   useEffect(() => {
     fetchSolicitacoes()
@@ -87,6 +90,28 @@ export default function AdminSolicitacoes() {
       }
     } catch (err) {
       console.error('Erro ao recusar solicitação:', err)
+    }
+    setLoadingAcao(false)
+  }
+
+  const handleDeletar = async () => {
+    if (!solicitacaoParaDeletar) return
+
+    setLoadingAcao(true)
+    try {
+      const response = await fetch('/api/admin/solicitacoes/deletar', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solicitacao_id: solicitacaoParaDeletar.id })
+      })
+
+      if (response.ok) {
+        fetchSolicitacoes()
+        setShowDeleteDialog(false)
+        setSolicitacaoParaDeletar(null)
+      }
+    } catch (err) {
+      console.error('Erro ao deletar solicitação:', err)
     }
     setLoadingAcao(false)
   }
@@ -257,55 +282,89 @@ export default function AdminSolicitacoes() {
                     </span>
                   </div>
 
-                  {/* Status de Aprovação */}
-                  {sol.aprovado_admin ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
-                      <CheckCircle2 size={18} className="text-green-600" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-800">Solicitação Aprovada</p>
-                        {sol.aprovado_admin_em && (
-                          <p className="text-xs text-green-600">
-                            Aprovada em {formatData(sol.aprovado_admin_em)}
-                          </p>
-                        )}
-                      </div>
+                  {/* Ações */}
+                  <div className="flex items-center justify-between pt-3 border-t">
+                    <div className="flex-1">
+                      {sol.aprovado_admin ? (
+                        <div className="flex items-center gap-2 text-green-700">
+                          <CheckCircle2 size={16} />
+                          <span className="text-sm font-medium">Aprovada</span>
+                          {sol.aprovado_admin_em && (
+                            <span className="text-xs text-green-600">
+                              ({formatData(sol.aprovado_admin_em)})
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <AlertCircle size={16} className="text-yellow-600" />
+                          <span className="text-sm font-medium text-yellow-800">
+                            Pendente
+                          </span>
+                          <Button
+                            size="sm"
+                            className="ml-2 bg-green-600 hover:bg-green-700"
+                            onClick={() => handleAprovar(sol.id)}
+                            disabled={loadingAcao}
+                          >
+                            <CheckCircle2 size={14} className="mr-1" />
+                            Aprovar
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <AlertCircle size={18} className="text-yellow-600" />
-                        <p className="text-sm font-medium text-yellow-800">
-                          Aguardando aprovação do administrador
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                          onClick={() => handleAprovar(sol.id)}
-                          disabled={loadingAcao}
-                        >
-                          <CheckCircle2 size={16} className="mr-1" />
-                          Aprovar Solicitação
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-                          onClick={() => handleRecusar(sol.id)}
-                          disabled={loadingAcao}
-                        >
-                          <XCircle size={16} className="mr-1" />
-                          Recusar
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+
+                    {/* Botão de Deletar */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                      onClick={() => {
+                        setSolicitacaoParaDeletar(sol)
+                        setShowDeleteDialog(true)
+                      }}
+                    >
+                      <Trash2 size={14} className="mr-1" />
+                      Excluir
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        {/* Dialog de Confirmação de Exclusão */}
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Excluir Solicitação</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir a solicitação <strong>&quot;{solicitacaoParaDeletar?.titulo}&quot;</strong>?
+                Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteDialog(false)
+                  setSolicitacaoParaDeletar(null)
+                }}
+                disabled={loadingAcao}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeletar}
+                disabled={loadingAcao}
+              >
+                {loadingAcao ? 'Excluindo...' : 'Confirmar Exclusão'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

@@ -79,7 +79,7 @@ export default function ConfigurarAdmin() {
 
       setSuccess(true)
       setTimeout(() => {
-        router.push("/admin")
+        router.push("/admin/login")
       }, 2000)
 
     } catch (err) {

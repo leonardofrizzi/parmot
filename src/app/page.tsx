@@ -138,7 +138,7 @@ export default function LandingPage() {
               Plataforma de Educação
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-              Encontre o professor particular ideal para você
+              Encontre o profissional ideal para você
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Descreva o que você precisa e receba propostas de profissionais qualificados. Simples, rápido e prático.
@@ -227,10 +227,10 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-                Você é professor?
+                É profissional da educação?
               </h2>
               <p className="text-xl text-primary-100 mb-8">
-                Cadastre-se e receba solicitações de alunos. Você escolhe quais contatos quer liberar.
+                Cadastre-se e receba solicitações de clientes. Você escolhe quais contatos quer liberar.
               </p>
 
               <div className="space-y-4 mb-8">
@@ -245,14 +245,14 @@ export default function LandingPage() {
                   <CheckCircle2 size={24} className="flex-shrink-0 mt-1" />
                   <div>
                     <h3 className="font-semibold text-lg">Solicitações reais</h3>
-                    <p className="text-primary-100">Receba pedidos de alunos que precisam do seu serviço</p>
+                    <p className="text-primary-100">Receba pedidos de clientes que precisam do seu serviço</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 size={24} className="flex-shrink-0 mt-1" />
                   <div>
                     <h3 className="font-semibold text-lg">Você no controle</h3>
-                    <p className="text-primary-100">Negocie valores e horários diretamente com o aluno</p>
+                    <p className="text-primary-100">Negocie valores e horários diretamente com o cliente</p>
                   </div>
                 </div>
               </div>
@@ -260,7 +260,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/cadastro/profissional">
                   <Button size="lg" variant="secondary" className="w-full sm:w-auto text-lg px-8">
-                    Cadastrar como professor
+                    Cadastrar como profissional
                     <ArrowRight size={20} className="ml-2" />
                   </Button>
                 </Link>
@@ -290,7 +290,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="font-semibold">Reputação</p>
-                      <p className="text-sm text-primary-100">Receba avaliações dos alunos</p>
+                      <p className="text-sm text-primary-100">Receba avaliações dos clientes</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 p-4 bg-white/10 rounded-lg">
@@ -298,7 +298,7 @@ export default function LandingPage() {
                       <Users size={24} />
                     </div>
                     <div>
-                      <p className="font-semibold">Mais alunos</p>
+                      <p className="font-semibold">Mais clientes</p>
                       <p className="text-sm text-primary-100">Aumente sua base de clientes</p>
                     </div>
                   </div>
@@ -339,12 +339,12 @@ export default function LandingPage() {
                 <span className="text-xl font-bold text-white">Parmot</span>
               </div>
               <p className="text-sm text-gray-400">
-                Conectando alunos a professores qualificados.
+                Conectando clientes a profissionais qualificados.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-white mb-4">Para Alunos</h3>
+              <h3 className="font-semibold text-white mb-4">Para Clientes</h3>
               <ul className="space-y-2 text-sm">
                 <li><Link href="/cadastro/cliente" className="hover:text-white transition-colors">Solicitar serviço</Link></li>
                 <li><Link href="#como-funciona" className="hover:text-white transition-colors">Como funciona</Link></li>
@@ -352,7 +352,7 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold text-white mb-4">Para Professores</h3>
+              <h3 className="font-semibold text-white mb-4">Para Profissionais</h3>
               <ul className="space-y-2 text-sm">
                 <li><Link href="/cadastro/profissional" className="hover:text-white transition-colors">Cadastrar-se</Link></li>
                 <li><Link href="/login" className="hover:text-white transition-colors">Acessar painel</Link></li>

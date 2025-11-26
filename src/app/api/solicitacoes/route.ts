@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar solicitação
+    // Criar solicitação (já aprovada automaticamente)
     const { data, error } = await supabase
       .from('solicitacoes')
       .insert({
@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
         categoria_id,
         subcategoria_id,
         modalidade: modalidade || 'presencial',
-        status: 'aberta'
+        status: 'aberta',
+        aprovado_admin: true,
+        aprovado_admin_em: new Date().toISOString()
       })
       .select()
 

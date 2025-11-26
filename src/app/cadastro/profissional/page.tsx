@@ -27,7 +27,9 @@ export default function CadastroProfissional() {
     confirmarSenha: "",
   })
   const [codigoVerificacao, setCodigoVerificacao] = useState("")
-  const [documento, setDocumento] = useState<File | null>(null)
+  const [documentoIdentidade, setDocumentoIdentidade] = useState<File | null>(null)
+  const [documentoEmpresa, setDocumentoEmpresa] = useState<File | null>(null)
+  const [diplomas, setDiplomas] = useState<File[]>([])
   const [aceiteTermos, setAceiteTermos] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -151,9 +153,16 @@ export default function CadastroProfissional() {
       return
     }
 
-    // Validar documento (obrigatório)
-    if (!documento) {
-      setError("O documento de identificação é obrigatório")
+    // Validar documento de identidade pessoal (obrigatório para todos)
+    if (!documentoIdentidade) {
+      setError("O documento de identificação pessoal (RG/CNH) é obrigatório")
+      setLoading(false)
+      return
+    }
+
+    // Validar documento da empresa (obrigatório apenas para empresas)
+    if (tipo === "empresa" && !documentoEmpresa) {
+      setError("O documento da empresa (Contrato Social/Cartão CNPJ) é obrigatório")
       setLoading(false)
       return
     }
@@ -171,7 +180,22 @@ export default function CadastroProfissional() {
       formDataToSend.append("estado", formData.estado)
       formDataToSend.append("senha", formData.senha)
       formDataToSend.append("email_verificado", "true") // Email já foi verificado
-      if (documento) formDataToSend.append("documento", documento)
+
+      // Documento de identidade pessoal (obrigatório)
+      if (documentoIdentidade) {
+        formDataToSend.append("documentoIdentidade", documentoIdentidade)
+      }
+
+      // Documento da empresa (obrigatório para empresas)
+      if (documentoEmpresa) {
+        formDataToSend.append("documentoEmpresa", documentoEmpresa)
+      }
+
+      // Diplomas/certificados (opcional, múltiplos)
+      diplomas.forEach((diploma, index) => {
+        formDataToSend.append(`diploma_${index}`, diploma)
+      })
+      formDataToSend.append("diplomasCount", diplomas.length.toString())
 
       const response = await fetch("/api/cadastro/profissional", {
         method: "POST",
@@ -198,7 +222,7 @@ export default function CadastroProfissional() {
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdentidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // Validar tamanho (max 5MB)
@@ -212,9 +236,54 @@ export default function CadastroProfissional() {
         setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
         return
       }
-      setDocumento(file)
+      setDocumentoIdentidade(file)
       setError("")
     }
+  }
+
+  const handleEmpresaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("O arquivo deve ter no máximo 5MB")
+        return
+      }
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        return
+      }
+      setDocumentoEmpresa(file)
+      setError("")
+    }
+  }
+
+  const handleDiplomasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files) {
+      const novosArquivos: File[] = []
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        // Validar tamanho (max 5MB cada)
+        if (file.size > 5 * 1024 * 1024) {
+          setError(`O arquivo ${file.name} deve ter no máximo 5MB`)
+          return
+        }
+        // Validar tipo
+        const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+        if (!allowedTypes.includes(file.type)) {
+          setError(`O arquivo ${file.name} deve ser PDF, JPG ou PNG`)
+          return
+        }
+        novosArquivos.push(file)
+      }
+      setDiplomas([...diplomas, ...novosArquivos])
+      setError("")
+    }
+  }
+
+  const removerDiploma = (index: number) => {
+    setDiplomas(diplomas.filter((_, i) => i !== index))
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -474,35 +543,33 @@ export default function CadastroProfissional() {
             />
           </div>
 
-          {/* Campo de Upload de Documento */}
+          {/* Campo de Upload de Documento de Identificação Pessoal (Obrigatório) */}
           <div className="space-y-2">
-            <Label htmlFor="documento">
-              Documento de Identificação <span className="text-red-500">*</span>
+            <Label htmlFor="documentoIdentidade">
+              Documento de Identificação Pessoal <span className="text-red-500">*</span>
             </Label>
             <p className="text-xs text-gray-500 mb-2">
-              {tipo === "autonomo"
-                ? "RG, CNH ou Certificado MEI"
-                : "Contrato Social ou Cartão CNPJ"}
+              RG ou CNH do {tipo === "empresa" ? "responsável" : "profissional"}
             </p>
 
-            {!documento ? (
+            {!documentoIdentidade ? (
               <label
-                htmlFor="documento"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                htmlFor="documentoIdentidade"
+                className="flex flex-col items-center justify-center w-full h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
               >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                  <p className="mb-2 text-sm text-gray-500">
-                    <span className="font-semibold">Clique para enviar</span> ou arraste o arquivo
+                <div className="flex flex-col items-center justify-center py-4">
+                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    <span className="font-semibold">Clique para enviar</span>
                   </p>
                   <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</p>
                 </div>
                 <input
-                  id="documento"
+                  id="documentoIdentidade"
                   type="file"
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
+                  onChange={handleIdentidadeChange}
                 />
               </label>
             ) : (
@@ -510,9 +577,9 @@ export default function CadastroProfissional() {
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{documento.name}</p>
+                    <p className="text-sm font-medium text-gray-900">{documentoIdentidade.name}</p>
                     <p className="text-xs text-gray-500">
-                      {(documento.size / 1024 / 1024).toFixed(2)} MB
+                      {(documentoIdentidade.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
                 </div>
@@ -520,11 +587,130 @@ export default function CadastroProfissional() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setDocumento(null)}
+                  onClick={() => setDocumentoIdentidade(null)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <X className="w-4 h-4" />
                 </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Campo de Upload de Documento da Empresa (Obrigatório apenas para empresas) */}
+          {tipo === "empresa" && (
+            <div className="space-y-2">
+              <Label htmlFor="documentoEmpresa">
+                Documento da Empresa <span className="text-red-500">*</span>
+              </Label>
+              <p className="text-xs text-gray-500 mb-2">
+                Contrato Social ou Cartão CNPJ
+              </p>
+
+              {!documentoEmpresa ? (
+                <label
+                  htmlFor="documentoEmpresa"
+                  className="flex flex-col items-center justify-center w-full h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                    <p className="text-sm text-gray-500">
+                      <span className="font-semibold">Clique para enviar</span>
+                    </p>
+                    <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</p>
+                  </div>
+                  <input
+                    id="documentoEmpresa"
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleEmpresaChange}
+                  />
+                </label>
+              ) : (
+                <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{documentoEmpresa.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {(documentoEmpresa.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDocumentoEmpresa(null)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Campo de Upload de Diplomas/Certificados (Opcional) */}
+          <div className="space-y-2">
+            <Label htmlFor="diplomas">
+              Diplomas e Certificados <span className="text-gray-400">(opcional)</span>
+            </Label>
+            <p className="text-xs text-gray-500 mb-2">
+              Anexe diplomas, certificados ou comprovantes de formação.
+            </p>
+
+            {(
+              <label
+                htmlFor="diplomas"
+                className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex flex-col items-center justify-center py-4">
+                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    <span className="font-semibold">Adicionar diploma/certificado</span>
+                  </p>
+                  <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB cada)</p>
+                </div>
+                <input
+                  id="diplomas"
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  multiple
+                  onChange={handleDiplomasChange}
+                />
+              </label>
+            )}
+
+            {/* Lista de diplomas adicionados */}
+            {diplomas.length > 0 && (
+              <div className="space-y-2 mt-2">
+                {diplomas.map((diploma, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{diploma.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {(diploma.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removerDiploma(index)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-xs text-gray-500 text-right">
+                  {diplomas.length} arquivo(s)
+                </p>
               </div>
             )}
           </div>

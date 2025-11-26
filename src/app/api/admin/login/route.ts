@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase } from '@/lib/supabase'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,9 +28,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Por enquanto, validação simples (em produção usar bcrypt)
-    // Senha padrão: admin123
-    if (senha !== 'admin123') {
+    // Verificar senha com bcrypt
+    const senhaValida = await bcrypt.compare(senha, admin.senha_hash)
+
+    if (!senhaValida) {
       return NextResponse.json(
         { error: 'Email ou senha incorretos' },
         { status: 401 }

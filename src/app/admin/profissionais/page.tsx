@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard } from "lucide-react"
+import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard, GraduationCap, Building2 } from "lucide-react"
 
 interface Profissional {
   id: string
@@ -22,6 +22,8 @@ interface Profissional {
   created_at: string
   categorias: string[]
   documento_url?: string | null
+  documento_empresa_url?: string | null
+  diplomas_urls?: string[] | null
 }
 
 export default function AdminProfissionais() {
@@ -229,26 +231,74 @@ export default function AdminProfissionais() {
                     </div>
                   )}
 
-                  {/* Documento */}
-                  {prof.documento_url ? (
-                    <div className="pt-2">
-                      <a
-                        href={prof.documento_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                      >
-                        <FileText size={14} />
-                        <span>Ver documento</span>
-                        <ExternalLink size={12} />
-                      </a>
+                  {/* Documentos */}
+                  <div className="pt-2 border-t space-y-2">
+                    {/* Documento de Identidade Pessoal */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Documento de Identidade:</p>
+                      {prof.documento_url ? (
+                        <a
+                          href={prof.documento_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                        >
+                          <IdCard size={14} />
+                          <span>Ver documento</span>
+                          <ExternalLink size={12} />
+                        </a>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic flex items-center gap-1">
+                          <IdCard size={12} />
+                          Não enviado
+                        </p>
+                      )}
                     </div>
-                  ) : (
+
+                    {/* Documento da Empresa (apenas para empresas) */}
+                    {prof.tipo === 'empresa' && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Documento da Empresa:</p>
+                        {prof.documento_empresa_url ? (
+                          <a
+                            href={prof.documento_empresa_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                          >
+                            <Building2 size={14} />
+                            <span>Ver documento</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <p className="text-xs text-gray-500 italic flex items-center gap-1">
+                            <Building2 size={12} />
+                            Não enviado
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Diplomas/Certificados */}
+                  {prof.diplomas_urls && prof.diplomas_urls.length > 0 && (
                     <div className="pt-2">
-                      <p className="text-xs text-gray-500 italic flex items-center gap-1">
-                        <FileText size={12} />
-                        Sem documento enviado
-                      </p>
+                      <p className="text-xs text-gray-500 mb-1">Diplomas/Certificados:</p>
+                      <div className="space-y-1">
+                        {prof.diplomas_urls.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                          >
+                            <GraduationCap size={14} />
+                            <span>Diploma {idx + 1}</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        ))}
+                      </div>
                     </div>
                   )}
 

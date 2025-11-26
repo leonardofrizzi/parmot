@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { User, CheckCircle2, Upload, FileText, X, ExternalLink } from "lucide-react"
+import { User, CheckCircle2, Upload, FileText, X, ExternalLink, Building2, GraduationCap, IdCard, Trash2, Loader2 } from "lucide-react"
 
 interface Profissional {
   id: string
@@ -24,6 +24,8 @@ interface Profissional {
   saldo_moedas: number
   cliente_id?: string
   documento_url?: string | null
+  documento_empresa_url?: string | null
+  diplomas_urls?: string[] | null
 }
 
 export default function PerfilProfissional() {
@@ -41,9 +43,14 @@ export default function PerfilProfissional() {
   const [clienteSenha, setClienteSenha] = useState("")
   const [clienteConfirmarSenha, setClienteConfirmarSenha] = useState("")
 
-  // Estados para upload de documento
-  const [documento, setDocumento] = useState<File | null>(null)
-  const [uploadingDoc, setUploadingDoc] = useState(false)
+  // Estados para upload de documentos
+  const [documentoIdentidade, setDocumentoIdentidade] = useState<File | null>(null)
+  const [documentoEmpresa, setDocumentoEmpresa] = useState<File | null>(null)
+  const [diploma, setDiploma] = useState<File | null>(null)
+  const [uploadingIdentidade, setUploadingIdentidade] = useState(false)
+  const [uploadingEmpresa, setUploadingEmpresa] = useState(false)
+  const [uploadingDiploma, setUploadingDiploma] = useState(false)
+  const [removingDiploma, setRemovingDiploma] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -55,9 +62,44 @@ export default function PerfilProfissional() {
   })
 
   useEffect(() => {
+    fetchProfissionalData()
+  }, [])
+
+  const fetchProfissionalData = async () => {
     const usuarioData = localStorage.getItem('usuario')
-    if (usuarioData) {
-      const user = JSON.parse(usuarioData)
+    if (!usuarioData) return
+
+    const user = JSON.parse(usuarioData)
+
+    // Buscar dados atualizados do banco
+    try {
+      const response = await fetch(`/api/profissional/${user.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        const prof = data.profissional
+        setProfissional(prof)
+        localStorage.setItem('usuario', JSON.stringify(prof))
+        setFormData({
+          nome: prof.nome,
+          razao_social: prof.razao_social || "",
+          email: prof.email,
+          telefone: prof.telefone,
+          cidade: prof.cidade || "",
+          estado: prof.estado || "",
+        })
+      } else {
+        // Fallback para dados do localStorage
+        setProfissional(user)
+        setFormData({
+          nome: user.nome,
+          razao_social: user.razao_social || "",
+          email: user.email,
+          telefone: user.telefone,
+          cidade: user.cidade || "",
+          estado: user.estado || "",
+        })
+      }
+    } catch {
       setProfissional(user)
       setFormData({
         nome: user.nome,
@@ -68,7 +110,7 @@ export default function PerfilProfissional() {
         estado: user.estado || "",
       })
     }
-  }, [])
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -102,14 +144,13 @@ export default function PerfilProfissional() {
         return
       }
 
-      // Atualizar localStorage
       localStorage.setItem('usuario', JSON.stringify(data.profissional))
       setProfissional(data.profissional)
       setSuccess("Perfil atualizado com sucesso!")
       setEditMode(false)
       setLoading(false)
 
-    } catch (err) {
+    } catch {
       setError("Erro ao conectar com o servidor")
       setLoading(false)
     }
@@ -152,43 +193,50 @@ export default function PerfilProfissional() {
       setClienteSuccess(true)
       setClienteLoading(false)
 
-    } catch (err) {
+    } catch {
       setError("Erro ao conectar com o servidor")
       setClienteLoading(false)
     }
   }
 
-  // Handler para seleção de arquivo
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler genérico para seleção de arquivo
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setFile: (file: File | null) => void
+  ) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validar tamanho (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setError("O arquivo deve ter no máximo 5MB")
         return
       }
-      // Validar tipo
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
         setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
         return
       }
-      setDocumento(file)
+      setFile(file)
       setError("")
     }
   }
 
-  // Função para fazer upload do documento
-  const handleUploadDocumento = async () => {
-    if (!documento || !profissional) return
+  // Upload de documento
+  const handleUploadDocumento = async (
+    file: File,
+    tipoDocumento: 'identidade' | 'empresa' | 'diploma',
+    setUploading: (v: boolean) => void,
+    setFile: (f: File | null) => void
+  ) => {
+    if (!file || !profissional) return
 
-    setUploadingDoc(true)
+    setUploading(true)
     setError("")
 
     try {
       const formData = new FormData()
       formData.append("profissional_id", profissional.id)
-      formData.append("documento", documento)
+      formData.append("documento", file)
+      formData.append("tipo_documento", tipoDocumento)
 
       const response = await fetch("/api/profissional/upload-documento", {
         method: "POST",
@@ -199,21 +247,54 @@ export default function PerfilProfissional() {
 
       if (!response.ok) {
         setError(data.error || "Erro ao fazer upload do documento")
-        setUploadingDoc(false)
+        setUploading(false)
         return
       }
 
-      // Atualizar profissional com a nova URL
-      const updatedProfissional = { ...profissional, documento_url: data.documento_url }
-      localStorage.setItem('usuario', JSON.stringify(updatedProfissional))
-      setProfissional(updatedProfissional)
-      setDocumento(null)
+      // Atualizar profissional
+      await fetchProfissionalData()
+      setFile(null)
       setSuccess("Documento enviado com sucesso!")
-      setUploadingDoc(false)
+      setUploading(false)
 
-    } catch (err) {
+    } catch {
       setError("Erro ao conectar com o servidor")
-      setUploadingDoc(false)
+      setUploading(false)
+    }
+  }
+
+  // Remover diploma
+  const handleRemoverDiploma = async (diplomaUrl: string) => {
+    if (!profissional) return
+
+    setRemovingDiploma(diplomaUrl)
+    setError("")
+
+    try {
+      const response = await fetch("/api/profissional/upload-documento", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profissional_id: profissional.id,
+          diploma_url: diplomaUrl
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Erro ao remover diploma")
+        setRemovingDiploma(null)
+        return
+      }
+
+      await fetchProfissionalData()
+      setSuccess("Diploma removido com sucesso!")
+      setRemovingDiploma(null)
+
+    } catch {
+      setError("Erro ao conectar com o servidor")
+      setRemovingDiploma(null)
     }
   }
 
@@ -226,7 +307,7 @@ export default function PerfilProfissional() {
         </div>
 
         <div className="max-w-2xl space-y-6">
-          {[1, 2].map((i) => (
+          {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-48 mb-2" />
@@ -234,13 +315,12 @@ export default function PerfilProfissional() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[1, 2, 3, 4, 5].map((j) => (
+                  {[1, 2, 3].map((j) => (
                     <div key={j} className="space-y-2">
                       <Skeleton className="h-4 w-32" />
                       <Skeleton className="h-10 w-full" />
                     </div>
                   ))}
-                  <Skeleton className="h-10 w-full" />
                 </div>
               </CardContent>
             </Card>
@@ -254,7 +334,7 @@ export default function PerfilProfissional() {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Perfil</h1>
-        <p className="text-gray-600">Gerencie suas informações pessoais</p>
+        <p className="text-gray-600">Gerencie suas informações e documentos</p>
       </div>
 
       {error && (
@@ -290,101 +370,279 @@ export default function PerfilProfissional() {
           </CardContent>
         </Card>
 
-        {/* Documento de Identificação */}
+        {/* Documentos */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5" />
-              Documento de Identificação
+              Meus Documentos
             </CardTitle>
             <CardDescription>
-              {profissional.tipo === 'autonomo'
-                ? 'Envie RG, CNH ou Certificado para validação'
-                : 'Envie Contrato Social ou Cartão CNPJ para validação'}
+              Gerencie seus documentos de identificação e certificados
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* Documento atual */}
-            {profissional.documento_url && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">
-                      Documento enviado
-                    </span>
-                  </div>
-                  <a
-                    href={profissional.documento_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                  >
-                    <span>Visualizar</span>
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {/* Upload de novo documento */}
+          <CardContent className="space-y-6">
+            {/* Documento de Identificação Pessoal */}
             <div className="space-y-3">
-              <p className="text-sm text-gray-600">
-                {profissional.documento_url
-                  ? 'Envie um novo documento para substituir o atual:'
-                  : 'Envie seu documento para agilizar a aprovação:'}
+              <div className="flex items-center gap-2">
+                <IdCard className="w-4 h-4 text-gray-500" />
+                <Label className="font-medium">Documento de Identificação Pessoal</Label>
+              </div>
+              <p className="text-xs text-gray-500">
+                RG ou CNH {profissional.tipo === 'empresa' ? 'do responsável' : ''}
               </p>
 
-              {!documento ? (
-                <label
-                  htmlFor="documento-perfil"
-                  className="flex flex-col items-center justify-center w-full h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center py-4">
-                    <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-500">
-                      <span className="font-semibold">Clique para enviar</span> ou arraste
-                    </p>
-                    <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
+              {profissional.documento_url && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">Documento enviado</span>
+                    </div>
+                    <a
+                      href={profissional.documento_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                    >
+                      <span>Ver</span>
+                      <ExternalLink size={12} />
+                    </a>
                   </div>
+                </div>
+              )}
+
+              {!documentoIdentidade ? (
+                <label
+                  htmlFor="doc-identidade"
+                  className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    {profissional.documento_url ? 'Atualizar documento' : 'Enviar documento'}
+                  </p>
+                  <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
                   <input
-                    id="documento-perfil"
+                    id="doc-identidade"
                     type="file"
                     className="hidden"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
+                    onChange={(e) => handleFileSelect(e, setDocumentoIdentidade)}
                   />
                 </label>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary-600" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{documento.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {(documento.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                      <p className="text-sm font-medium text-gray-900 truncate">{documentoIdentidade.name}</p>
                     </div>
                     <Button
-                      type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setDocumento(null)}
+                      onClick={() => setDocumentoIdentidade(null)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
                   <Button
-                    onClick={handleUploadDocumento}
-                    disabled={uploadingDoc}
+                    onClick={() => handleUploadDocumento(documentoIdentidade, 'identidade', setUploadingIdentidade, setDocumentoIdentidade)}
+                    disabled={uploadingIdentidade}
+                    size="sm"
                     className="w-full"
                   >
-                    {uploadingDoc ? "Enviando..." : "Enviar Documento"}
+                    {uploadingIdentidade ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando...
+                      </>
+                    ) : "Enviar Documento"}
                   </Button>
                 </div>
+              )}
+            </div>
+
+            {/* Documento da Empresa (apenas para empresas) */}
+            {profissional.tipo === 'empresa' && (
+              <div className="space-y-3 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-gray-500" />
+                  <Label className="font-medium">Documento da Empresa</Label>
+                </div>
+                <p className="text-xs text-gray-500">Contrato Social ou Cartão CNPJ</p>
+
+                {profissional.documento_empresa_url && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-700">Documento enviado</span>
+                      </div>
+                      <a
+                        href={profissional.documento_empresa_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                      >
+                        <span>Ver</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {!documentoEmpresa ? (
+                  <label
+                    htmlFor="doc-empresa"
+                    className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                    <p className="text-sm text-gray-500">
+                      {profissional.documento_empresa_url ? 'Atualizar documento' : 'Enviar documento'}
+                    </p>
+                    <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
+                    <input
+                      id="doc-empresa"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => handleFileSelect(e, setDocumentoEmpresa)}
+                    />
+                  </label>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                        <p className="text-sm font-medium text-gray-900 truncate">{documentoEmpresa.name}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDocumentoEmpresa(null)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={() => handleUploadDocumento(documentoEmpresa, 'empresa', setUploadingEmpresa, setDocumentoEmpresa)}
+                      disabled={uploadingEmpresa}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {uploadingEmpresa ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : "Enviar Documento"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Diplomas e Certificados */}
+            <div className="space-y-3 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-gray-500" />
+                <Label className="font-medium">Diplomas e Certificados</Label>
+                <span className="text-xs text-gray-400">(opcional)</span>
+              </div>
+
+              {/* Lista de diplomas existentes */}
+              {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
+                <div className="space-y-2">
+                  {profissional.diplomas_urls.map((url, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <GraduationCap className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">Diploma {idx + 1}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                        >
+                          <span>Ver</span>
+                          <ExternalLink size={12} />
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoverDiploma(url)}
+                          disabled={removingDiploma === url}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          {removingDiploma === url ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500 text-right">
+                    {profissional.diplomas_urls.length} arquivo(s)
+                  </p>
+                </div>
+              )}
+
+              {/* Upload de novo diploma */}
+              {(
+                <>
+                  {!diploma ? (
+                    <label
+                      htmlFor="doc-diploma"
+                      className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                      <p className="text-sm text-gray-500">Adicionar diploma/certificado</p>
+                      <input
+                        id="doc-diploma"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => handleFileSelect(e, setDiploma)}
+                      />
+                    </label>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          <p className="text-sm font-medium text-gray-900 truncate">{diploma.name}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDiploma(null)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={() => handleUploadDocumento(diploma, 'diploma', setUploadingDiploma, setDiploma)}
+                        disabled={uploadingDiploma}
+                        size="sm"
+                        className="w-full"
+                      >
+                        {uploadingDiploma ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Enviando...
+                          </>
+                        ) : "Adicionar Diploma"}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>
