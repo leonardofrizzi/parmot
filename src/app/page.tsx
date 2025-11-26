@@ -22,7 +22,7 @@ import {
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const comoFunciona = [
+  const comoFuncionaCliente = [
     {
       numero: 1,
       titulo: "Descreva o que precisa",
@@ -40,6 +40,27 @@ export default function LandingPage() {
       titulo: "Converse e contrate",
       descricao: "Negocie diretamente e escolha o profissional ideal para você",
       icon: MessageSquare
+    }
+  ]
+
+  const comoFuncionaProfissional = [
+    {
+      numero: 1,
+      titulo: "Cadastre-se gratuitamente",
+      descricao: "Crie seu perfil com suas qualificações e áreas de atuação",
+      icon: GraduationCap
+    },
+    {
+      numero: 2,
+      titulo: "Receba solicitações",
+      descricao: "Clientes da sua região enviarão pedidos que combinam com seu perfil",
+      icon: Search
+    },
+    {
+      numero: 3,
+      titulo: "Libere e feche negócio",
+      descricao: "Escolha os contatos, negocie valores e conquiste novos clientes",
+      icon: CheckCircle2
     }
   ]
 
@@ -130,32 +151,74 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-primary-50 via-white to-blue-50 py-20 sm:py-28">
+      <section className="bg-gradient-to-br from-primary-50 via-white to-blue-50 py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
+          <div className="text-center max-w-4xl mx-auto mb-12">
             <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
               <BookOpen size={16} />
               Plataforma de Educação
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
-              Encontre o profissional ideal para você
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Encontre o profissional ideal ou cadastre-se como prestador de serviços
             </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Descreva o que você precisa e receba propostas de profissionais qualificados. Simples, rápido e prático.
+            <p className="text-lg text-gray-600">
+              Conectamos clientes a profissionais qualificados da área de educação. Simples, rápido e prático.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/cadastro/cliente">
-                <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
-                  Solicitar Serviço
-                  <ArrowRight size={20} className="ml-2" />
-                </Button>
+          </div>
+
+          {/* Dois cards lado a lado */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* Card Cliente */}
+            <Card className="border-2 hover:border-primary-300 hover:shadow-lg transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Search size={32} className="text-primary-600" />
+                </div>
+                <CardTitle className="text-xl">Busco um profissional</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 text-sm mb-6">
+                  Descreva o que você precisa e receba propostas de profissionais qualificados
+                </p>
+                <Link href="/cadastro/cliente">
+                  <Button className="w-full">
+                    Solicitar Serviço
+                    <ArrowRight size={18} className="ml-2" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            {/* Card Profissional */}
+            <Card className="border-2 border-primary-200 bg-gradient-to-br from-primary-50 to-white hover:shadow-lg transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="w-16 h-16 bg-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <GraduationCap size={32} className="text-white" />
+                </div>
+                <CardTitle className="text-xl">Sou profissional</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 text-sm mb-6">
+                  Cadastre-se gratuitamente e receba solicitações de clientes da sua região
+                </p>
+                <Link href="/cadastro/profissional">
+                  <Button variant="outline" className="w-full border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white">
+                    Cadastrar como Profissional
+                    <ArrowRight size={18} className="ml-2" />
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Link para login */}
+          <div className="text-center mt-8">
+            <p className="text-gray-600 text-sm">
+              Já tem uma conta?{" "}
+              <Link href="/login" className="text-primary-600 font-medium hover:underline">
+                Fazer login
               </Link>
-              <Link href="#como-funciona">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-6">
-                  Como Funciona
-                </Button>
-              </Link>
-            </div>
+            </p>
           </div>
         </div>
       </section>
@@ -163,34 +226,81 @@ export default function LandingPage() {
       {/* Como Funciona */}
       <section id="como-funciona" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Como funciona
             </h2>
-            <p className="text-xl text-gray-600">
-              Encontrar um profissional nunca foi tão fácil
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {comoFunciona.map((passo) => (
-              <Card key={passo.numero} className="relative border-2 hover:border-primary-200 transition-all">
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
-                  <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                    {passo.numero}
-                  </div>
+          {/* Grid com as duas versões */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Para Clientes */}
+            <div>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-3">
+                  <Search size={16} />
+                  Para Clientes
                 </div>
-                <CardHeader className="pt-10 text-center">
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <passo.icon size={32} className="text-primary-600" />
+                <p className="text-gray-600">
+                  Encontrar um profissional nunca foi tão fácil
+                </p>
+              </div>
+              <div className="space-y-6">
+                {comoFuncionaCliente.map((passo) => (
+                  <div key={passo.numero} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-blue-50 transition-colors">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {passo.numero}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{passo.titulo}</h3>
+                      <p className="text-gray-600 text-sm">{passo.descricao}</p>
+                    </div>
                   </div>
-                  <CardTitle className="text-xl">{passo.titulo}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 text-center">{passo.descricao}</p>
-                </CardContent>
-              </Card>
-            ))}
+                ))}
+              </div>
+              <div className="mt-6 text-center">
+                <Link href="/cadastro/cliente">
+                  <Button className="px-6">
+                    Solicitar Serviço
+                    <ArrowRight size={16} className="ml-2" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Para Profissionais */}
+            <div>
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-4 py-2 rounded-full text-sm font-medium mb-3">
+                  <GraduationCap size={16} />
+                  Para Profissionais
+                </div>
+                <p className="text-gray-600">
+                  Conquiste novos clientes de forma simples
+                </p>
+              </div>
+              <div className="space-y-6">
+                {comoFuncionaProfissional.map((passo) => (
+                  <div key={passo.numero} className="flex items-start gap-4 p-4 bg-gray-50 rounded-xl hover:bg-primary-50 transition-colors">
+                    <div className="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {passo.numero}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{passo.titulo}</h3>
+                      <p className="text-gray-600 text-sm">{passo.descricao}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 text-center">
+                <Link href="/cadastro/profissional">
+                  <Button variant="outline" className="px-6 border-primary-600 text-primary-600 hover:bg-primary-600 hover:text-white">
+                    Cadastrar como Profissional
+                    <ArrowRight size={16} className="ml-2" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -315,15 +425,23 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
             Pronto para começar?
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Descreva o que você precisa e receba propostas de profissionais
+          <p className="text-lg text-gray-600 mb-8">
+            Escolha como deseja usar a plataforma
           </p>
-          <Link href="/cadastro/cliente">
-            <Button size="lg" className="text-lg px-12 py-6">
-              Solicitar Serviço
-              <ArrowRight size={20} className="ml-2" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/cadastro/cliente">
+              <Button size="lg" className="w-full sm:w-auto px-8">
+                Solicitar Serviço
+                <ArrowRight size={18} className="ml-2" />
+              </Button>
+            </Link>
+            <Link href="/cadastro/profissional">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto px-8">
+                Cadastrar como Profissional
+                <ArrowRight size={18} className="ml-2" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
