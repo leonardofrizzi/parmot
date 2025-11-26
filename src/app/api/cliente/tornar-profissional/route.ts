@@ -85,25 +85,38 @@ export async function POST(request: NextRequest) {
     // Upload do documento se existir
     let documentoUrl: string | null = null
     if (documento && documento.size > 0) {
-      const fileExt = documento.name.split('.').pop()
-      const fileName = `${cliente_id}_${Date.now()}.${fileExt}`
-      const filePath = `documentos/${fileName}`
+      try {
+        const fileExt = documento.name.split('.').pop()
+        const fileName = `${cpf_cnpj.replace(/[^\d]/g, '')}_${Date.now()}.${fileExt}`
+        const filePath = `documentos/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('profissionais')
-        .upload(filePath, documento, {
-          contentType: documento.type,
-          upsert: false
-        })
+        // Converter File para ArrayBuffer
+        const arrayBuffer = await documento.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
 
-      if (uploadError) {
-        console.error('Erro ao fazer upload do documento:', uploadError)
-        // Continua sem o documento, não é obrigatório
-      } else {
-        const { data: urlData } = supabase.storage
-          .from('profissionais')
-          .getPublicUrl(filePath)
-        documentoUrl = urlData.publicUrl
+        const { error: uploadError } = await supabase.storage
+          .from('profissionais-documentos')
+          .upload(filePath, buffer, {
+            contentType: documento.type,
+            upsert: false
+          })
+
+        if (uploadError) {
+          console.error('Erro ao fazer upload do documento:', uploadError)
+          // Continua sem o documento, não é obrigatório
+        } else {
+          // Gerar URL assinada para bucket privado
+          const { data: urlData, error: urlError } = await supabase.storage
+            .from('profissionais-documentos')
+            .createSignedUrl(filePath, 31536000) // 365 dias
+
+          if (!urlError && urlData) {
+            documentoUrl = urlData.signedUrl
+          }
+        }
+      } catch (uploadErr) {
+        console.error('Erro no processo de upload:', uploadErr)
+        // Continua sem o documento
       }
     }
 

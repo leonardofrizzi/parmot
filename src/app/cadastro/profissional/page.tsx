@@ -151,15 +151,11 @@ export default function CadastroProfissional() {
       return
     }
 
-    // Validar documento (opcional mas recomendado)
+    // Validar documento (obrigatório)
     if (!documento) {
-      const confirmar = confirm(
-        "Você não enviou nenhum documento. Isso pode atrasar a aprovação da sua conta. Deseja continuar mesmo assim?"
-      )
-      if (!confirmar) {
-        setLoading(false)
-        return
-      }
+      setError("O documento de identificação é obrigatório")
+      setLoading(false)
+      return
     }
 
     try {
@@ -481,12 +477,12 @@ export default function CadastroProfissional() {
           {/* Campo de Upload de Documento */}
           <div className="space-y-2">
             <Label htmlFor="documento">
-              Documento de Identificação (opcional)
+              Documento de Identificação <span className="text-red-500">*</span>
             </Label>
             <p className="text-xs text-gray-500 mb-2">
               {tipo === "autonomo"
-                ? "RG, CNH ou Certificado MEI (recomendado para aprovação mais rápida)"
-                : "Contrato Social ou Cartão CNPJ (recomendado para aprovação mais rápida)"}
+                ? "RG, CNH ou Certificado MEI"
+                : "Contrato Social ou Cartão CNPJ"}
             </p>
 
             {!documento ? (

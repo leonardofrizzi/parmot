@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Briefcase, CheckCircle2, Clock } from "lucide-react"
+import { Briefcase, CheckCircle2, Clock, Upload, FileText, X } from "lucide-react"
 
 interface Cliente {
   id: string
@@ -33,10 +33,12 @@ export default function PerfilCliente() {
   const [showProfModal, setShowProfModal] = useState(false)
   const [profLoading, setProfLoading] = useState(false)
   const [profSuccess, setProfSuccess] = useState(false)
+  const [documento, setDocumento] = useState<File | null>(null)
   const [profForm, setProfForm] = useState({
     tipo: "autonomo" as "autonomo" | "empresa",
     cpf_cnpj: "",
     razao_social: "",
+    telefone: "",
     senha: "",
     confirmarSenha: "",
   })
@@ -109,6 +111,23 @@ export default function PerfilCliente() {
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("O arquivo deve ter no máximo 5MB")
+        return
+      }
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        return
+      }
+      setDocumento(file)
+      setError("")
+    }
+  }
+
   const handleTornarProfissional = async () => {
     setError("")
     setProfLoading(true)
@@ -125,17 +144,33 @@ export default function PerfilCliente() {
       return
     }
 
+    if (!profForm.telefone) {
+      setError("Telefone é obrigatório para profissionais")
+      setProfLoading(false)
+      return
+    }
+
+    if (!documento) {
+      setError("O documento de identificação é obrigatório")
+      setProfLoading(false)
+      return
+    }
+
     try {
+      const formData = new FormData()
+      formData.append("cliente_id", cliente?.id || "")
+      formData.append("tipo", profForm.tipo)
+      formData.append("cpf_cnpj", profForm.cpf_cnpj)
+      formData.append("razao_social", profForm.razao_social || "")
+      formData.append("telefone", profForm.telefone)
+      formData.append("senha", profForm.senha)
+      if (documento) {
+        formData.append("documento", documento)
+      }
+
       const response = await fetch("/api/cliente/tornar-profissional", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cliente_id: cliente?.id,
-          tipo: profForm.tipo,
-          cpf_cnpj: profForm.cpf_cnpj,
-          razao_social: profForm.razao_social,
-          senha: profForm.senha,
-        }),
+        body: formData,
       })
 
       const data = await response.json()
@@ -148,6 +183,7 @@ export default function PerfilCliente() {
 
       setProfSuccess(true)
       setProfLoading(false)
+      setDocumento(null)
 
     } catch (err) {
       setError("Erro ao conectar com o servidor")
@@ -376,7 +412,7 @@ export default function PerfilCliente() {
 
       {/* Modal para Tornar-se Profissional */}
       <Dialog open={showProfModal} onOpenChange={setShowProfModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           {!profSuccess ? (
             <>
               <DialogHeader>
@@ -396,6 +432,7 @@ export default function PerfilCliente() {
                       variant={profForm.tipo === "autonomo" ? "default" : "outline"}
                       onClick={() => setProfForm({ ...profForm, tipo: "autonomo" })}
                       className="w-full"
+                      size="sm"
                     >
                       Autônomo
                     </Button>
@@ -404,6 +441,7 @@ export default function PerfilCliente() {
                       variant={profForm.tipo === "empresa" ? "default" : "outline"}
                       onClick={() => setProfForm({ ...profForm, tipo: "empresa" })}
                       className="w-full"
+                      size="sm"
                     >
                       Empresa
                     </Button>
@@ -432,25 +470,82 @@ export default function PerfilCliente() {
                   </div>
                 )}
 
-                {/* Senha */}
+                {/* Telefone */}
                 <div className="space-y-2">
-                  <Label>Senha para acesso profissional <span className="text-red-500">*</span></Label>
+                  <Label>Telefone/WhatsApp <span className="text-red-500">*</span></Label>
                   <Input
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={profForm.senha}
-                    onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={profForm.telefone}
+                    onChange={(e) => setProfForm({ ...profForm, telefone: e.target.value })}
                   />
                 </div>
 
+                {/* Senha */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Senha <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={profForm.senha}
+                      onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Confirmar senha <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="password"
+                      placeholder="Confirme sua senha"
+                      value={profForm.confirmarSenha}
+                      onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Upload de Documento */}
                 <div className="space-y-2">
-                  <Label>Confirmar senha <span className="text-red-500">*</span></Label>
-                  <Input
-                    type="password"
-                    placeholder="Confirme sua senha"
-                    value={profForm.confirmarSenha}
-                    onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
-                  />
+                  <Label>Documento <span className="text-red-500">*</span></Label>
+                  <p className="text-xs text-gray-500">
+                    {profForm.tipo === "autonomo"
+                      ? "RG, CNH ou Certificado MEI"
+                      : "Contrato Social ou CNPJ"}
+                  </p>
+
+                  {!documento ? (
+                    <label
+                      htmlFor="documento-perfil"
+                      className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                      <p className="text-sm text-gray-500">Clique para enviar</p>
+                      <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
+                      <input
+                        id="documento-perfil"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                        <p className="text-sm font-medium text-gray-900 truncate">{documento.name}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDocumento(null)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {error && (

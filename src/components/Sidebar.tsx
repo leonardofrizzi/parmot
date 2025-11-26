@@ -239,6 +239,12 @@ export default function Sidebar({ tipo }: SidebarProps) {
       return
     }
 
+    if (!documento) {
+      setModalError("O documento de identificação é obrigatório")
+      setModalLoading(false)
+      return
+    }
+
     try {
       // Usar FormData para enviar documento
       const formData = new FormData()
@@ -580,12 +586,15 @@ export default function Sidebar({ tipo }: SidebarProps) {
 
       {/* Modal para criar outro perfil */}
       <Dialog open={showModal} onOpenChange={handleModalClose}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className={cn(
+          "max-h-[90vh] overflow-y-auto",
+          tipo === "cliente" && !modalSuccess ? "sm:max-w-[500px]" : "sm:max-w-[400px]"
+        )}>
           {!modalSuccess ? (
             <>
               <DialogHeader>
                 <DialogTitle>
-                  {tipo === "cliente" ? "Tornar-se Profissional" : "Tornar-se Cliente"}
+                  {tipo === "cliente" ? "Criar conta de Profissional" : "Tornar-se Cliente"}
                 </DialogTitle>
                 <DialogDescription>
                   {tipo === "cliente"
@@ -595,10 +604,10 @@ export default function Sidebar({ tipo }: SidebarProps) {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 py-4">
+              <div className="py-4">
                 {tipo === "cliente" ? (
                   // Formulário para cliente virar profissional
-                  <>
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Tipo de cadastro</Label>
                       <div className="grid grid-cols-2 gap-2">
@@ -607,6 +616,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
                           variant={profForm.tipo === "autonomo" ? "default" : "outline"}
                           onClick={() => setProfForm({ ...profForm, tipo: "autonomo" })}
                           className="w-full"
+                          size="sm"
                         >
                           Autônomo
                         </Button>
@@ -615,6 +625,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
                           variant={profForm.tipo === "empresa" ? "default" : "outline"}
                           onClick={() => setProfForm({ ...profForm, tipo: "empresa" })}
                           className="w-full"
+                          size="sm"
                         >
                           Empresa
                         </Button>
@@ -651,13 +662,35 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       />
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Senha <span className="text-red-500">*</span></Label>
+                        <Input
+                          type="password"
+                          placeholder="Mínimo 6 caracteres"
+                          value={profForm.senha}
+                          onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Confirmar senha <span className="text-red-500">*</span></Label>
+                        <Input
+                          type="password"
+                          placeholder="Confirme sua senha"
+                          value={profForm.confirmarSenha}
+                          onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
                     {/* Upload de Documento */}
                     <div className="space-y-2">
-                      <Label>Documento (opcional)</Label>
+                      <Label>Documento <span className="text-red-500">*</span></Label>
                       <p className="text-xs text-gray-500">
                         {profForm.tipo === "autonomo"
-                          ? "RG, CNH ou Certificado (recomendado)"
-                          : "Contrato Social ou Cartão CNPJ"}
+                          ? "RG, CNH ou Certificado MEI"
+                          : "Contrato Social ou CNPJ"}
                       </p>
 
                       {!documento ? (
@@ -665,13 +698,9 @@ export default function Sidebar({ tipo }: SidebarProps) {
                           htmlFor="documento-modal"
                           className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
                         >
-                          <div className="flex flex-col items-center justify-center py-3">
-                            <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                            <p className="text-xs text-gray-500">
-                              <span className="font-semibold">Clique para enviar</span>
-                            </p>
-                            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
-                          </div>
+                          <Upload className="w-6 h-6 mb-1 text-gray-400" />
+                          <p className="text-sm text-gray-500">Clique para enviar</p>
+                          <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
                           <input
                             id="documento-modal"
                             type="file"
@@ -681,52 +710,27 @@ export default function Sidebar({ tipo }: SidebarProps) {
                           />
                         </label>
                       ) : (
-                        <div className="flex items-center justify-between p-2 border border-gray-300 rounded-lg bg-gray-50">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-primary-600" />
-                            <div>
-                              <p className="text-xs font-medium text-gray-900 truncate max-w-[180px]">{documento.name}</p>
-                              <p className="text-xs text-gray-500">
-                                {(documento.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                            </div>
+                        <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                            <p className="text-sm font-medium text-gray-900 truncate">{documento.name}</p>
                           </div>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => setDocumento(null)}
-                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-4 h-4" />
                           </Button>
                         </div>
                       )}
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Senha para acesso profissional <span className="text-red-500">*</span></Label>
-                      <Input
-                        type="password"
-                        placeholder="Mínimo 6 caracteres"
-                        value={profForm.senha}
-                        onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Confirmar senha <span className="text-red-500">*</span></Label>
-                      <Input
-                        type="password"
-                        placeholder="Confirme sua senha"
-                        value={profForm.confirmarSenha}
-                        onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
-                      />
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   // Formulário para profissional virar cliente
-                  <>
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Senha para acesso como cliente <span className="text-red-500">*</span></Label>
                       <Input
@@ -746,11 +750,11 @@ export default function Sidebar({ tipo }: SidebarProps) {
                         onChange={(e) => setClienteForm({ ...clienteForm, confirmarSenha: e.target.value })}
                       />
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {modalError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                  <div className="p-3 mt-4 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
                     {modalError}
                   </div>
                 )}
