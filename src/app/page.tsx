@@ -31,8 +31,8 @@ export default function LandingPage() {
     },
     {
       numero: 2,
-      titulo: "Receba propostas",
-      descricao: "Profissionais interessados entrarão em contato com você",
+      titulo: "Receba até 4 propostas",
+      descricao: "Até 4 profissionais qualificados entrarão em contato com você para cada pedido",
       icon: Users
     },
     {

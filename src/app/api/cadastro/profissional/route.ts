@@ -26,17 +26,20 @@ export async function POST(request: NextRequest) {
     const cidade = formData.get('cidade') as string
     const estado = formData.get('estado') as string
     const senha = formData.get('senha') as string
-    const documentoIdentidade = formData.get('documentoIdentidade') as File | null
+    // Documento de identidade - frente e verso
+    const identidadeFrente = formData.get('identidadeFrente') as File | null
+    const identidadeVerso = formData.get('identidadeVerso') as File | null
     const documentoEmpresa = formData.get('documentoEmpresa') as File | null
     const diplomasCount = parseInt(formData.get('diplomasCount') as string || '0')
     const emailVerificado = formData.get('email_verificado') === 'true'
 
-    // Coletar diplomas
-    const diplomas: File[] = []
+    // Coletar diplomas (frente e verso)
+    const diplomas: { frente: File; verso: File | null }[] = []
     for (let i = 0; i < diplomasCount; i++) {
-      const diploma = formData.get(`diploma_${i}`) as File | null
-      if (diploma && diploma.size > 0) {
-        diplomas.push(diploma)
+      const diplomaFrente = formData.get(`diploma_${i}_frente`) as File | null
+      const diplomaVerso = formData.get(`diploma_${i}_verso`) as File | null
+      if (diplomaFrente && diplomaFrente.size > 0) {
+        diplomas.push({ frente: diplomaFrente, verso: diplomaVerso })
       }
     }
 
@@ -93,9 +96,10 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const senhaHash = await bcrypt.hash(senha, 10)
 
-    let documentoUrl: string | null = null
+    let identidadeFrenteUrl: string | null = null
+    let identidadeVersoUrl: string | null = null
     let documentoEmpresaUrl: string | null = null
-    const diplomaUrls: string[] = []
+    const diplomaUrls: { frente: string; verso: string | null }[] = []
 
     // Função auxiliar para fazer upload de arquivo
     const uploadFile = async (file: File, folder: string): Promise<string | null> => {
@@ -130,16 +134,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload do documento de identidade pessoal (obrigatório)
-    if (documentoIdentidade && documentoIdentidade.size > 0) {
-      const url = await uploadFile(documentoIdentidade, 'identidades')
+    // Upload do documento de identidade - frente (obrigatório)
+    if (identidadeFrente && identidadeFrente.size > 0) {
+      const url = await uploadFile(identidadeFrente, 'identidades/frente')
       if (!url) {
         return NextResponse.json(
-          { error: 'Erro ao fazer upload do documento de identidade. Tente novamente.' },
+          { error: 'Erro ao fazer upload da frente do documento de identidade. Tente novamente.' },
           { status: 500 }
         )
       }
-      documentoUrl = url
+      identidadeFrenteUrl = url
+    }
+
+    // Upload do documento de identidade - verso (obrigatório)
+    if (identidadeVerso && identidadeVerso.size > 0) {
+      const url = await uploadFile(identidadeVerso, 'identidades/verso')
+      if (!url) {
+        return NextResponse.json(
+          { error: 'Erro ao fazer upload do verso do documento de identidade. Tente novamente.' },
+          { status: 500 }
+        )
+      }
+      identidadeVersoUrl = url
     }
 
     // Upload do documento da empresa (obrigatório para empresas)
@@ -154,11 +170,15 @@ export async function POST(request: NextRequest) {
       documentoEmpresaUrl = url
     }
 
-    // Upload dos diplomas (opcional)
+    // Upload dos diplomas - frente e verso (opcional)
     for (const diploma of diplomas) {
-      const url = await uploadFile(diploma, 'diplomas')
-      if (url) {
-        diplomaUrls.push(url)
+      const frenteUrl = await uploadFile(diploma.frente, 'diplomas/frente')
+      if (frenteUrl) {
+        let versoUrl: string | null = null
+        if (diploma.verso && diploma.verso.size > 0) {
+          versoUrl = await uploadFile(diploma.verso, 'diplomas/verso')
+        }
+        diplomaUrls.push({ frente: frenteUrl, verso: versoUrl })
       }
     }
 
@@ -176,8 +196,11 @@ export async function POST(request: NextRequest) {
         estado,
         senha_hash: senhaHash,
         saldo_moedas: 0,
-        documento_url: documentoUrl,
+        // Documento de identidade - frente e verso
+        identidade_frente_url: identidadeFrenteUrl,
+        identidade_verso_url: identidadeVersoUrl,
         documento_empresa_url: documentoEmpresaUrl,
+        // Diplomas com frente e verso
         diplomas_urls: diplomaUrls.length > 0 ? diplomaUrls : null,
         aprovado: false,
         email_verificado: emailVerificado

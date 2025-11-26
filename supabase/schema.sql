@@ -124,3 +124,10 @@ CREATE TRIGGER update_configuracoes_updated_at BEFORE UPDATE ON configuracoes
 
 -- Adicionar coluna moedas_reembolsadas na tabela de reembolsos (para registrar o valor real reembolsado)
 ALTER TABLE solicitacoes_reembolso ADD COLUMN IF NOT EXISTS moedas_reembolsadas INTEGER;
+
+-- Adicionar campos para documentos de identidade frente e verso
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS identidade_frente_url TEXT;
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS identidade_verso_url TEXT;
+
+-- Remover campo antigo documento_url se existir (migração)
+-- ALTER TABLE profissionais DROP COLUMN IF EXISTS documento_url;

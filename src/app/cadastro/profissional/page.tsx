@@ -27,9 +27,14 @@ export default function CadastroProfissional() {
     confirmarSenha: "",
   })
   const [codigoVerificacao, setCodigoVerificacao] = useState("")
-  const [documentoIdentidade, setDocumentoIdentidade] = useState<File | null>(null)
+  // Documentos de identidade - frente e verso
+  const [identidadeFrente, setIdentidadeFrente] = useState<File | null>(null)
+  const [identidadeVerso, setIdentidadeVerso] = useState<File | null>(null)
   const [documentoEmpresa, setDocumentoEmpresa] = useState<File | null>(null)
-  const [diplomas, setDiplomas] = useState<File[]>([])
+  // Diplomas - agora com frente e verso
+  const [diplomas, setDiplomas] = useState<{ frente: File; verso: File | null; nome: string }[]>([])
+  // Estado temporário para adicionar diploma
+  const [diplomaTemp, setDiplomaTemp] = useState<{ frente: File | null; verso: File | null }>({ frente: null, verso: null })
   const [aceiteTermos, setAceiteTermos] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -153,9 +158,9 @@ export default function CadastroProfissional() {
       return
     }
 
-    // Validar documento de identidade pessoal (obrigatório para todos)
-    if (!documentoIdentidade) {
-      setError("O documento de identificação pessoal (RG/CNH) é obrigatório")
+    // Validar documento de identidade pessoal - frente e verso (obrigatório para todos)
+    if (!identidadeFrente || !identidadeVerso) {
+      setError("É obrigatório enviar a frente e o verso do documento de identificação (RG/CNH)")
       setLoading(false)
       return
     }
@@ -181,9 +186,12 @@ export default function CadastroProfissional() {
       formDataToSend.append("senha", formData.senha)
       formDataToSend.append("email_verificado", "true") // Email já foi verificado
 
-      // Documento de identidade pessoal (obrigatório)
-      if (documentoIdentidade) {
-        formDataToSend.append("documentoIdentidade", documentoIdentidade)
+      // Documento de identidade pessoal - frente e verso (obrigatório)
+      if (identidadeFrente) {
+        formDataToSend.append("identidadeFrente", identidadeFrente)
+      }
+      if (identidadeVerso) {
+        formDataToSend.append("identidadeVerso", identidadeVerso)
       }
 
       // Documento da empresa (obrigatório para empresas)
@@ -191,9 +199,12 @@ export default function CadastroProfissional() {
         formDataToSend.append("documentoEmpresa", documentoEmpresa)
       }
 
-      // Diplomas/certificados (opcional, múltiplos)
+      // Diplomas/certificados (opcional, múltiplos) - com frente e verso
       diplomas.forEach((diploma, index) => {
-        formDataToSend.append(`diploma_${index}`, diploma)
+        formDataToSend.append(`diploma_${index}_frente`, diploma.frente)
+        if (diploma.verso) {
+          formDataToSend.append(`diploma_${index}_verso`, diploma.verso)
+        }
       })
       formDataToSend.append("diplomasCount", diplomas.length.toString())
 
@@ -222,7 +233,7 @@ export default function CadastroProfissional() {
     }
   }
 
-  const handleIdentidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdentidadeFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // Validar tamanho (max 5MB)
@@ -236,7 +247,24 @@ export default function CadastroProfissional() {
         setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
         return
       }
-      setDocumentoIdentidade(file)
+      setIdentidadeFrente(file)
+      setError("")
+    }
+  }
+
+  const handleIdentidadeVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError("O arquivo deve ter no máximo 5MB")
+        return
+      }
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        return
+      }
+      setIdentidadeVerso(file)
       setError("")
     }
   }
@@ -258,28 +286,47 @@ export default function CadastroProfissional() {
     }
   }
 
-  const handleDiplomasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) {
-      const novosArquivos: File[] = []
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        // Validar tamanho (max 5MB cada)
-        if (file.size > 5 * 1024 * 1024) {
-          setError(`O arquivo ${file.name} deve ter no máximo 5MB`)
-          return
-        }
-        // Validar tipo
-        const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-        if (!allowedTypes.includes(file.type)) {
-          setError(`O arquivo ${file.name} deve ser PDF, JPG ou PNG`)
-          return
-        }
-        novosArquivos.push(file)
-      }
-      setDiplomas([...diplomas, ...novosArquivos])
+  const validateFile = (file: File): boolean => {
+    if (file.size > 5 * 1024 * 1024) {
+      setError(`O arquivo ${file.name} deve ter no máximo 5MB`)
+      return false
+    }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+    if (!allowedTypes.includes(file.type)) {
+      setError(`O arquivo ${file.name} deve ser PDF, JPG ou PNG`)
+      return false
+    }
+    return true
+  }
+
+  const handleDiplomaFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validateFile(file)) {
+      setDiplomaTemp(prev => ({ ...prev, frente: file }))
       setError("")
     }
+  }
+
+  const handleDiplomaVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validateFile(file)) {
+      setDiplomaTemp(prev => ({ ...prev, verso: file }))
+      setError("")
+    }
+  }
+
+  const adicionarDiploma = () => {
+    if (!diplomaTemp.frente) {
+      setError("Adicione pelo menos a frente do diploma/certificado")
+      return
+    }
+    setDiplomas([...diplomas, {
+      frente: diplomaTemp.frente,
+      verso: diplomaTemp.verso,
+      nome: diplomaTemp.frente.name.replace(/\.[^/.]+$/, "") // Nome sem extensão
+    }])
+    setDiplomaTemp({ frente: null, verso: null })
+    setError("")
   }
 
   const removerDiploma = (index: number) => {
@@ -543,57 +590,95 @@ export default function CadastroProfissional() {
             />
           </div>
 
-          {/* Campo de Upload de Documento de Identificação Pessoal (Obrigatório) */}
+          {/* Campo de Upload de Documento de Identificação Pessoal - Frente e Verso (Obrigatório) */}
           <div className="space-y-2">
-            <Label htmlFor="documentoIdentidade">
+            <Label>
               Documento de Identificação Pessoal <span className="text-red-500">*</span>
             </Label>
             <p className="text-xs text-gray-500 mb-2">
-              RG ou CNH do {tipo === "empresa" ? "responsável" : "profissional"}
+              RG ou CNH do {tipo === "empresa" ? "responsável" : "profissional"} - envie frente e verso
             </p>
 
-            {!documentoIdentidade ? (
-              <label
-                htmlFor="documentoIdentidade"
-                className="flex flex-col items-center justify-center w-full h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex flex-col items-center justify-center py-4">
-                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                  <p className="text-sm text-gray-500">
-                    <span className="font-semibold">Clique para enviar</span>
-                  </p>
-                  <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</p>
-                </div>
-                <input
-                  id="documentoIdentidade"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleIdentidadeChange}
-                />
-              </label>
-            ) : (
-              <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary-600" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{documentoIdentidade.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {(documentoIdentidade.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Frente */}
+              <div>
+                <p className="text-xs font-medium text-gray-700 mb-1">Frente</p>
+                {!identidadeFrente ? (
+                  <label
+                    htmlFor="identidadeFrente"
+                    className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                      <p className="text-xs text-gray-500 text-center">Clique para enviar</p>
+                    </div>
+                    <input
+                      id="identidadeFrente"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleIdentidadeFrenteChange}
+                    />
+                  </label>
+                ) : (
+                  <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <p className="text-xs font-medium text-gray-900 truncate">{identidadeFrente.name}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIdentidadeFrente(null)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-auto"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
                   </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDocumentoIdentidade(null)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                )}
               </div>
-            )}
+
+              {/* Verso */}
+              <div>
+                <p className="text-xs font-medium text-gray-700 mb-1">Verso</p>
+                {!identidadeVerso ? (
+                  <label
+                    htmlFor="identidadeVerso"
+                    className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex flex-col items-center justify-center py-2">
+                      <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                      <p className="text-xs text-gray-500 text-center">Clique para enviar</p>
+                    </div>
+                    <input
+                      id="identidadeVerso"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleIdentidadeVersoChange}
+                    />
+                  </label>
+                ) : (
+                  <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <p className="text-xs font-medium text-gray-900 truncate">{identidadeVerso.name}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIdentidadeVerso(null)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-auto"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB cada)</p>
           </div>
 
           {/* Campo de Upload de Documento da Empresa (Obrigatório apenas para empresas) */}
@@ -651,49 +736,118 @@ export default function CadastroProfissional() {
             </div>
           )}
 
-          {/* Campo de Upload de Diplomas/Certificados (Opcional) */}
-          <div className="space-y-2">
-            <Label htmlFor="diplomas">
+          {/* Campo de Upload de Diplomas/Certificados - Frente e Verso (Opcional) */}
+          <div className="space-y-3">
+            <Label>
               Diplomas e Certificados <span className="text-gray-400">(opcional)</span>
             </Label>
-            <p className="text-xs text-gray-500 mb-2">
-              Anexe diplomas, certificados ou comprovantes de formação.
+            <p className="text-xs text-gray-500">
+              Anexe diplomas, certificados ou comprovantes de formação - envie frente e verso de cada documento.
             </p>
 
-            {(
-              <label
-                htmlFor="diplomas"
-                className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex flex-col items-center justify-center py-4">
-                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                  <p className="text-sm text-gray-500">
-                    <span className="font-semibold">Adicionar diploma/certificado</span>
-                  </p>
-                  <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB cada)</p>
+            {/* Área para adicionar novo diploma */}
+            <div className="p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+              <p className="text-sm font-medium text-gray-700 mb-2">Adicionar diploma/certificado:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Frente do diploma */}
+                <div>
+                  <p className="text-xs font-medium text-gray-600 mb-1">Frente</p>
+                  {!diplomaTemp.frente ? (
+                    <label
+                      htmlFor="diplomaFrente"
+                      className="flex flex-col items-center justify-center w-full h-20 border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors"
+                    >
+                      <Upload className="w-4 h-4 mb-1 text-gray-400" />
+                      <p className="text-xs text-gray-500">Selecionar</p>
+                      <input
+                        id="diplomaFrente"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleDiplomaFrenteChange}
+                      />
+                    </label>
+                  ) : (
+                    <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <FileText className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <p className="text-xs text-gray-900 truncate">{diplomaTemp.frente.name}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDiplomaTemp(prev => ({ ...prev, frente: null }))}
+                        className="text-red-600 hover:text-red-700 p-0.5 h-auto"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                <input
-                  id="diplomas"
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  multiple
-                  onChange={handleDiplomasChange}
-                />
-              </label>
-            )}
+
+                {/* Verso do diploma */}
+                <div>
+                  <p className="text-xs font-medium text-gray-600 mb-1">Verso <span className="text-gray-400">(opcional)</span></p>
+                  {!diplomaTemp.verso ? (
+                    <label
+                      htmlFor="diplomaVerso"
+                      className="flex flex-col items-center justify-center w-full h-20 border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors"
+                    >
+                      <Upload className="w-4 h-4 mb-1 text-gray-400" />
+                      <p className="text-xs text-gray-500">Selecionar</p>
+                      <input
+                        id="diplomaVerso"
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleDiplomaVersoChange}
+                      />
+                    </label>
+                  ) : (
+                    <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <FileText className="w-3 h-3 text-green-600 flex-shrink-0" />
+                        <p className="text-xs text-gray-900 truncate">{diplomaTemp.verso.name}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDiplomaTemp(prev => ({ ...prev, verso: null }))}
+                        className="text-red-600 hover:text-red-700 p-0.5 h-auto"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={adicionarDiploma}
+                disabled={!diplomaTemp.frente}
+                className="w-full mt-2"
+              >
+                Adicionar diploma
+              </Button>
+            </div>
 
             {/* Lista de diplomas adicionados */}
             {diplomas.length > 0 && (
-              <div className="space-y-2 mt-2">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-gray-700">Diplomas adicionados ({diplomas.length}):</p>
                 {diplomas.map((diploma, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                  <div key={index} className="flex items-center justify-between p-3 border border-blue-200 rounded-lg bg-blue-50">
                     <div className="flex items-center gap-2">
                       <FileText className="w-5 h-5 text-blue-600" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{diploma.name}</p>
+                        <p className="text-sm font-medium text-gray-900">{diploma.nome}</p>
                         <p className="text-xs text-gray-500">
-                          {(diploma.size / 1024 / 1024).toFixed(2)} MB
+                          Frente: {diploma.frente.name}
+                          {diploma.verso && ` | Verso: ${diploma.verso.name}`}
                         </p>
                       </div>
                     </div>
@@ -708,9 +862,6 @@ export default function CadastroProfissional() {
                     </Button>
                   </div>
                 ))}
-                <p className="text-xs text-gray-500 text-right">
-                  {diplomas.length} arquivo(s)
-                </p>
               </div>
             )}
           </div>
