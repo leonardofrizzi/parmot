@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { Mail, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
 
 type Etapa = "email" | "verificacao" | "dados"
 
-export default function CadastroCliente() {
+function CadastroClienteContent() {
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get('redirect')
 
@@ -483,5 +483,17 @@ export default function CadastroCliente() {
       {etapa === "verificacao" && renderEtapaVerificacao()}
       {etapa === "dados" && renderEtapaDados()}
     </div>
+  )
+}
+
+export default function CadastroCliente() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    }>
+      <CadastroClienteContent />
+    </Suspense>
   )
 }
