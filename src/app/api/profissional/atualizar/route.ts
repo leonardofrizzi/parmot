@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // Função para gerar slug a partir do nome
 function gerarSlug(nome: string): string {
@@ -81,7 +82,7 @@ export async function PUT(request: NextRequest) {
     // Atualizar profissional
     console.log('Tentando atualizar profissional com ID:', id)
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('profissionais')
       .update({
         nome,
