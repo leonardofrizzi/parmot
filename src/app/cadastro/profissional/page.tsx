@@ -210,14 +210,27 @@ export default function CadastroProfissional() {
       })
       formDataToSend.append("diplomasCount", diplomas.length.toString())
 
+      console.log("Enviando cadastro para API...")
       const response = await fetch("/api/cadastro/profissional", {
         method: "POST",
         body: formDataToSend,
       })
 
-      const data = await response.json()
+      console.log("Response status:", response.status)
+
+      let data
+      try {
+        data = await response.json()
+        console.log("Response data:", data)
+      } catch (jsonErr) {
+        console.error("Erro ao parsear JSON da resposta:", jsonErr)
+        setError("Erro ao processar resposta do servidor. Tente novamente.")
+        setLoading(false)
+        return
+      }
 
       if (!response.ok) {
+        console.error("Erro da API:", data.error)
         setError(data.error || "Erro ao cadastrar")
         setLoading(false)
         return
@@ -230,8 +243,9 @@ export default function CadastroProfissional() {
       }, 2000)
 
     } catch (err) {
-      console.error('Erro ao cadastrar:', err)
-      setError("Erro ao conectar com o servidor. Verifique sua conexão com a internet e tente novamente.")
+      console.error('Erro completo ao cadastrar:', err)
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido"
+      setError(`Erro ao conectar: ${errorMessage}. Verifique sua conexão e tente novamente.`)
       setLoading(false)
     }
   }

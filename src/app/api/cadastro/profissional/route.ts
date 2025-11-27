@@ -3,6 +3,9 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
+// Aumentar timeout para 3 minutos devido ao upload de documentos
+export const maxDuration = 180
+
 export async function POST(request: NextRequest) {
   console.log('=== INÍCIO CADASTRO PROFISSIONAL ===')
 

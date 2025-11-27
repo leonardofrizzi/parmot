@@ -334,14 +334,27 @@ export default function Sidebar({ tipo }: SidebarProps) {
       })
       formData.append("diplomasCount", diplomas.length.toString())
 
+      console.log("Enviando dados para API...")
       const response = await fetch("/api/cliente/tornar-profissional", {
         method: "POST",
         body: formData,
       })
 
-      const data = await response.json()
+      console.log("Response status:", response.status)
+
+      let data
+      try {
+        data = await response.json()
+        console.log("Response data:", data)
+      } catch (jsonErr) {
+        console.error("Erro ao parsear JSON:", jsonErr)
+        setModalError("Erro ao processar resposta do servidor")
+        setModalLoading(false)
+        return
+      }
 
       if (!response.ok) {
+        console.error("Erro da API:", data.error)
         setModalError(data.error || "Erro ao criar conta de profissional")
         setModalLoading(false)
         return
@@ -354,7 +367,9 @@ export default function Sidebar({ tipo }: SidebarProps) {
       setDocumentoEmpresa(null)
       setDiplomas([])
     } catch (err) {
-      setModalError("Erro ao conectar com o servidor")
+      console.error("Erro no catch:", err)
+      const errorMessage = err instanceof Error ? err.message : "Erro desconhecido"
+      setModalError(`Erro ao conectar com o servidor: ${errorMessage}`)
       setModalLoading(false)
     }
   }
