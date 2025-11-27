@@ -47,8 +47,7 @@ export async function POST(request: NextRequest) {
         cliente_id,
         solicitacao_id: solicitacao_id || null,
         nota,
-        comentario: comentario || null,
-        visivel: true
+        comentario: comentario || null
       })
       .select()
       .single()
@@ -97,7 +96,6 @@ export async function GET(request: NextRequest) {
           nome
         )
       `)
-      .eq('visivel', true)
       .order('created_at', { ascending: false })
 
     if (profissional_id) {

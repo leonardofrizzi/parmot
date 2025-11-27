@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
     if (error) {
       console.error('Erro ao atualizar profissional:', error)
       return NextResponse.json(
-        { error: 'Erro ao atualizar perfil' },
+        { error: `Erro ao atualizar perfil: ${error.message}` },
         { status: 500 }
       )
     }
@@ -123,10 +123,10 @@ export async function PUT(request: NextRequest) {
       profissional
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao atualizar perfil:', error)
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: `Erro interno do servidor: ${error?.message || 'desconhecido'}` },
       { status: 500 }
     )
   }
