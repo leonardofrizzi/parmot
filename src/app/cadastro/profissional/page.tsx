@@ -224,7 +224,14 @@ export default function CadastroProfissional() {
         console.log("Response data:", data)
       } catch (jsonErr) {
         console.error("Erro ao parsear JSON da resposta:", jsonErr)
-        setError("Erro ao processar resposta do servidor. Tente novamente.")
+        // Se não conseguiu parsear JSON, provavelmente foi timeout ou erro de servidor
+        if (response.status === 504 || response.status === 408) {
+          setError("Tempo esgotado ao enviar documentos. Sua conexão pode estar lenta. Tente novamente com arquivos menores ou em uma rede mais rápida.")
+        } else if (response.status >= 500) {
+          setError(`Erro no servidor (${response.status}). Tente novamente em alguns minutos.`)
+        } else {
+          setError(`Erro ao processar resposta (status ${response.status}). Tente novamente.`)
+        }
         setLoading(false)
         return
       }
@@ -245,7 +252,14 @@ export default function CadastroProfissional() {
     } catch (err) {
       console.error('Erro completo ao cadastrar:', err)
       const errorMessage = err instanceof Error ? err.message : "Erro desconhecido"
-      setError(`Erro ao conectar: ${errorMessage}. Verifique sua conexão e tente novamente.`)
+      // Verificar tipo de erro
+      if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed')) {
+        setError("Falha na conexão com o servidor. Verifique sua internet e tente novamente.")
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+        setError("Tempo esgotado. Os arquivos podem ser muito grandes. Tente com arquivos menores.")
+      } else {
+        setError(`Erro: ${errorMessage}. Tente novamente.`)
+      }
       setLoading(false)
     }
   }

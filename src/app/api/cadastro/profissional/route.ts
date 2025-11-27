@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
@@ -76,9 +75,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se email já existe
+    // Verificar se email já existe (usando supabaseAdmin para ignorar RLS)
     console.log('Verificando se email existe...')
-    const { data: emailExists, error: emailError } = await supabase
+    const { data: emailExists, error: emailError } = await supabaseAdmin
       .from('profissionais')
       .select('id')
       .eq('email', email)
@@ -97,9 +96,9 @@ export async function POST(request: NextRequest) {
     }
     console.log('✓ Email disponível')
 
-    // Verificar se CPF/CNPJ já existe
+    // Verificar se CPF/CNPJ já existe (usando supabaseAdmin para ignorar RLS)
     console.log('Verificando se CPF/CNPJ existe...')
-    const { data: cpfCnpjExists, error: cpfError } = await supabase
+    const { data: cpfCnpjExists, error: cpfError } = await supabaseAdmin
       .from('profissionais')
       .select('id')
       .eq('cpf_cnpj', cpfCnpj)
@@ -128,9 +127,21 @@ export async function POST(request: NextRequest) {
     let documentoEmpresaUrl: string | null = null
     const diplomaUrls: { frente: string; verso: string | null }[] = []
 
+    // Variável para guardar erro de upload
+    let ultimoErroUpload = ''
+
     // Função auxiliar para fazer upload de arquivo
     const uploadFile = async (file: File, folder: string): Promise<string | null> => {
       console.log(`Upload iniciado: ${file.name} (${file.size} bytes) -> ${folder}`)
+
+      // Validar tamanho do arquivo (máximo 5MB)
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      if (file.size > maxSize) {
+        ultimoErroUpload = `Arquivo ${file.name} é muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Máximo permitido: 5MB`
+        console.error(ultimoErroUpload)
+        return null
+      }
+
       try {
         const fileExt = file.name.split('.').pop()
         const fileName = `${cpfCnpj.replace(/[^\d]/g, '')}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`
@@ -151,6 +162,16 @@ export async function POST(request: NextRequest) {
         if (uploadError) {
           console.error('ERRO UPLOAD:', uploadError.message)
           console.error('ERRO UPLOAD detalhes:', JSON.stringify(uploadError))
+          // Traduzir erros comuns
+          if (uploadError.message.includes('Payload too large')) {
+            ultimoErroUpload = `Arquivo ${file.name} é muito grande. Reduza o tamanho.`
+          } else if (uploadError.message.includes('Invalid')) {
+            ultimoErroUpload = `Arquivo ${file.name} é inválido. Use JPG, PNG ou PDF.`
+          } else if (uploadError.message.includes('storage')) {
+            ultimoErroUpload = `Erro no armazenamento: ${uploadError.message}`
+          } else {
+            ultimoErroUpload = `Erro no upload de ${file.name}: ${uploadError.message}`
+          }
           return null
         }
         console.log('Upload bem sucedido:', uploadData)
@@ -163,6 +184,8 @@ export async function POST(request: NextRequest) {
         return urlData?.publicUrl || null
       } catch (err) {
         console.error('ERRO CATCH upload:', err)
+        const errMsg = err instanceof Error ? err.message : 'Erro desconhecido'
+        ultimoErroUpload = `Falha ao enviar ${file.name}: ${errMsg}`
         return null
       }
     }
@@ -175,8 +198,8 @@ export async function POST(request: NextRequest) {
       if (!url) {
         console.error('ERRO: Falha no upload da identidade frente')
         return NextResponse.json(
-          { error: 'Erro ao fazer upload da frente do documento de identidade. Tente novamente.' },
-          { status: 500 }
+          { error: ultimoErroUpload || 'Erro ao fazer upload da frente do documento de identidade. Tente novamente.' },
+          { status: 400 }
         )
       }
       identidadeFrenteUrl = url
@@ -190,8 +213,8 @@ export async function POST(request: NextRequest) {
       if (!url) {
         console.error('ERRO: Falha no upload da identidade verso')
         return NextResponse.json(
-          { error: 'Erro ao fazer upload do verso do documento de identidade. Tente novamente.' },
-          { status: 500 }
+          { error: ultimoErroUpload || 'Erro ao fazer upload do verso do documento de identidade. Tente novamente.' },
+          { status: 400 }
         )
       }
       identidadeVersoUrl = url
@@ -203,8 +226,8 @@ export async function POST(request: NextRequest) {
       const url = await uploadFile(documentoEmpresa, 'empresas')
       if (!url) {
         return NextResponse.json(
-          { error: 'Erro ao fazer upload do documento da empresa. Tente novamente.' },
-          { status: 500 }
+          { error: ultimoErroUpload || 'Erro ao fazer upload do documento da empresa. Tente novamente.' },
+          { status: 400 }
         )
       }
       documentoEmpresaUrl = url
@@ -246,7 +269,8 @@ export async function POST(request: NextRequest) {
     }
     console.log('Dados a inserir:', { ...insertData, senha_hash: '***' })
 
-    const { data, error } = await supabase
+    // Usar supabaseAdmin para ignorar RLS ao inserir
+    const { data, error } = await supabaseAdmin
       .from('profissionais')
       .insert(insertData)
       .select()

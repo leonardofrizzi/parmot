@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard, GraduationCap, Building2 } from "lucide-react"
+import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard, GraduationCap, Building2, Ban, ShieldOff } from "lucide-react"
 
 interface Profissional {
   id: string
@@ -19,6 +19,9 @@ interface Profissional {
   cidade: string
   estado: string
   aprovado: boolean
+  banido?: boolean
+  banido_em?: string
+  motivo_banimento?: string
   created_at: string
   categorias: string[]
   identidade_frente_url?: string | null
@@ -30,9 +33,11 @@ interface Profissional {
 export default function AdminProfissionais() {
   const [profissionais, setProfissionais] = useState<Profissional[]>([])
   const [loading, setLoading] = useState(true)
-  const [filtro, setFiltro] = useState<'todos' | 'pendentes' | 'aprovados'>('pendentes')
+  const [filtro, setFiltro] = useState<'todos' | 'pendentes' | 'aprovados' | 'banidos'>('pendentes')
   const [showDialog, setShowDialog] = useState(false)
   const [showDialogReprovar, setShowDialogReprovar] = useState(false)
+  const [showDialogBanir, setShowDialogBanir] = useState(false)
+  const [motivoBanimento, setMotivoBanimento] = useState('')
   const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null)
   const [loadingAcao, setLoadingAcao] = useState(false)
 
@@ -96,6 +101,33 @@ export default function AdminProfissionais() {
     setLoadingAcao(false)
   }
 
+  const handleBanir = async (banir: boolean) => {
+    if (!profissionalSelecionado) return
+
+    setLoadingAcao(true)
+    try {
+      const response = await fetch('/api/admin/profissionais/banir', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profissional_id: profissionalSelecionado.id,
+          banido: banir,
+          motivo: motivoBanimento || 'Comportamento não ético'
+        })
+      })
+
+      if (response.ok) {
+        fetchProfissionais()
+        setShowDialogBanir(false)
+        setProfissionalSelecionado(null)
+        setMotivoBanimento('')
+      }
+    } catch (err) {
+      console.error('Erro ao banir profissional:', err)
+    }
+    setLoadingAcao(false)
+  }
+
   const formatData = (data: string) => {
     return new Date(data).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -138,7 +170,7 @@ export default function AdminProfissionais() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <Button
             variant={filtro === 'pendentes' ? 'default' : 'outline'}
             onClick={() => setFiltro('pendentes')}
@@ -150,6 +182,14 @@ export default function AdminProfissionais() {
             onClick={() => setFiltro('aprovados')}
           >
             Aprovados
+          </Button>
+          <Button
+            variant={filtro === 'banidos' ? 'default' : 'outline'}
+            onClick={() => setFiltro('banidos')}
+            className={filtro === 'banidos' ? 'bg-red-600 hover:bg-red-700' : 'border-red-300 text-red-700 hover:bg-red-50'}
+          >
+            <Ban size={16} className="mr-1" />
+            Banidos
           </Button>
           <Button
             variant={filtro === 'todos' ? 'default' : 'outline'}
@@ -181,7 +221,12 @@ export default function AdminProfissionais() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{prof.nome}</CardTitle>
-                    {prof.aprovado ? (
+                    {prof.banido ? (
+                      <Badge className="bg-red-100 text-red-700 border-red-300">
+                        <Ban size={12} className="mr-1" />
+                        Banido
+                      </Badge>
+                    ) : prof.aprovado ? (
                       <Badge className="bg-green-100 text-green-700 border-green-300">
                         <CheckCircle2 size={12} className="mr-1" />
                         Aprovado
@@ -336,9 +381,24 @@ export default function AdminProfissionais() {
                     </div>
                   )}
 
-                  <div className="pt-3 flex gap-2">
-                    {!prof.aprovado ? (
-                      <>
+                  <div className="pt-3 flex flex-col gap-2">
+                    {prof.banido ? (
+                      // Profissional banido - opção de remover banimento
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                        onClick={() => {
+                          setProfissionalSelecionado(prof)
+                          setShowDialogBanir(true)
+                        }}
+                      >
+                        <ShieldOff size={16} className="mr-1" />
+                        Remover Banimento
+                      </Button>
+                    ) : !prof.aprovado ? (
+                      // Profissional pendente - opções aprovar/reprovar
+                      <div className="flex gap-2">
                         <Button
                           size="sm"
                           className="flex-1 bg-green-600 hover:bg-green-700"
@@ -362,19 +422,34 @@ export default function AdminProfissionais() {
                           <XCircle size={16} className="mr-1" />
                           Reprovar
                         </Button>
-                      </>
+                      </div>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          setProfissionalSelecionado(prof)
-                          setShowDialogReprovar(true)
-                        }}
-                      >
-                        Revogar Aprovação
-                      </Button>
+                      // Profissional aprovado - opções revogar/banir
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            setProfissionalSelecionado(prof)
+                            setShowDialogReprovar(true)
+                          }}
+                        >
+                          Revogar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 border-red-500 text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            setProfissionalSelecionado(prof)
+                            setShowDialogBanir(true)
+                          }}
+                        >
+                          <Ban size={16} className="mr-1" />
+                          Banir
+                        </Button>
+                      </div>
                     )}
                   </div>
 
@@ -432,6 +507,84 @@ export default function AdminProfissionais() {
                 disabled={loadingAcao}
               >
                 {loadingAcao ? 'Removendo...' : 'Confirmar Reprovação'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Confirmação - Banir */}
+        <Dialog open={showDialogBanir} onOpenChange={(open) => {
+          setShowDialogBanir(open)
+          if (!open) setMotivoBanimento('')
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {profissionalSelecionado?.banido ? 'Remover Banimento' : 'Banir Profissional'}
+              </DialogTitle>
+              <DialogDescription>
+                {profissionalSelecionado?.banido ? (
+                  <>
+                    Tem certeza que deseja remover o banimento de <strong>{profissionalSelecionado?.nome}</strong>?
+                    O profissional poderá solicitar nova aprovação.
+                  </>
+                ) : (
+                  <>
+                    Tem certeza que deseja banir <strong>{profissionalSelecionado?.nome}</strong>?
+                    O profissional não poderá mais usar a plataforma.
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+
+            {!profissionalSelecionado?.banido && (
+              <div className="py-4">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Motivo do banimento (opcional)
+                </label>
+                <textarea
+                  className="w-full border rounded-md p-2 text-sm"
+                  rows={3}
+                  placeholder="Ex: Comportamento não ético, fraude, spam..."
+                  value={motivoBanimento}
+                  onChange={(e) => setMotivoBanimento(e.target.value)}
+                />
+              </div>
+            )}
+
+            {profissionalSelecionado?.banido && profissionalSelecionado?.motivo_banimento && (
+              <div className="py-4 bg-red-50 rounded-md p-3">
+                <p className="text-sm text-gray-700">
+                  <strong>Motivo do banimento:</strong> {profissionalSelecionado.motivo_banimento}
+                </p>
+                {profissionalSelecionado.banido_em && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Banido em: {new Date(profissionalSelecionado.banido_em).toLocaleDateString('pt-BR')}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDialogBanir(false)
+                  setMotivoBanimento('')
+                }}
+                disabled={loadingAcao}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant={profissionalSelecionado?.banido ? 'default' : 'destructive'}
+                onClick={() => handleBanir(!profissionalSelecionado?.banido)}
+                disabled={loadingAcao}
+              >
+                {loadingAcao
+                  ? (profissionalSelecionado?.banido ? 'Removendo...' : 'Banindo...')
+                  : (profissionalSelecionado?.banido ? 'Remover Banimento' : 'Confirmar Banimento')
+                }
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         cidade,
         estado,
         aprovado,
+        banido,
+        banido_em,
+        motivo_banimento,
         created_at,
         identidade_frente_url,
         identidade_verso_url,
@@ -32,9 +35,11 @@ export async function GET(request: NextRequest) {
 
     // Aplicar filtro
     if (filtro === 'pendentes') {
-      query = query.eq('aprovado', false)
+      query = query.eq('aprovado', false).or('banido.is.null,banido.eq.false')
     } else if (filtro === 'aprovados') {
-      query = query.eq('aprovado', true)
+      query = query.eq('aprovado', true).or('banido.is.null,banido.eq.false')
+    } else if (filtro === 'banidos') {
+      query = query.eq('banido', true)
     }
     // 'todos' não precisa de filtro adicional
 
