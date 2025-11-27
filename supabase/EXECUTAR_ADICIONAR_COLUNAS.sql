@@ -22,7 +22,7 @@ ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS email_verificado BOOLEAN DEFA
 
 -- Atendimento online
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS atende_online BOOLEAN DEFAULT false;
-
+esta 
 -- Documentos (frente e verso da identidade)
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS identidade_frente_url TEXT;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS identidade_verso_url TEXT;

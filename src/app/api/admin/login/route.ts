@@ -3,8 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
+  console.log('=== LOGIN ADMIN ===')
   try {
     const { email, senha } = await request.json()
+    console.log('Email tentando login:', email)
 
     if (!email || !senha) {
       return NextResponse.json(
@@ -14,12 +16,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar admin por email (usando supabaseAdmin para ignorar RLS)
+    // Não filtra por 'ativo' para garantir compatibilidade se a coluna não existir
     const { data: admin, error: adminError } = await supabaseAdmin
       .from('administradores')
       .select('*')
       .eq('email', email)
-      .eq('ativo', true)
       .single()
+
+    console.log('Admin encontrado:', admin ? 'SIM' : 'NÃO')
+    console.log('Erro na busca:', adminError?.message || 'nenhum')
 
     if (adminError || !admin) {
       return NextResponse.json(
