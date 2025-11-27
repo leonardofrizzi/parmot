@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 // Tipos de documento suportados
-type TipoDocumento = 'identidade' | 'empresa' | 'diploma'
+type TipoDocumento = 'identidade' | 'empresa' | 'diploma' | 'foto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,10 +43,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Para foto, validar que é imagem
+    if (tipo_documento === 'foto') {
+      const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!imageTypes.includes(documento.type)) {
+        return NextResponse.json(
+          { error: 'Foto deve ser JPG, PNG ou WebP' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Verificar se profissional existe
     const { data: profissional, error: profError } = await supabase
       .from('profissionais')
-      .select('id, cpf_cnpj, documento_url, documento_empresa_url, diplomas_urls')
+      .select('id, cpf_cnpj, documento_url, documento_empresa_url, diplomas_urls, foto_url')
       .eq('id', profissional_id)
       .single()
 
@@ -72,6 +83,11 @@ export async function POST(request: NextRequest) {
         folder = 'diplomas'
         fieldName = 'diplomas_urls'
         // Para diplomas, não deletamos o antigo (são múltiplos)
+        break
+      case 'foto':
+        folder = 'fotos'
+        fieldName = 'foto_url'
+        oldUrl = profissional.foto_url
         break
       default: // 'identidade'
         folder = 'identidades'

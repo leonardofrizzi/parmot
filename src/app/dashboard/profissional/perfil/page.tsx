@@ -1,15 +1,52 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { User, CheckCircle2, Upload, FileText, X, ExternalLink, Building2, GraduationCap, IdCard, Trash2, Loader2 } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import {
+  User,
+  CheckCircle2,
+  Upload,
+  FileText,
+  X,
+  ExternalLink,
+  Building2,
+  GraduationCap,
+  IdCard,
+  Trash2,
+  Loader2,
+  Camera,
+  Link as LinkIcon,
+  Copy,
+  Check,
+  Star,
+  MapPin,
+  Mail,
+  Phone,
+  Save,
+  Eye
+} from "lucide-react"
+
+interface Avaliacao {
+  id: string
+  nota: number
+  comentario: string | null
+  resposta_profissional: string | null
+  created_at: string
+  clientes: {
+    nome: string
+  } | null
+}
 
 interface Profissional {
   id: string
@@ -26,15 +63,38 @@ interface Profissional {
   documento_url?: string | null
   documento_empresa_url?: string | null
   diplomas_urls?: string[] | null
+  foto_url?: string | null
+  sobre?: string | null
+  slug?: string | null
+}
+
+function StarDisplay({ rating, size = 16 }: { rating: number; size?: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          size={size}
+          className={star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}
+        />
+      ))}
+    </div>
+  )
 }
 
 export default function PerfilProfissional() {
   const router = useRouter()
+  const fotoInputRef = useRef<HTMLInputElement>(null)
   const [profissional, setProfissional] = useState<Profissional | null>(null)
-  const [editMode, setEditMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [copiado, setCopiado] = useState(false)
+  const [activeTab, setActiveTab] = useState("perfil")
+
+  // Avaliações
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
+  const [mediaAvaliacoes, setMediaAvaliacoes] = useState(0)
 
   // Estados para modal de tornar cliente
   const [showClienteModal, setShowClienteModal] = useState(false)
@@ -50,6 +110,7 @@ export default function PerfilProfissional() {
   const [uploadingIdentidade, setUploadingIdentidade] = useState(false)
   const [uploadingEmpresa, setUploadingEmpresa] = useState(false)
   const [uploadingDiploma, setUploadingDiploma] = useState(false)
+  const [uploadingFoto, setUploadingFoto] = useState(false)
   const [removingDiploma, setRemovingDiploma] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
@@ -59,6 +120,7 @@ export default function PerfilProfissional() {
     telefone: "",
     cidade: "",
     estado: "",
+    sobre: "",
   })
 
   useEffect(() => {
@@ -71,7 +133,6 @@ export default function PerfilProfissional() {
 
     const user = JSON.parse(usuarioData)
 
-    // Buscar dados atualizados do banco
     try {
       const response = await fetch(`/api/profissional/${user.id}`)
       if (response.ok) {
@@ -86,9 +147,10 @@ export default function PerfilProfissional() {
           telefone: prof.telefone,
           cidade: prof.cidade || "",
           estado: prof.estado || "",
+          sobre: prof.sobre || "",
         })
+        fetchAvaliacoes(prof.id)
       } else {
-        // Fallback para dados do localStorage
         setProfissional(user)
         setFormData({
           nome: user.nome,
@@ -97,6 +159,7 @@ export default function PerfilProfissional() {
           telefone: user.telefone,
           cidade: user.cidade || "",
           estado: user.estado || "",
+          sobre: user.sobre || "",
         })
       }
     } catch {
@@ -108,11 +171,41 @@ export default function PerfilProfissional() {
         telefone: user.telefone,
         cidade: user.cidade || "",
         estado: user.estado || "",
+        sobre: user.sobre || "",
       })
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fetchAvaliacoes = async (profissionalId: string) => {
+    try {
+      const response = await fetch(`/api/avaliacoes?profissional_id=${profissionalId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAvaliacoes(data)
+        if (data.length > 0) {
+          const soma = data.reduce((acc: number, av: Avaliacao) => acc + av.nota, 0)
+          setMediaAvaliacoes(Math.round((soma / data.length) * 10) / 10)
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao buscar avaliações:', err)
+    }
+  }
+
+  const getPerfilUrl = () => {
+    if (typeof window === 'undefined') return ''
+    const baseUrl = window.location.origin
+    const identifier = profissional?.slug || profissional?.id
+    return `${baseUrl}/profissional/${identifier}`
+  }
+
+  const copiarLink = () => {
+    navigator.clipboard.writeText(getPerfilUrl())
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -127,9 +220,7 @@ export default function PerfilProfissional() {
     try {
       const response = await fetch("/api/profissional/atualizar", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: profissional?.id,
           ...formData,
@@ -147,8 +238,8 @@ export default function PerfilProfissional() {
       localStorage.setItem('usuario', JSON.stringify(data.profissional))
       setProfissional(data.profissional)
       setSuccess("Perfil atualizado com sucesso!")
-      setEditMode(false)
       setLoading(false)
+      setTimeout(() => setSuccess(""), 3000)
 
     } catch {
       setError("Erro ao conectar com o servidor")
@@ -199,6 +290,54 @@ export default function PerfilProfissional() {
     }
   }
 
+  // Upload de foto direto ao selecionar
+  const handleFotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !profissional) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("A foto deve ter no máximo 5MB")
+      return
+    }
+    const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!imageTypes.includes(file.type)) {
+      setError("Foto deve ser JPG, PNG ou WebP")
+      return
+    }
+
+    setUploadingFoto(true)
+    setError("")
+
+    try {
+      const formData = new FormData()
+      formData.append("profissional_id", profissional.id)
+      formData.append("documento", file)
+      formData.append("tipo_documento", "foto")
+
+      const response = await fetch("/api/profissional/upload-documento", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Erro ao fazer upload")
+        setUploadingFoto(false)
+        return
+      }
+
+      await fetchProfissionalData()
+      setSuccess("Foto atualizada!")
+      setUploadingFoto(false)
+      setTimeout(() => setSuccess(""), 3000)
+
+    } catch {
+      setError("Erro ao conectar com o servidor")
+      setUploadingFoto(false)
+    }
+  }
+
   // Handler genérico para seleção de arquivo
   const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -246,16 +385,16 @@ export default function PerfilProfissional() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || "Erro ao fazer upload do documento")
+        setError(data.error || "Erro ao fazer upload")
         setUploading(false)
         return
       }
 
-      // Atualizar profissional
       await fetchProfissionalData()
       setFile(null)
-      setSuccess("Documento enviado com sucesso!")
+      setSuccess("Documento enviado!")
       setUploading(false)
+      setTimeout(() => setSuccess(""), 3000)
 
     } catch {
       setError("Erro ao conectar com o servidor")
@@ -289,8 +428,9 @@ export default function PerfilProfissional() {
       }
 
       await fetchProfissionalData()
-      setSuccess("Diploma removido com sucesso!")
+      setSuccess("Diploma removido!")
       setRemovingDiploma(null)
+      setTimeout(() => setSuccess(""), 3000)
 
     } catch {
       setError("Erro ao conectar com o servidor")
@@ -300,555 +440,567 @@ export default function PerfilProfissional() {
 
   if (!profissional) {
     return (
-      <div className="p-8">
-        <div className="mb-8">
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-5 w-96" />
-        </div>
-
-        <div className="max-w-2xl space-y-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-6 w-48 mb-2" />
-                <Skeleton className="h-4 w-64" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((j) => (
-                    <div key={j} className="space-y-2">
-                      <Skeleton className="h-4 w-32" />
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <Skeleton className="h-80 w-full rounded-xl" />
+          </div>
+          <div className="lg:col-span-2">
+            <Skeleton className="h-12 w-full rounded-lg mb-4" />
+            <Skeleton className="h-64 w-full rounded-xl" />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Perfil</h1>
-        <p className="text-gray-600">Gerencie suas informações e documentos</p>
-      </div>
-
+    <div className="p-6 lg:p-8 bg-gray-50 min-h-screen">
+      {/* Alertas */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center justify-between">
           {error}
+          <button onClick={() => setError("")}><X className="w-4 h-4" /></button>
         </div>
       )}
-
       {success && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-          {success}
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm flex items-center justify-between">
+          <span className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> {success}</span>
+          <button onClick={() => setSuccess("")}><X className="w-4 h-4" /></button>
         </div>
       )}
 
-      <div className="max-w-2xl space-y-6">
-        {/* Categorias de Atuação */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Categorias de Atuação</CardTitle>
-            <CardDescription>Defina quais tipos de serviço você atende</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Você só receberá solicitações das categorias que selecionar
-            </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => window.location.href = '/dashboard/profissional/perfil/categorias'}
-            >
-              Gerenciar Categorias
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Documentos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Meus Documentos
-            </CardTitle>
-            <CardDescription>
-              Gerencie seus documentos de identificação e certificados
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Documento de Identificação Pessoal */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <IdCard className="w-4 h-4 text-gray-500" />
-                <Label className="font-medium">Documento de Identificação Pessoal</Label>
-              </div>
-              <p className="text-xs text-gray-500">
-                RG ou CNH {profissional.tipo === 'empresa' ? 'do responsável' : ''}
-              </p>
-
-              {profissional.documento_url && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-700">Documento enviado</span>
-                    </div>
-                    <a
-                      href={profissional.documento_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                    >
-                      <span>Ver</span>
-                      <ExternalLink size={12} />
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {!documentoIdentidade ? (
-                <label
-                  htmlFor="doc-identidade"
-                  className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Coluna Esquerda - Card do Perfil */}
+        <div className="lg:col-span-1">
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-br from-primary-500 to-primary-700 h-24" />
+            <CardContent className="pt-0 -mt-12">
+              {/* Foto de Perfil */}
+              <div className="relative inline-block">
+                <div
+                  className="relative w-24 h-24 rounded-full border-4 border-white bg-white cursor-pointer group"
+                  onClick={() => fotoInputRef.current?.click()}
                 >
-                  <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                  <p className="text-sm text-gray-500">
-                    {profissional.documento_url ? 'Atualizar documento' : 'Enviar documento'}
-                  </p>
-                  <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
-                  <input
-                    id="doc-identidade"
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileSelect(e, setDocumentoIdentidade)}
-                  />
-                </label>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                      <p className="text-sm font-medium text-gray-900 truncate">{documentoIdentidade.name}</p>
+                  {uploadingFoto ? (
+                    <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary-600" />
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDocumentoIdentidade(null)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <Button
-                    onClick={() => handleUploadDocumento(documentoIdentidade, 'identidade', setUploadingIdentidade, setDocumentoIdentidade)}
-                    disabled={uploadingIdentidade}
-                    size="sm"
-                    className="w-full"
-                  >
-                    {uploadingIdentidade ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Enviando...
-                      </>
-                    ) : "Enviar Documento"}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Documento da Empresa (apenas para empresas) */}
-            {profissional.tipo === 'empresa' && (
-              <div className="space-y-3 pt-4 border-t">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-gray-500" />
-                  <Label className="font-medium">Documento da Empresa</Label>
-                </div>
-                <p className="text-xs text-gray-500">Contrato Social ou Cartão CNPJ</p>
-
-                {profissional.documento_empresa_url && (
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-700">Documento enviado</span>
-                      </div>
-                      <a
-                        href={profissional.documento_empresa_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                      >
-                        <span>Ver</span>
-                        <ExternalLink size={12} />
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {!documentoEmpresa ? (
-                  <label
-                    htmlFor="doc-empresa"
-                    className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                  >
-                    <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                    <p className="text-sm text-gray-500">
-                      {profissional.documento_empresa_url ? 'Atualizar documento' : 'Enviar documento'}
-                    </p>
-                    <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
-                    <input
-                      id="doc-empresa"
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleFileSelect(e, setDocumentoEmpresa)}
+                  ) : profissional.foto_url ? (
+                    <Image
+                      src={profissional.foto_url}
+                      alt={profissional.nome}
+                      width={96}
+                      height={96}
+                      className="w-full h-full rounded-full object-cover"
                     />
-                  </label>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                        <p className="text-sm font-medium text-gray-900 truncate">{documentoEmpresa.name}</p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDocumentoEmpresa(null)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={() => handleUploadDocumento(documentoEmpresa, 'empresa', setUploadingEmpresa, setDocumentoEmpresa)}
-                      disabled={uploadingEmpresa}
-                      size="sm"
-                      className="w-full"
-                    >
-                      {uploadingEmpresa ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Enviando...
-                        </>
-                      ) : "Enviar Documento"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Diplomas e Certificados */}
-            <div className="space-y-3 pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-gray-500" />
-                <Label className="font-medium">Diplomas e Certificados</Label>
-                <span className="text-xs text-gray-400">(opcional)</span>
-              </div>
-
-              {/* Lista de diplomas existentes */}
-              {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
-                <div className="space-y-2">
-                  {profissional.diplomas_urls.map((url, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <GraduationCap className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">Diploma {idx + 1}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                        >
-                          <span>Ver</span>
-                          <ExternalLink size={12} />
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoverDiploma(url)}
-                          disabled={removingDiploma === url}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          {removingDiploma === url ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <p className="text-xs text-gray-500 text-right">
-                    {profissional.diplomas_urls.length} arquivo(s)
-                  </p>
-                </div>
-              )}
-
-              {/* Upload de novo diploma */}
-              {(
-                <>
-                  {!diploma ? (
-                    <label
-                      htmlFor="doc-diploma"
-                      className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <Upload className="w-5 h-5 mb-1 text-gray-400" />
-                      <p className="text-sm text-gray-500">Adicionar diploma/certificado</p>
-                      <input
-                        id="doc-diploma"
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => handleFileSelect(e, setDiploma)}
-                      />
-                    </label>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                          <p className="text-sm font-medium text-gray-900 truncate">{diploma.name}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDiploma(null)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <Button
-                        onClick={() => handleUploadDocumento(diploma, 'diploma', setUploadingDiploma, setDiploma)}
-                        disabled={uploadingDiploma}
-                        size="sm"
-                        className="w-full"
-                      >
-                        {uploadingDiploma ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Enviando...
-                          </>
-                        ) : "Adicionar Diploma"}
-                      </Button>
+                    <div className="w-full h-full rounded-full bg-primary-100 flex items-center justify-center">
+                      {profissional.tipo === "empresa" ? (
+                        <Building2 className="w-10 h-10 text-primary-600" />
+                      ) : (
+                        <User className="w-10 h-10 text-primary-600" />
+                      )}
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informações Pessoais */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Pessoais</CardTitle>
-            <CardDescription>Atualize seus dados cadastrais</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tipo de Cadastro</Label>
-                <Input
-                  value={profissional.tipo === 'autonomo' ? 'Autônomo' : 'Empresa'}
-                  disabled
-                  className="bg-gray-50"
+                  <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <input
+                  ref={fotoInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleFotoChange}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="nome">
-                  {profissional.tipo === 'autonomo' ? 'Nome Completo' : 'Nome do Responsável'}
-                </Label>
-                <Input
-                  id="nome"
-                  name="nome"
-                  type="text"
-                  value={formData.nome}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                />
+              {/* Nome e Info */}
+              <div className="mt-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {profissional.tipo === "empresa" ? profissional.razao_social : profissional.nome}
+                </h2>
+                {profissional.tipo === "empresa" && (
+                  <p className="text-sm text-gray-500">{profissional.nome}</p>
+                )}
+                <Badge variant="secondary" className="mt-2">
+                  {profissional.tipo === "empresa" ? "Empresa" : "Autônomo"}
+                </Badge>
               </div>
 
-              {profissional.tipo === 'empresa' && (
-                <div className="space-y-2">
-                  <Label htmlFor="razao_social">Razão Social</Label>
-                  <Input
-                    id="razao_social"
-                    name="razao_social"
-                    type="text"
-                    value={formData.razao_social}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                  />
+              {/* Avaliação */}
+              {avaliacoes.length > 0 && (
+                <div className="flex items-center gap-2 mt-4 p-3 bg-yellow-50 rounded-lg">
+                  <StarDisplay rating={Math.round(mediaAvaliacoes)} size={18} />
+                  <span className="font-semibold text-gray-900">{mediaAvaliacoes.toFixed(1)}</span>
+                  <span className="text-sm text-gray-500">({avaliacoes.length})</span>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>{profissional.tipo === 'autonomo' ? 'CPF' : 'CNPJ'}</Label>
-                <Input
-                  value={profissional.cpf_cnpj}
-                  disabled
-                  className="bg-gray-50"
-                />
+              {/* Info de Contato */}
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 text-gray-400" />
+                  <span>{profissional.cidade && profissional.estado ? `${profissional.cidade}, ${profissional.estado}` : "Localização não informada"}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="truncate">{profissional.email}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Phone className="w-4 h-4 text-gray-400" />
+                  <span>{profissional.telefone}</span>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone/WhatsApp</Label>
-                <Input
-                  id="telefone"
-                  name="telefone"
-                  type="tel"
-                  value={formData.telefone}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                />
-              </div>
-
-              {editMode ? (
-                <LocationSelects
-                  estado={formData.estado}
-                  cidade={formData.cidade}
-                  onEstadoChange={(sigla) => setFormData(prev => ({ ...prev, estado: sigla }))}
-                  onCidadeChange={(nome) => setFormData(prev => ({ ...prev, cidade: nome }))}
-                />
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label>Estado</Label>
-                    <Input
-                      value={formData.estado || "Não informado"}
-                      disabled
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cidade</Label>
-                    <Input
-                      value={formData.cidade || "Não informado"}
-                      disabled
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="flex gap-2 pt-2">
-                {!editMode ? (
+              {/* Link Público */}
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Seu link público</span>
                   <Button
-                    onClick={() => {
-                      setEditMode(true)
-                      setError("")
-                      setSuccess("")
-                    }}
-                    className="w-full"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(getPerfilUrl(), '_blank')}
+                    className="h-8 px-2"
                   >
-                    Editar Perfil
+                    <Eye className="w-4 h-4" />
                   </Button>
-                ) : (
-                  <>
-                    <Button
-                      onClick={handleSaveProfile}
-                      className="flex-1"
-                      disabled={loading}
-                    >
-                      {loading ? "Salvando..." : "Salvar Alterações"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setEditMode(false)
-                        setError("")
-                        setSuccess("")
-                        setFormData({
-                          nome: profissional.nome,
-                          razao_social: profissional.razao_social || "",
-                          email: profissional.email,
-                          telefone: profissional.telefone,
-                          cidade: profissional.cidade || "",
-                          estado: profissional.estado || "",
-                        })
-                      }}
-                      className="flex-1"
-                      disabled={loading}
-                    >
-                      Cancelar
-                    </Button>
-                  </>
+                </div>
+                {!profissional.slug && (
+                  <p className="text-xs text-amber-600 mb-2">
+                    Salve o perfil para gerar link com seu nome
+                  </p>
                 )}
+                <div className="flex gap-2">
+                  <Input
+                    value={getPerfilUrl()}
+                    readOnly
+                    className="text-xs h-9"
+                  />
+                  <Button onClick={copiarLink} variant="outline" size="sm" className="h-9 px-3">
+                    {copiado ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Card Também sou Cliente */}
-        {!profissional.cliente_id && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Também preciso de serviços
-              </CardTitle>
-              <CardDescription>
-                Solicite serviços de outros profissionais na plataforma
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-4">
-                Ao ativar o modo cliente, você poderá solicitar serviços de outros profissionais
-                da plataforma, como aulas de música, reforço escolar ou idiomas.
-              </p>
-              <Button onClick={() => setShowClienteModal(true)}>
-                Quero solicitar serviços
-              </Button>
+              {/* Também sou cliente */}
+              {!profissional.cliente_id ? (
+                <Button
+                  variant="outline"
+                  className="w-full mt-6"
+                  onClick={() => setShowClienteModal(true)}
+                >
+                  Também quero solicitar serviços
+                </Button>
+              ) : (
+                <div className="mt-6 p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700 text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Você também é cliente</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
+        </div>
 
-        {profissional.cliente_id && (
-          <Card className="border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-700">
-                <CheckCircle2 className="w-5 h-5" />
-                Você também é cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-green-700 mb-4">
-                Você possui uma conta de cliente vinculada. Faça login como cliente para solicitar serviços.
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  localStorage.removeItem('usuario')
-                  localStorage.removeItem('tipoUsuario')
-                  router.push('/login')
-                }}
-              >
-                Acessar como Cliente
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Coluna Direita - Tabs de Conteúdo */}
+        <div className="lg:col-span-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full justify-start bg-white border mb-4">
+              <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil</TabsTrigger>
+              <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
+              <TabsTrigger value="avaliacoes" className="flex-1 sm:flex-none">
+                Avaliações {avaliacoes.length > 0 && `(${avaliacoes.length})`}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab Perfil */}
+            <TabsContent value="perfil" className="mt-0">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-semibold">Informações do Perfil</h3>
+                    <Button onClick={handleSaveProfile} disabled={loading}>
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">
+                        {profissional.tipo === 'autonomo' ? 'Nome Completo' : 'Nome do Responsável'}
+                      </Label>
+                      <Input
+                        id="nome"
+                        name="nome"
+                        value={formData.nome}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    {profissional.tipo === 'empresa' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="razao_social">Razão Social</Label>
+                        <Input
+                          id="razao_social"
+                          name="razao_social"
+                          value={formData.razao_social}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label>{profissional.tipo === 'autonomo' ? 'CPF' : 'CNPJ'}</Label>
+                      <Input value={profissional.cpf_cnpj} disabled className="bg-gray-50" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email">E-mail</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="telefone">Telefone/WhatsApp</Label>
+                      <Input
+                        id="telefone"
+                        name="telefone"
+                        value={formData.telefone}
+                        onChange={handleChange}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <LocationSelects
+                        estado={formData.estado}
+                        cidade={formData.cidade}
+                        onEstadoChange={(sigla) => setFormData(prev => ({ ...prev, estado: sigla, cidade: "" }))}
+                        onCidadeChange={(nome) => setFormData(prev => ({ ...prev, cidade: nome }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="sobre">Sobre você</Label>
+                      <Textarea
+                        id="sobre"
+                        name="sobre"
+                        placeholder="Conte um pouco sobre você, sua experiência e especialidades..."
+                        value={formData.sobre}
+                        onChange={handleChange}
+                        rows={4}
+                        maxLength={1000}
+                      />
+                      <p className="text-xs text-gray-500 text-right">{formData.sobre.length}/1000</p>
+                    </div>
+                  </div>
+
+                  {/* Categorias */}
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-medium">Categorias de Atuação</h4>
+                        <p className="text-sm text-gray-500">Defina quais tipos de serviço você atende</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push('/dashboard/profissional/perfil/categorias')}
+                      >
+                        Gerenciar
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tab Documentos */}
+            <TabsContent value="documentos" className="mt-0">
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-6">Documentos</h3>
+
+                  <div className="space-y-6">
+                    {/* Documento de Identificação */}
+                    <div className="p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <IdCard className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">Documento de Identificação</h4>
+                          <p className="text-sm text-gray-500">RG ou CNH {profissional.tipo === 'empresa' ? 'do responsável' : ''}</p>
+                        </div>
+                        {profissional.documento_url && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle2 className="w-3 h-3 mr-1" /> Enviado
+                          </Badge>
+                        )}
+                      </div>
+
+                      {profissional.documento_url && (
+                        <a
+                          href={profissional.documento_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary-600 hover:underline flex items-center gap-1 mb-3"
+                        >
+                          Ver documento <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+
+                      {!documentoIdentidade ? (
+                        <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                          <Upload className="w-5 h-5 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {profissional.documento_url ? 'Atualizar documento' : 'Enviar documento'}
+                          </span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleFileSelect(e, setDocumentoIdentidade)}
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <FileText className="w-4 h-4 text-primary-600" />
+                            <span className="text-sm truncate">{documentoIdentidade.name}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setDocumentoIdentidade(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleUploadDocumento(documentoIdentidade, 'identidade', setUploadingIdentidade, setDocumentoIdentidade)}
+                            disabled={uploadingIdentidade}
+                          >
+                            {uploadingIdentidade ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Documento da Empresa */}
+                    {profissional.tipo === 'empresa' && (
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <Building2 className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium">Documento da Empresa</h4>
+                            <p className="text-sm text-gray-500">Contrato Social ou Cartão CNPJ</p>
+                          </div>
+                          {profissional.documento_empresa_url && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Enviado
+                            </Badge>
+                          )}
+                        </div>
+
+                        {profissional.documento_empresa_url && (
+                          <a
+                            href={profissional.documento_empresa_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary-600 hover:underline flex items-center gap-1 mb-3"
+                          >
+                            Ver documento <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+
+                        {!documentoEmpresa ? (
+                          <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                            <Upload className="w-5 h-5 text-gray-400" />
+                            <span className="text-sm text-gray-600">
+                              {profissional.documento_empresa_url ? 'Atualizar documento' : 'Enviar documento'}
+                            </span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => handleFileSelect(e, setDocumentoEmpresa)}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                              <FileText className="w-4 h-4 text-primary-600" />
+                              <span className="text-sm truncate">{documentoEmpresa.name}</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDocumentoEmpresa(null)}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleUploadDocumento(documentoEmpresa, 'empresa', setUploadingEmpresa, setDocumentoEmpresa)}
+                              disabled={uploadingEmpresa}
+                            >
+                              {uploadingEmpresa ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Diplomas */}
+                    <div className="p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                          <GraduationCap className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium">Diplomas e Certificados</h4>
+                          <p className="text-sm text-gray-500">Opcional - adicione quantos quiser</p>
+                        </div>
+                      </div>
+
+                      {/* Lista de diplomas */}
+                      {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
+                        <div className="space-y-2 mb-3">
+                          {profissional.diplomas_urls.map((url, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <GraduationCap className="w-4 h-4 text-amber-600" />
+                                <span className="text-sm">Diploma {idx + 1}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-primary-600 hover:underline"
+                                >
+                                  Ver
+                                </a>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoverDiploma(url)}
+                                  disabled={removingDiploma === url}
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  {removingDiploma === url ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Upload de diploma */}
+                      {!diploma ? (
+                        <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                          <Upload className="w-5 h-5 text-gray-400" />
+                          <span className="text-sm text-gray-600">Adicionar diploma/certificado</span>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={(e) => handleFileSelect(e, setDiploma)}
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <FileText className="w-4 h-4 text-amber-600" />
+                            <span className="text-sm truncate">{diploma.name}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setDiploma(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleUploadDocumento(diploma, 'diploma', setUploadingDiploma, setDiploma)}
+                            disabled={uploadingDiploma}
+                          >
+                            {uploadingDiploma ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tab Avaliações */}
+            <TabsContent value="avaliacoes" className="mt-0">
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-6">Avaliações Recebidas</h3>
+
+                  {avaliacoes.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Star className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">Você ainda não recebeu avaliações</p>
+                      <p className="text-sm text-gray-400 mt-1">Complete serviços para receber avaliações dos clientes</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {avaliacoes.map((avaliacao) => (
+                        <div key={avaliacao.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="font-medium">{avaliacao.clientes?.nome || "Cliente"}</p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(avaliacao.created_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <StarDisplay rating={avaliacao.nota} size={16} />
+                          </div>
+                          {avaliacao.comentario && (
+                            <p className="text-gray-700 text-sm">{avaliacao.comentario}</p>
+                          )}
+                          {avaliacao.resposta_profissional && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border-l-4 border-primary-500">
+                              <p className="text-xs font-medium text-gray-500 mb-1">Sua resposta:</p>
+                              <p className="text-sm text-gray-700">{avaliacao.resposta_profissional}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
       {/* Modal para Tornar-se Cliente */}
@@ -865,7 +1017,7 @@ export default function PerfilProfissional() {
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Senha para acesso como cliente <span className="text-red-500">*</span></Label>
+                  <Label>Senha <span className="text-red-500">*</span></Label>
                   <Input
                     type="password"
                     placeholder="Mínimo 6 caracteres"
@@ -883,12 +1035,6 @@ export default function PerfilProfissional() {
                     onChange={(e) => setClienteConfirmarSenha(e.target.value)}
                   />
                 </div>
-
-                {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-                    {error}
-                  </div>
-                )}
               </div>
 
               <DialogFooter>
@@ -906,9 +1052,9 @@ export default function PerfilProfissional() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 size={32} className="text-green-600" />
                 </div>
-                <DialogTitle className="text-center">Conta criada com sucesso!</DialogTitle>
+                <DialogTitle className="text-center">Conta criada!</DialogTitle>
                 <DialogDescription className="text-center">
-                  Sua conta de cliente foi criada. Agora você pode solicitar serviços na plataforma.
+                  Sua conta de cliente foi criada com sucesso.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>

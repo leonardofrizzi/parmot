@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+// Função para gerar slug a partir do nome
+function gerarSlug(nome: string): string {
+  return nome
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-z0-9]+/g, '-') // Substitui caracteres especiais por hífen
+    .replace(/^-+|-+$/g, '') // Remove hífens do início e fim
+    .substring(0, 80) // Limita o tamanho
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     console.log('Dados recebidos:', body)
 
-    const { id, nome, razao_social, email, telefone, cidade, estado } = body
+    const { id, nome, razao_social, email, telefone, cidade, estado, sobre, slug: slugCustom } = body
 
     // Validações básicas
     if (!id || !nome || !email || !telefone || !cidade || !estado) {
@@ -31,6 +42,42 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Gerar slug se não tiver ou se o nome mudou
+    let slugFinal = slugCustom
+    if (!slugFinal) {
+      // Buscar profissional atual para ver se já tem slug
+      const { data: profAtual } = await supabase
+        .from('profissionais')
+        .select('slug, nome')
+        .eq('id', id)
+        .single()
+
+      // Gerar slug se não tiver ou se o nome mudou
+      if (!profAtual?.slug || profAtual.nome !== nome) {
+        let baseSlug = gerarSlug(nome)
+        let slug = baseSlug
+        let contador = 1
+
+        // Verificar se slug já existe para outro profissional
+        while (true) {
+          const { data: slugExists } = await supabase
+            .from('profissionais')
+            .select('id')
+            .eq('slug', slug)
+            .neq('id', id)
+
+          if (!slugExists || slugExists.length === 0) break
+
+          slug = `${baseSlug}-${contador}`
+          contador++
+        }
+
+        slugFinal = slug
+      } else {
+        slugFinal = profAtual.slug
+      }
+    }
+
     // Atualizar profissional
     console.log('Tentando atualizar profissional com ID:', id)
 
@@ -43,6 +90,8 @@ export async function PUT(request: NextRequest) {
         telefone,
         cidade,
         estado,
+        sobre: sobre || null,
+        slug: slugFinal,
       })
       .eq('id', id)
       .select()

@@ -129,5 +129,39 @@ ALTER TABLE solicitacoes_reembolso ADD COLUMN IF NOT EXISTS moedas_reembolsadas 
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS identidade_frente_url TEXT;
 ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS identidade_verso_url TEXT;
 
+-- Adicionar campo slug para URL pública do profissional
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE;
+
+-- Adicionar campos para perfil público do profissional
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS foto_url TEXT;
+ALTER TABLE profissionais ADD COLUMN IF NOT EXISTS sobre TEXT;
+
+-- Tabela de avaliações
+CREATE TABLE IF NOT EXISTS avaliacoes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  profissional_id UUID REFERENCES profissionais(id) ON DELETE CASCADE,
+  cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
+  solicitacao_id UUID REFERENCES solicitacoes(id) ON DELETE SET NULL,
+  nota INTEGER NOT NULL CHECK (nota >= 1 AND nota <= 5),
+  comentario TEXT,
+  resposta_profissional TEXT,
+  visivel BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Índices para avaliações
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_profissional ON avaliacoes(profissional_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_cliente ON avaliacoes(cliente_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_solicitacao ON avaliacoes(solicitacao_id);
+
+-- Trigger para updated_at da tabela avaliacoes
+CREATE TRIGGER update_avaliacoes_updated_at BEFORE UPDATE ON avaliacoes
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- RLS para avaliações
+ALTER TABLE avaliacoes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access" ON avaliacoes FOR ALL USING (true);
+
 -- Remover campo antigo documento_url se existir (migração)
 -- ALTER TABLE profissionais DROP COLUMN IF EXISTS documento_url;
