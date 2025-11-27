@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,6 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Login() {
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect')
+
   const [formData, setFormData] = useState({
     email: "",
     senha: "",
@@ -44,8 +48,13 @@ export default function Login() {
       localStorage.setItem('usuario', JSON.stringify(data.usuario))
       localStorage.setItem('tipoUsuario', data.tipo)
 
-      // Redirecionar para o dashboard correto
-      window.location.href = data.redirectTo
+      // Se tem URL de redirect e é cliente, redirecionar para lá
+      // Caso contrário, redirecionar para o dashboard
+      if (redirectUrl && data.tipo === 'cliente') {
+        window.location.href = redirectUrl
+      } else {
+        window.location.href = data.redirectTo
+      }
 
     } catch (err) {
       setError("Erro ao conectar com o servidor")

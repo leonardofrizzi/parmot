@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,9 @@ import { Mail, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
 type Etapa = "email" | "verificacao" | "dados"
 
 export default function CadastroCliente() {
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect')
+
   const [etapa, setEtapa] = useState<Etapa>("email")
   const [formData, setFormData] = useState({
     nome: "",
@@ -173,9 +177,15 @@ export default function CadastroCliente() {
       }
 
       setSuccess(true)
-      // Redirecionar para login após 2 segundos
+      // Redirecionar após 2 segundos
       setTimeout(() => {
-        window.location.href = "/login"
+        // Se tem redirect URL, vai para login com o redirect
+        // Caso contrário, vai para login normal
+        if (redirectUrl) {
+          window.location.href = `/login?redirect=${encodeURIComponent(redirectUrl)}`
+        } else {
+          window.location.href = "/login"
+        }
       }, 2000)
 
     } catch (err) {

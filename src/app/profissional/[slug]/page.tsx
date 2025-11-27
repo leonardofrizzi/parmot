@@ -143,6 +143,11 @@ export default function PerfilProfissional() {
 
   // Tela de login necessário
   if (needsLogin) {
+    // Criar URLs com redirect para voltar após login
+    const currentPath = `/profissional/${slug}`
+    const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`
+    const cadastroUrl = `/cadastro/cliente?redirect=${encodeURIComponent(currentPath)}`
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">
@@ -157,12 +162,12 @@ export default function PerfilProfissional() {
               Para ver o perfil completo deste prestador de serviço, você precisa estar logado como cliente.
             </p>
             <div className="space-y-3">
-              <Link href="/login" className="block">
+              <Link href={loginUrl} className="block">
                 <Button className="w-full">
                   Entrar como Cliente
                 </Button>
               </Link>
-              <Link href="/cadastro/cliente" className="block">
+              <Link href={cadastroUrl} className="block">
                 <Button variant="outline" className="w-full">
                   Criar conta de Cliente
                 </Button>
