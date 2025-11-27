@@ -7,12 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { Loader2, User, Briefcase } from "lucide-react"
+
+type TipoLogin = "cliente" | "profissional"
 
 function LoginContent() {
   const searchParams = useSearchParams()
   const redirectUrl = searchParams.get('redirect')
+  const tipoParam = searchParams.get('tipo') as TipoLogin | null
 
+  const [tipoLogin, setTipoLogin] = useState<TipoLogin>(tipoParam || "cliente")
   const [formData, setFormData] = useState({
     email: "",
     senha: "",
@@ -34,6 +38,7 @@ function LoginContent() {
         body: JSON.stringify({
           email: formData.email,
           senha: formData.senha,
+          tipoPreferido: tipoLogin,
         }),
       })
 
@@ -81,8 +86,33 @@ function LoginContent() {
             Acesse sua conta para continuar
           </CardDescription>
         </CardHeader>
+
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Entrar como</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={tipoLogin === "cliente" ? "default" : "outline"}
+                  onClick={() => setTipoLogin("cliente")}
+                  className="w-full"
+                >
+                  <User size={16} className="mr-2" />
+                  Cliente
+                </Button>
+                <Button
+                  type="button"
+                  variant={tipoLogin === "profissional" ? "default" : "outline"}
+                  onClick={() => setTipoLogin("profissional")}
+                  className="w-full"
+                >
+                  <Briefcase size={16} className="mr-2" />
+                  Profissional
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -109,6 +139,7 @@ function LoginContent() {
               />
             </div>
           </CardContent>
+
           <CardFooter className="flex flex-col space-y-4">
             {error && (
               <div className="w-full p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
@@ -116,17 +147,26 @@ function LoginContent() {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Entrando..." : "Entrar"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                `Entrar como ${tipoLogin === 'cliente' ? 'Cliente' : 'Profissional'}`
+              )}
             </Button>
             <div className="text-sm text-center text-gray-600">
               Não tem uma conta?{" "}
-              <Link href="/cadastro/cliente" className="text-primary-600 hover:underline">
-                Cadastre-se como cliente
-              </Link>
-              {" ou "}
-              <Link href="/cadastro/profissional" className="text-primary-600 hover:underline">
-                como profissional
-              </Link>
+              {tipoLogin === 'cliente' ? (
+                <Link href="/cadastro/cliente" className="text-primary-600 hover:underline">
+                  Cadastre-se como cliente
+                </Link>
+              ) : (
+                <Link href="/cadastro/profissional" className="text-primary-600 hover:underline">
+                  Cadastre-se como profissional
+                </Link>
+              )}
             </div>
           </CardFooter>
         </form>
