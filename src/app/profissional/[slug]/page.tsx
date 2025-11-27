@@ -157,7 +157,7 @@ export default function PerfilProfissional() {
               Para ver o perfil completo deste prestador de serviço, você precisa estar logado como cliente.
             </p>
             <div className="space-y-3">
-              <Link href="/login/cliente" className="block">
+              <Link href="/login" className="block">
                 <Button className="w-full">
                   Entrar como Cliente
                 </Button>
