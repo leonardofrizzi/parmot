@@ -21,9 +21,10 @@ interface Profissional {
   aprovado: boolean
   created_at: string
   categorias: string[]
-  documento_url?: string | null
+  identidade_frente_url?: string | null
+  identidade_verso_url?: string | null
   documento_empresa_url?: string | null
-  diplomas_urls?: string[] | null
+  diplomas_urls?: { frente: string; verso: string | null }[] | null
 }
 
 export default function AdminProfissionais() {
@@ -233,20 +234,36 @@ export default function AdminProfissionais() {
 
                   {/* Documentos */}
                   <div className="pt-2 border-t space-y-2">
-                    {/* Documento de Identidade Pessoal */}
+                    {/* Documento de Identidade - Frente e Verso */}
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Documento de Identidade:</p>
-                      {prof.documento_url ? (
-                        <a
-                          href={prof.documento_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
-                        >
-                          <IdCard size={14} />
-                          <span>Ver documento</span>
-                          <ExternalLink size={12} />
-                        </a>
+                      {prof.identidade_frente_url || prof.identidade_verso_url ? (
+                        <div className="space-y-1">
+                          {prof.identidade_frente_url && (
+                            <a
+                              href={prof.identidade_frente_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                            >
+                              <IdCard size={14} />
+                              <span>Frente</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                          {prof.identidade_verso_url && (
+                            <a
+                              href={prof.identidade_verso_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 hover:underline"
+                            >
+                              <IdCard size={14} />
+                              <span>Verso</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                        </div>
                       ) : (
                         <p className="text-xs text-gray-500 italic flex items-center gap-1">
                           <IdCard size={12} />
@@ -285,18 +302,31 @@ export default function AdminProfissionais() {
                     <div className="pt-2">
                       <p className="text-xs text-gray-500 mb-1">Diplomas/Certificados:</p>
                       <div className="space-y-1">
-                        {prof.diplomas_urls.map((url, idx) => (
-                          <a
-                            key={idx}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
-                          >
-                            <GraduationCap size={14} />
-                            <span>Diploma {idx + 1}</span>
-                            <ExternalLink size={12} />
-                          </a>
+                        {prof.diplomas_urls.map((diploma, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <a
+                              href={diploma.frente}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                              <GraduationCap size={14} />
+                              <span>Diploma {idx + 1} - Frente</span>
+                              <ExternalLink size={12} />
+                            </a>
+                            {diploma.verso && (
+                              <a
+                                href={diploma.verso}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline ml-4"
+                              >
+                                <GraduationCap size={14} />
+                                <span>Diploma {idx + 1} - Verso</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>

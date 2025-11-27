@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
         estado,
         aprovado,
         created_at,
-        documento_url,
+        identidade_frente_url,
+        identidade_verso_url,
         documento_empresa_url,
         diplomas_urls
       `)

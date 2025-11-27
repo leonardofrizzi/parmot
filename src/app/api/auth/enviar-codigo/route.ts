@@ -8,11 +8,15 @@ function gerarCodigo(): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('=== ENVIAR CÓDIGO DE VERIFICAÇÃO ===')
+
   try {
     const body = await request.json()
     const { email, tipo = 'cadastro' } = body
+    console.log('Email:', email, 'Tipo:', tipo)
 
     if (!email) {
+      console.log('ERRO: Email não fornecido')
       return NextResponse.json(
         { error: 'Email é obrigatório' },
         { status: 400 }
@@ -59,6 +63,7 @@ export async function POST(request: NextRequest) {
     const expiraEm = new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
 
     // Salvar código no banco
+    console.log('Salvando código no banco...')
     const { error: insertError } = await supabase
       .from('verificacao_email')
       .insert({
@@ -69,14 +74,18 @@ export async function POST(request: NextRequest) {
       })
 
     if (insertError) {
-      console.error('Erro ao salvar código:', insertError)
+      console.error('ERRO ao salvar código:', insertError)
+      console.error('Código:', insertError.code)
+      console.error('Detalhes:', insertError.details)
       return NextResponse.json(
         { error: 'Erro ao gerar código de verificação' },
         { status: 500 }
       )
     }
+    console.log('✓ Código salvo no banco')
 
     // Enviar email com o código
+    console.log('Enviando email via Resend...')
     try {
       await resend.emails.send({
         from: FROM_EMAIL,
@@ -151,10 +160,12 @@ export async function POST(request: NextRequest) {
           </html>
         `
       })
+      console.log('✓ Email enviado com sucesso')
     } catch (emailError) {
-      console.error('Erro ao enviar email:', emailError)
+      console.error('ERRO ao enviar email:', emailError)
       // Em desenvolvimento, vamos retornar o código para teste
       if (process.env.NODE_ENV === 'development') {
+        console.log('Modo desenvolvimento - retornando código para teste')
         return NextResponse.json({
           message: 'Código gerado (modo desenvolvimento)',
           codigo_teste: codigo // REMOVER EM PRODUÇÃO
@@ -166,12 +177,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('=== CÓDIGO ENVIADO COM SUCESSO ===')
     return NextResponse.json({
       message: 'Código enviado para seu email'
     })
 
   } catch (error) {
-    console.error('Erro ao processar requisição:', error)
+    console.error('=== ERRO FATAL ENVIAR CÓDIGO ===')
+    console.error('Erro:', error)
+    if (error instanceof Error) {
+      console.error('Mensagem:', error.message)
+      console.error('Stack:', error.stack)
+    }
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
