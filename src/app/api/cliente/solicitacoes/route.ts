@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(request: NextRequest) {
+  console.log('=== API CLIENTE SOLICITACOES ===')
   try {
     const { searchParams } = new URL(request.url)
     const cliente_id = searchParams.get('cliente_id')
+    console.log('Cliente ID:', cliente_id)
 
     if (!cliente_id) {
       return NextResponse.json(
@@ -13,8 +15,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Buscar todas as solicitações do cliente
-    const { data: solicitacoes, error } = await supabase
+    // Buscar todas as solicitações do cliente (usando supabaseAdmin para ignorar RLS)
+    const { data: solicitacoes, error } = await supabaseAdmin
       .from('solicitacoes')
       .select(`
         *,
@@ -32,18 +34,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log('Solicitações encontradas:', solicitacoes?.length || 0)
+
     // Para cada solicitação, contar quantos profissionais liberaram
     const solicitacoesComStats = await Promise.all(
       solicitacoes.map(async (solicitacao: any) => {
         // Contar respostas com contato liberado
-        const { count: totalLiberacoes } = await supabase
+        const { count: totalLiberacoes } = await supabaseAdmin
           .from('respostas')
           .select('*', { count: 'exact', head: true })
           .eq('solicitacao_id', solicitacao.id)
           .eq('contato_liberado', true)
 
         // Verificar se tem alguma liberação exclusiva
-        const { data: exclusivas } = await supabase
+        const { data: exclusivas } = await supabaseAdmin
           .from('respostas')
           .select('exclusivo, profissional_id, profissionais:profissional_id(nome, email, telefone)')
           .eq('solicitacao_id', solicitacao.id)

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET() {
   try {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseAdmin
       .from('administradores')
       .select('*', { count: 'exact', head: true })
 

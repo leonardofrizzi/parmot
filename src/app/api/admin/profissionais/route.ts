@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(request: NextRequest) {
+  console.log('=== API ADMIN PROFISSIONAIS ===')
   try {
     const { searchParams } = new URL(request.url)
     const filtro = searchParams.get('filtro') || 'pendentes'
+    console.log('Filtro:', filtro)
 
-    let query = supabase
+    // Usar supabaseAdmin para ignorar RLS e ver todos os profissionais
+    let query = supabaseAdmin
       .from('profissionais')
       .select(`
         id,
@@ -37,6 +40,11 @@ export async function GET(request: NextRequest) {
 
     const { data: profissionais, error } = await query
 
+    console.log('Profissionais encontrados:', profissionais?.length || 0)
+    if (profissionais && profissionais.length > 0) {
+      console.log('Primeiro profissional:', profissionais[0]?.nome, profissionais[0]?.aprovado)
+    }
+
     if (error) {
       console.error('Erro ao buscar profissionais:', error)
       return NextResponse.json(
@@ -48,7 +56,7 @@ export async function GET(request: NextRequest) {
     // Buscar categorias de cada profissional
     const profissionaisComCategorias = await Promise.all(
       profissionais.map(async (prof: any) => {
-        const { data: categoriasProf } = await supabase
+        const { data: categoriasProf } = await supabaseAdmin
           .from('profissional_categorias')
           .select('categoria_id')
           .eq('profissional_id', prof.id)
@@ -56,7 +64,7 @@ export async function GET(request: NextRequest) {
         const categoriaIds = categoriasProf?.map(c => c.categoria_id) || []
 
         if (categoriaIds.length > 0) {
-          const { data: categorias } = await supabase
+          const { data: categorias } = await supabaseAdmin
             .from('categorias')
             .select('nome')
             .in('id', categoriaIds)

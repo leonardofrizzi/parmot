@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -13,8 +13,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar admin por email
-    const { data: admin, error: adminError } = await supabase
+    // Buscar admin por email (usando supabaseAdmin para ignorar RLS)
+    const { data: admin, error: adminError } = await supabaseAdmin
       .from('administradores')
       .select('*')
       .eq('email', email)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se já existe um admin
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from('administradores')
       .select('*', { count: 'exact', head: true })
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se email já existe
-    const { data: emailExists } = await supabase
+    const { data: emailExists } = await supabaseAdmin
       .from('administradores')
       .select('id')
       .eq('email', email)
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const senhaHash = await bcrypt.hash(senha, 10)
 
     // Inserir admin
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('administradores')
       .insert({
         nome,
