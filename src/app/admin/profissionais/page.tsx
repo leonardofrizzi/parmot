@@ -74,20 +74,28 @@ export default function AdminProfissionais() {
   }
 
   const handleReprovar = async (profissionalId: string) => {
+    if (!confirm('Tem certeza que deseja reprovar e excluir este profissional? Esta ação não pode ser desfeita.')) {
+      return
+    }
+
     setLoadingAcao(true)
     try {
-      const response = await fetch('/api/admin/profissionais/aprovar', {
-        method: 'PATCH',
+      const response = await fetch('/api/admin/profissionais/deletar', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profissional_id: profissionalId, aprovado: false })
+        body: JSON.stringify({ profissional_id: profissionalId })
       })
 
       if (response.ok) {
         fetchProfissionais()
         setShowDialog(false)
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Erro ao reprovar profissional')
       }
     } catch (err) {
       console.error('Erro ao reprovar profissional:', err)
+      alert('Erro ao reprovar profissional')
     }
     setLoadingAcao(false)
   }
