@@ -32,6 +32,7 @@ export default function AdminProfissionais() {
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState<'todos' | 'pendentes' | 'aprovados'>('pendentes')
   const [showDialog, setShowDialog] = useState(false)
+  const [showDialogReprovar, setShowDialogReprovar] = useState(false)
   const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null)
   const [loadingAcao, setLoadingAcao] = useState(false)
 
@@ -73,29 +74,24 @@ export default function AdminProfissionais() {
     setLoadingAcao(false)
   }
 
-  const handleReprovar = async (profissionalId: string) => {
-    if (!confirm('Tem certeza que deseja reprovar e excluir este profissional? Esta ação não pode ser desfeita.')) {
-      return
-    }
+  const handleReprovar = async () => {
+    if (!profissionalSelecionado) return
 
     setLoadingAcao(true)
     try {
       const response = await fetch('/api/admin/profissionais/deletar', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profissional_id: profissionalId })
+        body: JSON.stringify({ profissional_id: profissionalSelecionado.id })
       })
 
       if (response.ok) {
         fetchProfissionais()
-        setShowDialog(false)
-      } else {
-        const data = await response.json()
-        alert(data.error || 'Erro ao reprovar profissional')
+        setShowDialogReprovar(false)
+        setProfissionalSelecionado(null)
       }
     } catch (err) {
       console.error('Erro ao reprovar profissional:', err)
-      alert('Erro ao reprovar profissional')
     }
     setLoadingAcao(false)
   }
@@ -358,7 +354,10 @@ export default function AdminProfissionais() {
                           size="sm"
                           variant="outline"
                           className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-                          onClick={() => handleReprovar(prof.id)}
+                          onClick={() => {
+                            setProfissionalSelecionado(prof)
+                            setShowDialogReprovar(true)
+                          }}
                         >
                           <XCircle size={16} className="mr-1" />
                           Reprovar
@@ -369,7 +368,10 @@ export default function AdminProfissionais() {
                         size="sm"
                         variant="outline"
                         className="w-full"
-                        onClick={() => handleReprovar(prof.id)}
+                        onClick={() => {
+                          setProfissionalSelecionado(prof)
+                          setShowDialogReprovar(true)
+                        }}
                       >
                         Revogar Aprovação
                       </Button>
@@ -385,7 +387,7 @@ export default function AdminProfissionais() {
           </div>
         )}
 
-        {/* Dialog de Confirmação */}
+        {/* Dialog de Confirmação - Aprovar */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogContent>
             <DialogHeader>
@@ -405,6 +407,31 @@ export default function AdminProfissionais() {
                 disabled={loadingAcao}
               >
                 {loadingAcao ? 'Aprovando...' : 'Confirmar Aprovação'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Confirmação - Reprovar */}
+        <Dialog open={showDialogReprovar} onOpenChange={setShowDialogReprovar}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reprovar Profissional</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja reprovar e excluir <strong>{profissionalSelecionado?.nome}</strong>?
+                Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDialogReprovar(false)} disabled={loadingAcao}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleReprovar}
+                disabled={loadingAcao}
+              >
+                {loadingAcao ? 'Removendo...' : 'Confirmar Reprovação'}
               </Button>
             </DialogFooter>
           </DialogContent>
