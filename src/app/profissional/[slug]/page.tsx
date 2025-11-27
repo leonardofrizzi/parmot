@@ -17,7 +17,9 @@ import {
   Loader2,
   GraduationCap,
   Building2,
-  StarHalf
+  StarHalf,
+  Award,
+  Lock
 } from "lucide-react"
 
 interface Avaliacao {
@@ -45,6 +47,14 @@ interface Profissional {
   categorias: { id: string; nome: string }[]
 }
 
+interface Selo {
+  id: string
+  tipo: string
+  data_fim: string
+  media_avaliacoes: number
+  total_avaliacoes: number
+}
+
 interface PerfilData {
   profissional: Profissional
   avaliacoes: Avaliacao[]
@@ -52,6 +62,7 @@ interface PerfilData {
     media: number
     total: number
   }
+  selo: Selo | null
 }
 
 function StarRating({ rating, size = 20 }: { rating: number; size?: number }) {
@@ -86,15 +97,26 @@ export default function PerfilProfissional() {
   const [data, setData] = useState<PerfilData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [needsLogin, setNeedsLogin] = useState(false)
 
   useEffect(() => {
+    // Verificar se usuário está logado como cliente
+    const usuarioData = localStorage.getItem('usuario')
+    const tipoUsuario = localStorage.getItem('tipoUsuario')
+
+    if (!usuarioData || tipoUsuario !== 'cliente') {
+      setNeedsLogin(true)
+      setLoading(false)
+      return
+    }
+
     const fetchPerfil = async () => {
       try {
         const response = await fetch(`/api/profissional/${slug}`)
         const result = await response.json()
 
         if (!response.ok) {
-          setError(result.error || "Profissional não encontrado")
+          setError(result.error || "Perfil não encontrado")
           return
         }
 
@@ -119,6 +141,45 @@ export default function PerfilProfissional() {
     )
   }
 
+  // Tela de login necessário
+  if (needsLogin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="max-w-md w-full mx-4">
+          <CardContent className="pt-8 text-center">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-orange-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Acesso Restrito
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Para ver o perfil completo deste prestador de serviço, você precisa estar logado como cliente.
+            </p>
+            <div className="space-y-3">
+              <Link href="/login/cliente" className="block">
+                <Button className="w-full">
+                  Entrar como Cliente
+                </Button>
+              </Link>
+              <Link href="/cadastro/cliente" className="block">
+                <Button variant="outline" className="w-full">
+                  Criar conta de Cliente
+                </Button>
+              </Link>
+            </div>
+            <div className="mt-6 pt-4 border-t">
+              <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
+                <ArrowLeft className="w-4 h-4 inline mr-1" />
+                Voltar ao início
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (error || !data) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -126,7 +187,7 @@ export default function PerfilProfissional() {
           <CardContent className="pt-6 text-center">
             <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {error || "Profissional não encontrado"}
+              {error || "Perfil não encontrado"}
             </h2>
             <p className="text-gray-600 mb-4">
               O perfil que você está procurando não existe ou não está disponível.
@@ -143,7 +204,7 @@ export default function PerfilProfissional() {
     )
   }
 
-  const { profissional, avaliacoes, estatisticas } = data
+  const { profissional, avaliacoes, estatisticas, selo } = data
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -194,9 +255,17 @@ export default function PerfilProfissional() {
                       <p className="text-gray-600">Responsável: {profissional.nome}</p>
                     )}
                   </div>
-                  <Badge variant={profissional.tipo === "empresa" ? "secondary" : "outline"}>
-                    {profissional.tipo === "empresa" ? "Empresa" : "Profissional Autônomo"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {selo && (
+                      <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-0 gap-1">
+                        <Award className="w-3.5 h-3.5" />
+                        Selo de Qualidade
+                      </Badge>
+                    )}
+                    <Badge variant={profissional.tipo === "empresa" ? "secondary" : "outline"}>
+                      {profissional.tipo === "empresa" ? "Empresa" : "Autônomo"}
+                    </Badge>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4 mt-3 text-gray-600">

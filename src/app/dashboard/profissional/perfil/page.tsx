@@ -34,7 +34,10 @@ import {
   Mail,
   Phone,
   Save,
-  Eye
+  Eye,
+  Award,
+  Shield,
+  TrendingUp
 } from "lucide-react"
 
 interface Avaliacao {
@@ -46,6 +49,27 @@ interface Avaliacao {
   clientes: {
     nome: string
   } | null
+}
+
+interface Selo {
+  id: string
+  tipo: string
+  data_inicio: string
+  data_fim: string
+  media_avaliacoes: number
+  total_avaliacoes: number
+  ativo: boolean
+}
+
+interface Elegibilidade {
+  elegivel: boolean
+  mediaAtual: number
+  totalAvaliacoes: number
+  minimoNecessario: number
+  minimoAvaliacoes: number
+  temSeloAtivo?: boolean
+  proximaVerificacao?: string
+  novoSeloConquistado?: boolean
 }
 
 interface Profissional {
@@ -95,6 +119,11 @@ export default function PerfilProfissional() {
   // Avaliações
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([])
   const [mediaAvaliacoes, setMediaAvaliacoes] = useState(0)
+
+  // Selos
+  const [selos, setSelos] = useState<Selo[]>([])
+  const [elegibilidade, setElegibilidade] = useState<Elegibilidade | null>(null)
+  const [loadingSelos, setLoadingSelos] = useState(false)
 
   // Estados para modal de tornar cliente
   const [showClienteModal, setShowClienteModal] = useState(false)
@@ -150,6 +179,7 @@ export default function PerfilProfissional() {
           sobre: prof.sobre || "",
         })
         fetchAvaliacoes(prof.id)
+        fetchSelos(prof.id)
       } else {
         setProfissional(user)
         setFormData({
@@ -189,6 +219,22 @@ export default function PerfilProfissional() {
       }
     } catch (err) {
       console.error('Erro ao buscar avaliações:', err)
+    }
+  }
+
+  const fetchSelos = async (profissionalId: string) => {
+    setLoadingSelos(true)
+    try {
+      const response = await fetch(`/api/profissional/selos?profissional_id=${profissionalId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setSelos(data.selos || [])
+        setElegibilidade(data.elegibilidade)
+      }
+    } catch (err) {
+      console.error('Erro ao buscar selos:', err)
+    } finally {
+      setLoadingSelos(false)
     }
   }
 
@@ -611,6 +657,9 @@ export default function PerfilProfissional() {
             <TabsList className="w-full justify-start bg-white border mb-4">
               <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil</TabsTrigger>
               <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
+              <TabsTrigger value="selos" className="flex-1 sm:flex-none">
+                Selos {selos.length > 0 && <Award className="w-4 h-4 ml-1 text-amber-500" />}
+              </TabsTrigger>
               <TabsTrigger value="avaliacoes" className="flex-1 sm:flex-none">
                 Avaliações {avaliacoes.length > 0 && `(${avaliacoes.length})`}
               </TabsTrigger>
@@ -950,6 +999,148 @@ export default function PerfilProfissional() {
                       )}
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Tab Selos */}
+            <TabsContent value="selos" className="mt-0">
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold mb-6">Selos de Qualidade</h3>
+
+                  {loadingSelos ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Selo Ativo */}
+                      {selos.length > 0 ? (
+                        <div className="space-y-4">
+                          {selos.map((selo) => (
+                            <div key={selo.id} className="p-6 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl">
+                              <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <Award className="w-8 h-8 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="text-lg font-bold text-amber-800">Selo de Qualidade</h4>
+                                  <p className="text-sm text-amber-700">
+                                    Média de {selo.media_avaliacoes.toFixed(1)} estrelas com {selo.total_avaliacoes} avaliações
+                                  </p>
+                                  <p className="text-xs text-amber-600 mt-1">
+                                    Válido até {new Date(selo.data_fim).toLocaleDateString('pt-BR')}
+                                  </p>
+                                </div>
+                                <Badge className="bg-amber-500 text-white">Ativo</Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Award className="w-10 h-10 text-gray-400" />
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-700 mb-2">Nenhum selo ainda</h4>
+                          <p className="text-sm text-gray-500 max-w-md mx-auto">
+                            Conquiste o Selo de Qualidade mantendo uma média de avaliações acima de 4 estrelas por 6 meses.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Progresso / Elegibilidade */}
+                      {elegibilidade && (
+                        <div className="p-4 border rounded-lg bg-gray-50">
+                          <h4 className="font-medium text-gray-800 mb-4 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-primary-600" />
+                            Seu Progresso
+                          </h4>
+
+                          <div className="space-y-4">
+                            {/* Média atual */}
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Média de avaliações (6 meses)</span>
+                                <span className="font-medium">
+                                  {elegibilidade.mediaAtual.toFixed(1)} / {elegibilidade.minimoNecessario.toFixed(1)}
+                                </span>
+                              </div>
+                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    elegibilidade.mediaAtual >= elegibilidade.minimoNecessario
+                                      ? 'bg-green-500'
+                                      : 'bg-amber-500'
+                                  }`}
+                                  style={{ width: `${Math.min((elegibilidade.mediaAtual / 5) * 100, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Total de avaliações */}
+                            <div>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-600">Avaliações recebidas</span>
+                                <span className="font-medium">
+                                  {elegibilidade.totalAvaliacoes} / {elegibilidade.minimoAvaliacoes} mínimo
+                                </span>
+                              </div>
+                              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    elegibilidade.totalAvaliacoes >= elegibilidade.minimoAvaliacoes
+                                      ? 'bg-green-500'
+                                      : 'bg-blue-500'
+                                  }`}
+                                  style={{ width: `${Math.min((elegibilidade.totalAvaliacoes / elegibilidade.minimoAvaliacoes) * 100, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div className="pt-2 border-t">
+                              {elegibilidade.temSeloAtivo ? (
+                                <div className="flex items-center gap-2 text-green-700">
+                                  <CheckCircle2 className="w-5 h-5" />
+                                  <span className="text-sm">
+                                    Você possui o Selo de Qualidade! Próxima verificação em{' '}
+                                    {elegibilidade.proximaVerificacao &&
+                                      new Date(elegibilidade.proximaVerificacao).toLocaleDateString('pt-BR')
+                                    }
+                                  </span>
+                                </div>
+                              ) : elegibilidade.elegivel ? (
+                                <div className="flex items-center gap-2 text-green-700">
+                                  <CheckCircle2 className="w-5 h-5" />
+                                  <span className="text-sm">Você está elegível para o Selo de Qualidade!</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-gray-600">
+                                  <Shield className="w-5 h-5" />
+                                  <span className="text-sm">
+                                    Continue prestando um bom serviço para conquistar o selo!
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Informações sobre o selo */}
+                      <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
+                        <h4 className="font-medium text-blue-800 mb-2">Como funciona o Selo de Qualidade?</h4>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                          <li>• Mantenha média de avaliações ≥ 4 estrelas nos últimos 6 meses</li>
+                          <li>• Tenha pelo menos 3 avaliações no período</li>
+                          <li>• O selo é renovado automaticamente a cada 6 meses</li>
+                          <li>• Quem te contrata verá o selo no seu perfil, transmitindo mais confiança</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

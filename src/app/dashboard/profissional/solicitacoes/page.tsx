@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
-import { Calendar, MapPin, Search, Lock, CheckCircle2, Users } from "lucide-react"
+import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins } from "lucide-react"
 import * as Icons from "lucide-react"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
@@ -27,6 +27,11 @@ interface SolicitacaoComStatus extends Solicitacao {
   cliente_estado?: string
 }
 
+interface Configuracoes {
+  custo_contato_normal: number
+  custo_contato_exclusivo: number
+}
+
 export default function SolicitacoesProfissional() {
   const router = useRouter()
   const [profissional, setProfissional] = useState<Profissional | null>(null)
@@ -35,8 +40,18 @@ export default function SolicitacoesProfissional() {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos")
+  const [config, setConfig] = useState<Configuracoes>({
+    custo_contato_normal: 15,
+    custo_contato_exclusivo: 50
+  })
 
   useEffect(() => {
+    // Buscar configurações de moedas
+    fetch('/api/configuracoes')
+      .then(res => res.json())
+      .then(data => setConfig(data))
+      .catch(err => console.error('Erro ao buscar configurações:', err))
+
     const usuarioData = localStorage.getItem('usuario')
     if (usuarioData) {
       const user = JSON.parse(usuarioData)
@@ -309,10 +324,21 @@ export default function SolicitacoesProfissional() {
                           Você já tem acesso ao contato do cliente
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1">
-                          <Lock size={14} />
-                          Contato disponível após liberar com moedas
-                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1">
+                            <Lock size={14} />
+                            Liberar contato:
+                          </span>
+                          <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                            <Coins size={12} />
+                            {config.custo_contato_normal} moedas
+                          </span>
+                          <span className="text-gray-400">ou</span>
+                          <span className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 rounded-full text-xs font-medium">
+                            <Coins size={12} />
+                            {config.custo_contato_exclusivo} exclusivo
+                          </span>
+                        </div>
                       )}
                     </div>
                     <Button

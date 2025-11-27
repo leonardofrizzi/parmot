@@ -165,3 +165,24 @@ CREATE POLICY "Allow public access" ON avaliacoes FOR ALL USING (true);
 
 -- Remover campo antigo documento_url se existir (migração)
 -- ALTER TABLE profissionais DROP COLUMN IF EXISTS documento_url;
+
+-- Tabela de selos de qualidade
+CREATE TABLE IF NOT EXISTS selos_qualidade (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  profissional_id UUID REFERENCES profissionais(id) ON DELETE CASCADE,
+  tipo VARCHAR(50) NOT NULL DEFAULT 'qualidade_6m',
+  data_inicio DATE NOT NULL,
+  data_fim DATE NOT NULL,
+  media_avaliacoes NUMERIC(2,1) NOT NULL,
+  total_avaliacoes INTEGER NOT NULL,
+  ativo BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Índice para buscar selos ativos
+CREATE INDEX IF NOT EXISTS idx_selos_profissional ON selos_qualidade(profissional_id);
+CREATE INDEX IF NOT EXISTS idx_selos_ativo ON selos_qualidade(ativo, data_fim);
+
+-- RLS para selos
+ALTER TABLE selos_qualidade ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access" ON selos_qualidade FOR ALL USING (true);

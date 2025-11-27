@@ -106,6 +106,17 @@ export async function GET(
       `)
       .eq('profissional_id', profissional.id)
 
+    // Buscar selo de qualidade ativo
+    const { data: seloAtivo } = await supabase
+      .from('selos_qualidade')
+      .select('*')
+      .eq('profissional_id', profissional.id)
+      .eq('ativo', true)
+      .gte('data_fim', new Date().toISOString().split('T')[0])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
     return NextResponse.json({
       profissional: {
         ...profissional,
@@ -115,7 +126,8 @@ export async function GET(
       estatisticas: {
         media: mediaAvaliacoes,
         total: totalAvaliacoes
-      }
+      },
+      selo: seloAtivo || null
     })
 
   } catch (error) {

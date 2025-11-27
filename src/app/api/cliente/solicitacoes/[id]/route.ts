@@ -50,7 +50,9 @@ export async function GET(
           cidade,
           estado,
           tipo,
-          razao_social
+          razao_social,
+          foto_url,
+          slug
         )
       `)
       .eq('solicitacao_id', id)

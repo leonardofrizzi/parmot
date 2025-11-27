@@ -90,7 +90,8 @@ export default function CadastroProfissional() {
 
       setEtapa("verificacao")
     } catch (err) {
-      setError("Erro ao conectar com o servidor")
+      console.error('Erro ao enviar código:', err)
+      setError("Erro ao conectar com o servidor. Verifique sua conexão com a internet e tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -127,7 +128,8 @@ export default function CadastroProfissional() {
 
       setEtapa("dados")
     } catch (err) {
-      setError("Erro ao conectar com o servidor")
+      console.error('Erro ao verificar código:', err)
+      setError("Erro ao conectar com o servidor. Verifique sua conexão com a internet e tente novamente.")
     } finally {
       setLoading(false)
     }
@@ -228,7 +230,8 @@ export default function CadastroProfissional() {
       }, 2000)
 
     } catch (err) {
-      setError("Erro ao conectar com o servidor")
+      console.error('Erro ao cadastrar:', err)
+      setError("Erro ao conectar com o servidor. Verifique sua conexão com a internet e tente novamente.")
       setLoading(false)
     }
   }

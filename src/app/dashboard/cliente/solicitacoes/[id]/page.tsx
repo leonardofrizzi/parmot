@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AvaliacaoModal } from "@/components/AvaliacaoModal"
 import { StarRating } from "@/components/StarRating"
-import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, Crown, Star, MessageSquare, XCircle, CheckCircle, PlayCircle, Ban } from "lucide-react"
+import Image from "next/image"
+import Link from "next/link"
+import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, Crown, Star, MessageSquare, XCircle, CheckCircle, PlayCircle, Ban, ExternalLink, GraduationCap, Building2 } from "lucide-react"
 import * as Icons from "lucide-react"
 
 interface Cliente {
@@ -21,9 +23,14 @@ interface Profissional {
   nome?: string
   profissional_nome?: string
   profissional?: {
+    id?: string
     nome?: string
     telefone?: string
     email?: string
+    foto_url?: string
+    slug?: string
+    tipo?: string
+    razao_social?: string
   }
   email: string
   telefone: string
@@ -354,23 +361,76 @@ export default function DetalheSolicitacaoCliente() {
             ) : (
               <div className="space-y-4">
                 {solicitacao.profissionais_interessados.map((item) => (
-                  <Card key={item.resposta_id} className="border-2">
+                  <Card key={item.resposta_id} className="border-2 hover:shadow-md transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
-                          {item.profissional?.nome?.charAt(0)}
+                        {/* Foto do profissional */}
+                        <div className="flex-shrink-0">
+                          {item.profissional?.foto_url ? (
+                            <Image
+                              src={item.profissional.foto_url}
+                              alt={item.profissional?.nome || 'Profissional'}
+                              width={64}
+                              height={64}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center border-2 border-gray-200">
+                              {item.profissional?.tipo === 'empresa' ? (
+                                <Building2 className="w-7 h-7 text-primary-600" />
+                              ) : (
+                                <GraduationCap className="w-7 h-7 text-primary-600" />
+                              )}
+                            </div>
+                          )}
                         </div>
+
                         <div className="flex-1">
-                          <h4 className="font-semibold text-lg">{item.profissional?.nome}</h4>
-                          {item.exclusivo && <span className="text-xs text-purple-600">Exclusivo</span>}
-                          <div className="grid grid-cols-2 gap-2 mt-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-semibold text-lg">
+                                {item.profissional?.tipo === 'empresa'
+                                  ? item.profissional?.razao_social || item.profissional?.nome
+                                  : item.profissional?.nome
+                                }
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                {item.exclusivo && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                                    <Crown size={10} />
+                                    Exclusivo
+                                  </span>
+                                )}
+                                <span className="text-xs text-gray-500">
+                                  {item.profissional?.tipo === 'empresa' ? 'Empresa' : 'Autônomo'}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Link para ver perfil */}
+                            {item.profissional?.slug && (
+                              <Link
+                                href={`/profissional/${item.profissional.slug}`}
+                                target="_blank"
+                                className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                              >
+                                Ver perfil
+                                <ExternalLink size={14} />
+                              </Link>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
                             <div className="flex items-center gap-2 text-sm">
-                              <Phone size={14} />
-                              <a href={`tel:${item.profissional?.telefone}`} className="text-primary-600">{item.profissional?.telefone}</a>
+                              <Phone size={14} className="text-gray-400" />
+                              <a href={`tel:${item.profissional?.telefone}`} className="text-primary-600 hover:underline">
+                                {item.profissional?.telefone}
+                              </a>
                             </div>
                             <div className="flex items-center gap-2 text-sm">
-                              <Mail size={14} />
-                              <a href={`mailto:${item.profissional?.email}`} className="text-primary-600">{item.profissional?.email}</a>
+                              <Mail size={14} className="text-gray-400" />
+                              <a href={`mailto:${item.profissional?.email}`} className="text-primary-600 hover:underline truncate">
+                                {item.profissional?.email}
+                              </a>
                             </div>
                           </div>
 
@@ -383,7 +443,7 @@ export default function DetalheSolicitacaoCliente() {
                                 className="bg-yellow-500 hover:bg-yellow-600 text-white"
                               >
                                 <Star size={16} className="mr-2" />
-                                Avaliar Profissional
+                                Avaliar
                               </Button>
                             </div>
                           )}
