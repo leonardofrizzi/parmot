@@ -22,9 +22,10 @@ export async function POST(request: NextRequest) {
     let razao_social: string | null
     let telefone: string
     let senha: string
-    let documentoIdentidade: File | null = null
+    let identidadeFrente: File | null = null
+    let identidadeVerso: File | null = null
     let documentoEmpresa: File | null = null
-    let diplomas: File[] = []
+    let diplomas: { frente: File; verso: File | null }[] = []
 
     if (contentType.includes('multipart/form-data')) {
       // FormData (com possível documento)
@@ -35,15 +36,17 @@ export async function POST(request: NextRequest) {
       razao_social = formData.get('razao_social') as string || null
       telefone = formData.get('telefone') as string
       senha = formData.get('senha') as string
-      documentoIdentidade = formData.get('documentoIdentidade') as File | null
+      identidadeFrente = formData.get('identidadeFrente') as File | null
+      identidadeVerso = formData.get('identidadeVerso') as File | null
       documentoEmpresa = formData.get('documentoEmpresa') as File | null
 
-      // Coletar diplomas
+      // Coletar diplomas com frente e verso
       const diplomasCount = parseInt(formData.get('diplomasCount') as string || '0')
       for (let i = 0; i < diplomasCount; i++) {
-        const diploma = formData.get(`diploma_${i}`) as File | null
-        if (diploma && diploma.size > 0) {
-          diplomas.push(diploma)
+        const diplomaFrente = formData.get(`diploma_${i}_frente`) as File | null
+        const diplomaVerso = formData.get(`diploma_${i}_verso`) as File | null
+        if (diplomaFrente && diplomaFrente.size > 0) {
+          diplomas.push({ frente: diplomaFrente, verso: diplomaVerso })
         }
       }
     } else {
@@ -136,17 +139,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload do documento de identidade pessoal (obrigatório)
-    let documentoUrl: string | null = null
-    if (documentoIdentidade && documentoIdentidade.size > 0) {
-      const url = await uploadFile(documentoIdentidade, 'identidades')
+    // Upload do documento de identidade - frente (obrigatório)
+    let identidadeFrenteUrl: string | null = null
+    if (identidadeFrente && identidadeFrente.size > 0) {
+      const url = await uploadFile(identidadeFrente, 'identidades/frente')
       if (!url) {
         return NextResponse.json(
-          { error: 'Erro ao fazer upload do documento de identidade. Tente novamente.' },
+          { error: 'Erro ao fazer upload da frente do documento de identidade. Tente novamente.' },
           { status: 500 }
         )
       }
-      documentoUrl = url
+      identidadeFrenteUrl = url
+    }
+
+    // Upload do documento de identidade - verso (obrigatório)
+    let identidadeVersoUrl: string | null = null
+    if (identidadeVerso && identidadeVerso.size > 0) {
+      const url = await uploadFile(identidadeVerso, 'identidades/verso')
+      if (!url) {
+        return NextResponse.json(
+          { error: 'Erro ao fazer upload do verso do documento de identidade. Tente novamente.' },
+          { status: 500 }
+        )
+      }
+      identidadeVersoUrl = url
     }
 
     // Upload do documento da empresa (obrigatório para empresas)
@@ -162,12 +178,16 @@ export async function POST(request: NextRequest) {
       documentoEmpresaUrl = url
     }
 
-    // Upload dos diplomas (opcional)
-    const diplomaUrls: string[] = []
+    // Upload dos diplomas com frente e verso (opcional)
+    const diplomaUrls: { frente: string; verso: string | null }[] = []
     for (const diploma of diplomas) {
-      const url = await uploadFile(diploma, 'diplomas')
-      if (url) {
-        diplomaUrls.push(url)
+      const frenteUrl = await uploadFile(diploma.frente, 'diplomas/frente')
+      if (frenteUrl) {
+        let versoUrl: string | null = null
+        if (diploma.verso && diploma.verso.size > 0) {
+          versoUrl = await uploadFile(diploma.verso, 'diplomas/verso')
+        }
+        diplomaUrls.push({ frente: frenteUrl, verso: versoUrl })
       }
     }
 
@@ -187,7 +207,8 @@ export async function POST(request: NextRequest) {
         saldo_moedas: 0,
         aprovado: false,
         cliente_id: cliente_id,
-        documento_url: documentoUrl,
+        identidade_frente_url: identidadeFrenteUrl,
+        identidade_verso_url: identidadeVersoUrl,
         documento_empresa_url: documentoEmpresaUrl,
         diplomas_urls: diplomaUrls.length > 0 ? diplomaUrls : null
       })

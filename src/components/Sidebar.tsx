@@ -40,9 +40,11 @@ export default function Sidebar({ tipo }: SidebarProps) {
     senha: "",
     confirmarSenha: "",
   })
-  const [documentoIdentidade, setDocumentoIdentidade] = useState<File | null>(null)
+  const [identidadeFrente, setIdentidadeFrente] = useState<File | null>(null)
+  const [identidadeVerso, setIdentidadeVerso] = useState<File | null>(null)
   const [documentoEmpresa, setDocumentoEmpresa] = useState<File | null>(null)
-  const [diplomas, setDiplomas] = useState<File[]>([])
+  const [diplomas, setDiplomas] = useState<{ frente: File; verso: File | null }[]>([])
+  const [diplomaEmAndamento, setDiplomaEmAndamento] = useState<{ frente: File | null; verso: File | null }>({ frente: null, verso: null })
 
   // Form states para virar cliente (quando é profissional)
   const [clienteForm, setClienteForm] = useState({
@@ -192,20 +194,34 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Handler para upload de documento de identidade pessoal
-  const handleIdentidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Validação de arquivo
+  const validarArquivo = (file: File): boolean => {
+    if (file.size > 5 * 1024 * 1024) {
+      setModalError("O arquivo deve ter no máximo 5MB")
+      return false
+    }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+    if (!allowedTypes.includes(file.type)) {
+      setModalError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+      return false
+    }
+    return true
+  }
+
+  // Handler para upload de identidade frente
+  const handleIdentidadeFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setModalError("O arquivo deve ter no máximo 5MB")
-        return
-      }
-      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-      if (!allowedTypes.includes(file.type)) {
-        setModalError("Apenas arquivos PDF, JPG ou PNG são permitidos")
-        return
-      }
-      setDocumentoIdentidade(file)
+    if (file && validarArquivo(file)) {
+      setIdentidadeFrente(file)
+      setModalError("")
+    }
+  }
+
+  // Handler para upload de identidade verso
+  const handleIdentidadeVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setIdentidadeVerso(file)
       setModalError("")
     }
   }
@@ -213,41 +229,35 @@ export default function Sidebar({ tipo }: SidebarProps) {
   // Handler para upload de documento da empresa
   const handleEmpresaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setModalError("O arquivo deve ter no máximo 5MB")
-        return
-      }
-      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-      if (!allowedTypes.includes(file.type)) {
-        setModalError("Apenas arquivos PDF, JPG ou PNG são permitidos")
-        return
-      }
+    if (file && validarArquivo(file)) {
       setDocumentoEmpresa(file)
       setModalError("")
     }
   }
 
-  // Handler para upload de diplomas (múltiplos)
-  const handleDiplomasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files) {
-      const novosArquivos: File[] = []
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        if (file.size > 5 * 1024 * 1024) {
-          setModalError(`O arquivo ${file.name} deve ter no máximo 5MB`)
-          return
-        }
-        const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-        if (!allowedTypes.includes(file.type)) {
-          setModalError(`O arquivo ${file.name} deve ser PDF, JPG ou PNG`)
-          return
-        }
-        novosArquivos.push(file)
-      }
-      setDiplomas([...diplomas, ...novosArquivos])
+  // Handler para upload de diploma frente
+  const handleDiplomaFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: file })
       setModalError("")
+    }
+  }
+
+  // Handler para upload de diploma verso
+  const handleDiplomaVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: file })
+      setModalError("")
+    }
+  }
+
+  // Adicionar diploma à lista
+  const adicionarDiploma = () => {
+    if (diplomaEmAndamento.frente) {
+      setDiplomas([...diplomas, { frente: diplomaEmAndamento.frente, verso: diplomaEmAndamento.verso }])
+      setDiplomaEmAndamento({ frente: null, verso: null })
     }
   }
 
@@ -284,8 +294,8 @@ export default function Sidebar({ tipo }: SidebarProps) {
       return
     }
 
-    if (!documentoIdentidade) {
-      setModalError("O documento de identificação pessoal (RG/CNH) é obrigatório")
+    if (!identidadeFrente || !identidadeVerso) {
+      setModalError("É obrigatório enviar a frente e o verso do documento de identificação (RG/CNH)")
       setModalLoading(false)
       return
     }
@@ -306,19 +316,21 @@ export default function Sidebar({ tipo }: SidebarProps) {
       formData.append("telefone", profForm.telefone)
       formData.append("senha", profForm.senha)
 
-      // Documento de identidade pessoal (obrigatório)
-      if (documentoIdentidade) {
-        formData.append("documentoIdentidade", documentoIdentidade)
-      }
+      // Documento de identidade - frente e verso (obrigatório)
+      formData.append("identidadeFrente", identidadeFrente)
+      formData.append("identidadeVerso", identidadeVerso)
 
       // Documento da empresa (obrigatório para empresas)
       if (documentoEmpresa) {
         formData.append("documentoEmpresa", documentoEmpresa)
       }
 
-      // Diplomas/certificados (opcional, múltiplos)
+      // Diplomas/certificados com frente e verso (opcional, múltiplos)
       diplomas.forEach((diploma, index) => {
-        formData.append(`diploma_${index}`, diploma)
+        formData.append(`diploma_${index}_frente`, diploma.frente)
+        if (diploma.verso) {
+          formData.append(`diploma_${index}_verso`, diploma.verso)
+        }
       })
       formData.append("diplomasCount", diplomas.length.toString())
 
@@ -337,7 +349,8 @@ export default function Sidebar({ tipo }: SidebarProps) {
 
       setModalSuccess(true)
       setModalLoading(false)
-      setDocumentoIdentidade(null) // Limpar documentos após sucesso
+      setIdentidadeFrente(null)
+      setIdentidadeVerso(null)
       setDocumentoEmpresa(null)
       setDiplomas([])
     } catch (err) {
@@ -750,46 +763,88 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       </div>
                     </div>
 
-                    {/* Upload de Documento de Identificação Pessoal (Obrigatório) */}
+                    {/* Upload de Documento de Identificação Pessoal - Frente e Verso (Obrigatório) */}
                     <div className="space-y-2">
                       <Label>Documento de Identificação Pessoal <span className="text-red-500">*</span></Label>
                       <p className="text-xs text-gray-500">
-                        RG ou CNH {profForm.tipo === "empresa" ? "do responsável" : ""}
+                        RG ou CNH {profForm.tipo === "empresa" ? "do responsável" : ""} - envie frente e verso
                       </p>
 
-                      {!documentoIdentidade ? (
-                        <label
-                          htmlFor="documento-identidade-modal"
-                          className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                        >
-                          <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                          <p className="text-sm text-gray-500">Clique para enviar</p>
-                          <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
-                          <input
-                            id="documento-identidade-modal"
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={handleIdentidadeChange}
-                          />
-                        </label>
-                      ) : (
-                        <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                            <p className="text-sm font-medium text-gray-900 truncate">{documentoIdentidade.name}</p>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDocumentoIdentidade(null)}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Frente */}
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1 font-medium">Frente</p>
+                          {!identidadeFrente ? (
+                            <label
+                              htmlFor="identidade-frente-modal"
+                              className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                            >
+                              <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                              <p className="text-xs text-gray-500">Enviar</p>
+                              <input
+                                id="identidade-frente-modal"
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleIdentidadeFrenteChange}
+                              />
+                            </label>
+                          ) : (
+                            <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <p className="text-xs text-gray-900 truncate">{identidadeFrente.name}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIdentidadeFrente(null)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
-                      )}
+
+                        {/* Verso */}
+                        <div>
+                          <p className="text-xs text-gray-600 mb-1 font-medium">Verso</p>
+                          {!identidadeVerso ? (
+                            <label
+                              htmlFor="identidade-verso-modal"
+                              className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                            >
+                              <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                              <p className="text-xs text-gray-500">Enviar</p>
+                              <input
+                                id="identidade-verso-modal"
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={handleIdentidadeVersoChange}
+                              />
+                            </label>
+                          ) : (
+                            <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <p className="text-xs text-gray-900 truncate">{identidadeVerso.name}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setIdentidadeVerso(null)}
+                                className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Upload de Documento da Empresa (Obrigatório apenas para empresas) */}
@@ -834,32 +889,108 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       </div>
                     )}
 
-                    {/* Upload de Diplomas/Certificados (Opcional) */}
+                    {/* Upload de Diplomas/Certificados com Frente e Verso (Opcional) */}
                     <div className="space-y-2">
                       <Label>Diplomas e Certificados <span className="text-gray-400">(opcional)</span></Label>
-                      <label
-                        htmlFor="diplomas-modal"
-                        className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                      >
-                        <Upload className="w-5 h-5 mb-1 text-gray-400" />
-                        <p className="text-xs text-gray-500">Adicionar diploma/certificado</p>
-                        <input
-                          id="diplomas-modal"
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          multiple
-                          onChange={handleDiplomasChange}
-                        />
-                      </label>
+                      <p className="text-xs text-gray-500">Adicione a frente e opcionalmente o verso de cada diploma</p>
 
+                      {/* Adicionar novo diploma */}
+                      <div className="p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* Frente do diploma */}
+                          <div>
+                            <p className="text-xs text-gray-600 mb-1">Frente *</p>
+                            {!diplomaEmAndamento.frente ? (
+                              <label
+                                htmlFor="diploma-frente-modal"
+                                className="flex flex-col items-center justify-center w-full h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors"
+                              >
+                                <Upload className="w-4 h-4 text-gray-400" />
+                                <p className="text-xs text-gray-500">Enviar</p>
+                                <input
+                                  id="diploma-frente-modal"
+                                  type="file"
+                                  className="hidden"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={handleDiplomaFrenteChange}
+                                />
+                              </label>
+                            ) : (
+                              <div className="flex items-center justify-between p-2 border border-blue-300 rounded-lg bg-blue-50">
+                                <p className="text-xs text-gray-900 truncate flex-1">{diplomaEmAndamento.frente.name}</p>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: null })}
+                                  className="h-5 w-5 p-0 text-red-600 hover:text-red-700"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Verso do diploma */}
+                          <div>
+                            <p className="text-xs text-gray-600 mb-1">Verso (opcional)</p>
+                            {!diplomaEmAndamento.verso ? (
+                              <label
+                                htmlFor="diploma-verso-modal"
+                                className="flex flex-col items-center justify-center w-full h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors"
+                              >
+                                <Upload className="w-4 h-4 text-gray-400" />
+                                <p className="text-xs text-gray-500">Enviar</p>
+                                <input
+                                  id="diploma-verso-modal"
+                                  type="file"
+                                  className="hidden"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={handleDiplomaVersoChange}
+                                />
+                              </label>
+                            ) : (
+                              <div className="flex items-center justify-between p-2 border border-blue-300 rounded-lg bg-blue-50">
+                                <p className="text-xs text-gray-900 truncate flex-1">{diplomaEmAndamento.verso.name}</p>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: null })}
+                                  className="h-5 w-5 p-0 text-red-600 hover:text-red-700"
+                                >
+                                  <X className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {diplomaEmAndamento.frente && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={adicionarDiploma}
+                            className="w-full"
+                          >
+                            Adicionar este diploma
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Lista de diplomas adicionados */}
                       {diplomas.length > 0 && (
                         <div className="space-y-2">
+                          <p className="text-xs text-gray-600 font-medium">Diplomas adicionados:</p>
                           {diplomas.map((diploma, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 border border-gray-300 rounded-lg bg-gray-50">
+                            <div key={index} className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50">
                               <div className="flex items-center gap-2 min-w-0">
-                                <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                                <p className="text-sm text-gray-900 truncate">{diploma.name}</p>
+                                <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs text-gray-900 truncate">Diploma {index + 1}</p>
+                                  <p className="text-xs text-gray-500">Frente{diploma.verso ? ' + Verso' : ''}</p>
+                                </div>
                               </div>
                               <Button
                                 type="button"
@@ -872,7 +1003,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                               </Button>
                             </div>
                           ))}
-                          <p className="text-xs text-gray-500 text-right">{diplomas.length} arquivo(s)</p>
                         </div>
                       )}
                     </div>
