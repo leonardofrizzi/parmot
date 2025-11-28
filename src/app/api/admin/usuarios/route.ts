@@ -15,24 +15,48 @@ export async function GET(request: NextRequest) {
 
     // Buscar clientes
     if (tipo === 'clientes' || tipo === 'todos') {
-      let queryClientes = supabaseAdmin
+      // Primeiro tenta com colunas de banimento, se falhar tenta sem
+      let clientes: any[] | null = null
+      let erroClientes: any = null
+
+      // Tentar com colunas de banimento
+      const resultadoComBanido = await supabaseAdmin
         .from('clientes')
         .select('id, nome, email, telefone, cidade, estado, banido, banido_em, motivo_banimento, created_at')
         .order('created_at', { ascending: false })
 
-      // Filtro de banimento
-      if (filtro === 'ativos') {
-        queryClientes = queryClientes.or('banido.is.null,banido.eq.false')
-      } else if (filtro === 'banidos') {
-        queryClientes = queryClientes.eq('banido', true)
+      if (resultadoComBanido.error && resultadoComBanido.error.message?.includes('banido')) {
+        // Coluna banido não existe, buscar sem ela
+        console.log('Coluna banido não existe em clientes, buscando sem ela...')
+        const resultadoSemBanido = await supabaseAdmin
+          .from('clientes')
+          .select('id, nome, email, telefone, cidade, estado, created_at')
+          .order('created_at', { ascending: false })
+
+        clientes = resultadoSemBanido.data
+        erroClientes = resultadoSemBanido.error
+      } else {
+        clientes = resultadoComBanido.data
+        erroClientes = resultadoComBanido.error
+
+        // Aplicar filtro de banimento se a coluna existe
+        if (!erroClientes && clientes && filtro !== 'todos') {
+          if (filtro === 'ativos') {
+            clientes = clientes.filter(c => !c.banido)
+          } else if (filtro === 'banidos') {
+            clientes = clientes.filter(c => c.banido === true)
+          }
+        }
       }
 
-      // Busca por nome ou email
-      if (busca) {
-        queryClientes = queryClientes.or(`nome.ilike.%${busca}%,email.ilike.%${busca}%`)
+      // Aplicar busca
+      if (!erroClientes && clientes && busca) {
+        const buscaLower = busca.toLowerCase()
+        clientes = clientes.filter(c =>
+          c.nome?.toLowerCase().includes(buscaLower) ||
+          c.email?.toLowerCase().includes(buscaLower)
+        )
       }
-
-      const { data: clientes, error: erroClientes } = await queryClientes
 
       if (erroClientes) {
         console.error('Erro ao buscar clientes:', erroClientes)
@@ -40,6 +64,7 @@ export async function GET(request: NextRequest) {
         clientes.forEach(cliente => {
           usuarios.push({
             ...cliente,
+            banido: cliente.banido || false,
             tipo_usuario: 'cliente'
           })
         })
@@ -48,24 +73,47 @@ export async function GET(request: NextRequest) {
 
     // Buscar profissionais
     if (tipo === 'profissionais' || tipo === 'todos') {
-      let queryProfs = supabaseAdmin
+      let profissionais: any[] | null = null
+      let erroProfs: any = null
+
+      // Tentar com colunas de banimento
+      const resultadoComBanido = await supabaseAdmin
         .from('profissionais')
         .select('id, nome, email, telefone, cidade, estado, aprovado, banido, banido_em, motivo_banimento, created_at')
         .order('created_at', { ascending: false })
 
-      // Filtro de banimento
-      if (filtro === 'ativos') {
-        queryProfs = queryProfs.or('banido.is.null,banido.eq.false')
-      } else if (filtro === 'banidos') {
-        queryProfs = queryProfs.eq('banido', true)
+      if (resultadoComBanido.error && resultadoComBanido.error.message?.includes('banido')) {
+        // Coluna banido não existe, buscar sem ela
+        console.log('Coluna banido não existe em profissionais, buscando sem ela...')
+        const resultadoSemBanido = await supabaseAdmin
+          .from('profissionais')
+          .select('id, nome, email, telefone, cidade, estado, aprovado, created_at')
+          .order('created_at', { ascending: false })
+
+        profissionais = resultadoSemBanido.data
+        erroProfs = resultadoSemBanido.error
+      } else {
+        profissionais = resultadoComBanido.data
+        erroProfs = resultadoComBanido.error
+
+        // Aplicar filtro de banimento se a coluna existe
+        if (!erroProfs && profissionais && filtro !== 'todos') {
+          if (filtro === 'ativos') {
+            profissionais = profissionais.filter(p => !p.banido)
+          } else if (filtro === 'banidos') {
+            profissionais = profissionais.filter(p => p.banido === true)
+          }
+        }
       }
 
-      // Busca por nome ou email
-      if (busca) {
-        queryProfs = queryProfs.or(`nome.ilike.%${busca}%,email.ilike.%${busca}%`)
+      // Aplicar busca
+      if (!erroProfs && profissionais && busca) {
+        const buscaLower = busca.toLowerCase()
+        profissionais = profissionais.filter(p =>
+          p.nome?.toLowerCase().includes(buscaLower) ||
+          p.email?.toLowerCase().includes(buscaLower)
+        )
       }
-
-      const { data: profissionais, error: erroProfs } = await queryProfs
 
       if (erroProfs) {
         console.error('Erro ao buscar profissionais:', erroProfs)
@@ -73,6 +121,7 @@ export async function GET(request: NextRequest) {
         profissionais.forEach(prof => {
           usuarios.push({
             ...prof,
+            banido: prof.banido || false,
             tipo_usuario: 'profissional'
           })
         })

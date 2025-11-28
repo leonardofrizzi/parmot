@@ -38,6 +38,12 @@ export default function CadastroProfissional() {
   const [aceiteTermos, setAceiteTermos] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  // Erros inline para cada campo de arquivo
+  const [erroIdentidadeFrente, setErroIdentidadeFrente] = useState("")
+  const [erroIdentidadeVerso, setErroIdentidadeVerso] = useState("")
+  const [erroDocumentoEmpresa, setErroDocumentoEmpresa] = useState("")
+  const [erroDiplomaFrente, setErroDiplomaFrente] = useState("")
+  const [erroDiplomaVerso, setErroDiplomaVerso] = useState("")
   const [success, setSuccess] = useState(false)
   const [tempoReenvio, setTempoReenvio] = useState(0)
 
@@ -284,19 +290,19 @@ export default function CadastroProfissional() {
     if (file) {
       // Validar tamanho
       if (file.size > MAX_FILE_SIZE) {
-        setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo permitido: ${MAX_FILE_SIZE_MB}MB. Tire uma foto com resolução menor ou comprima a imagem.`)
+        setErroIdentidadeFrente(`Arquivo muito grande! ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
         e.target.value = '' // Limpar input
         return
       }
       // Validar tipo
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
-        setError(`Formato inválido! "${file.name}" não é aceito. Use apenas JPG, PNG ou PDF.`)
+        setErroIdentidadeFrente(`Formato inválido! Use JPG, PNG ou PDF.`)
         e.target.value = ''
         return
       }
       setIdentidadeFrente(file)
-      setError("")
+      setErroIdentidadeFrente("")
     }
   }
 
@@ -304,18 +310,18 @@ export default function CadastroProfissional() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
-        setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo permitido: ${MAX_FILE_SIZE_MB}MB. Tire uma foto com resolução menor ou comprima a imagem.`)
+        setErroIdentidadeVerso(`Arquivo muito grande! ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
         e.target.value = ''
         return
       }
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
-        setError(`Formato inválido! "${file.name}" não é aceito. Use apenas JPG, PNG ou PDF.`)
+        setErroIdentidadeVerso(`Formato inválido! Use JPG, PNG ou PDF.`)
         e.target.value = ''
         return
       }
       setIdentidadeVerso(file)
-      setError("")
+      setErroIdentidadeVerso("")
     }
   }
 
@@ -323,47 +329,56 @@ export default function CadastroProfissional() {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
-        setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo permitido: ${MAX_FILE_SIZE_MB}MB. Tire uma foto com resolução menor ou comprima a imagem.`)
+        setErroDocumentoEmpresa(`Arquivo muito grande! ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
         e.target.value = ''
         return
       }
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
-        setError(`Formato inválido! "${file.name}" não é aceito. Use apenas JPG, PNG ou PDF.`)
+        setErroDocumentoEmpresa(`Formato inválido! Use JPG, PNG ou PDF.`)
         e.target.value = ''
         return
       }
       setDocumentoEmpresa(file)
-      setError("")
+      setErroDocumentoEmpresa("")
     }
-  }
-
-  const validateFile = (file: File): boolean => {
-    if (file.size > MAX_FILE_SIZE) {
-      setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
-      return false
-    }
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-    if (!allowedTypes.includes(file.type)) {
-      setError(`Formato inválido! "${file.name}" não é aceito. Use JPG, PNG ou PDF.`)
-      return false
-    }
-    return true
   }
 
   const handleDiplomaFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && validateFile(file)) {
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setErroDiplomaFrente(`Arquivo muito grande! ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
+        e.target.value = ''
+        return
+      }
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setErroDiplomaFrente(`Formato inválido! Use JPG, PNG ou PDF.`)
+        e.target.value = ''
+        return
+      }
       setDiplomaTemp(prev => ({ ...prev, frente: file }))
-      setError("")
+      setErroDiplomaFrente("")
     }
   }
 
   const handleDiplomaVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && validateFile(file)) {
+    if (file) {
+      if (file.size > MAX_FILE_SIZE) {
+        setErroDiplomaVerso(`Arquivo muito grande! ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
+        e.target.value = ''
+        return
+      }
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        setErroDiplomaVerso(`Formato inválido! Use JPG, PNG ou PDF.`)
+        e.target.value = ''
+        return
+      }
       setDiplomaTemp(prev => ({ ...prev, verso: file }))
-      setError("")
+      setErroDiplomaVerso("")
     }
   }
 
@@ -654,15 +669,19 @@ export default function CadastroProfissional() {
             <div className="grid grid-cols-2 gap-3">
               {/* Frente */}
               <div>
-                <p className="text-xs font-medium text-gray-700 mb-1">Frente</p>
+                <p className={`text-xs font-medium mb-1 ${erroIdentidadeFrente ? 'text-red-600' : 'text-gray-700'}`}>Frente</p>
                 {!identidadeFrente ? (
                   <label
                     htmlFor="identidadeFrente"
-                    className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                      erroIdentidadeFrente
+                        ? 'border-red-400 bg-red-50 hover:bg-red-100'
+                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                    }`}
                   >
                     <div className="flex flex-col items-center justify-center py-2">
-                      <Upload className="w-5 h-5 mb-1 text-gray-400" />
-                      <p className="text-xs text-gray-500 text-center">Clique para enviar</p>
+                      <Upload className={`w-5 h-5 mb-1 ${erroIdentidadeFrente ? 'text-red-400' : 'text-gray-400'}`} />
+                      <p className={`text-xs text-center ${erroIdentidadeFrente ? 'text-red-500' : 'text-gray-500'}`}>Clique para enviar</p>
                     </div>
                     <input
                       id="identidadeFrente"
@@ -689,19 +708,26 @@ export default function CadastroProfissional() {
                     </Button>
                   </div>
                 )}
+                {erroIdentidadeFrente && (
+                  <p className="text-xs text-red-600 mt-1">{erroIdentidadeFrente}</p>
+                )}
               </div>
 
               {/* Verso */}
               <div>
-                <p className="text-xs font-medium text-gray-700 mb-1">Verso</p>
+                <p className={`text-xs font-medium mb-1 ${erroIdentidadeVerso ? 'text-red-600' : 'text-gray-700'}`}>Verso</p>
                 {!identidadeVerso ? (
                   <label
                     htmlFor="identidadeVerso"
-                    className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                      erroIdentidadeVerso
+                        ? 'border-red-400 bg-red-50 hover:bg-red-100'
+                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                    }`}
                   >
                     <div className="flex flex-col items-center justify-center py-2">
-                      <Upload className="w-5 h-5 mb-1 text-gray-400" />
-                      <p className="text-xs text-gray-500 text-center">Clique para enviar</p>
+                      <Upload className={`w-5 h-5 mb-1 ${erroIdentidadeVerso ? 'text-red-400' : 'text-gray-400'}`} />
+                      <p className={`text-xs text-center ${erroIdentidadeVerso ? 'text-red-500' : 'text-gray-500'}`}>Clique para enviar</p>
                     </div>
                     <input
                       id="identidadeVerso"
@@ -728,32 +754,39 @@ export default function CadastroProfissional() {
                     </Button>
                   </div>
                 )}
+                {erroIdentidadeVerso && (
+                  <p className="text-xs text-red-600 mt-1">{erroIdentidadeVerso}</p>
+                )}
               </div>
             </div>
-            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB cada)</p>
+            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 4MB cada)</p>
           </div>
 
           {/* Campo de Upload de Documento da Empresa (Obrigatório apenas para empresas) */}
           {tipo === "empresa" && (
             <div className="space-y-2">
-              <Label htmlFor="documentoEmpresa">
+              <Label htmlFor="documentoEmpresa" className={erroDocumentoEmpresa ? 'text-red-600' : ''}>
                 Documento da Empresa <span className="text-red-500">*</span>
               </Label>
-              <p className="text-xs text-gray-500 mb-2">
+              <p className={`text-xs mb-2 ${erroDocumentoEmpresa ? 'text-red-500' : 'text-gray-500'}`}>
                 Contrato Social ou Cartão CNPJ
               </p>
 
               {!documentoEmpresa ? (
                 <label
                   htmlFor="documentoEmpresa"
-                  className="flex flex-col items-center justify-center w-full h-28 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                  className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                    erroDocumentoEmpresa
+                      ? 'border-red-400 bg-red-50 hover:bg-red-100'
+                      : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                  }`}
                 >
                   <div className="flex flex-col items-center justify-center py-4">
-                    <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                    <p className="text-sm text-gray-500">
+                    <Upload className={`w-6 h-6 mb-1 ${erroDocumentoEmpresa ? 'text-red-400' : 'text-gray-400'}`} />
+                    <p className={`text-sm ${erroDocumentoEmpresa ? 'text-red-500' : 'text-gray-500'}`}>
                       <span className="font-semibold">Clique para enviar</span>
                     </p>
-                    <p className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</p>
+                    <p className={`text-xs ${erroDocumentoEmpresa ? 'text-red-500' : 'text-gray-500'}`}>PDF, JPG ou PNG (máx. 4MB)</p>
                   </div>
                   <input
                     id="documentoEmpresa"
@@ -764,9 +797,9 @@ export default function CadastroProfissional() {
                   />
                 </label>
               ) : (
-                <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
+                <div className="flex items-center justify-between p-3 border border-green-300 rounded-lg bg-green-50">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary-600" />
+                    <FileText className="w-5 h-5 text-green-600" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">{documentoEmpresa.name}</p>
                       <p className="text-xs text-gray-500">
@@ -784,6 +817,9 @@ export default function CadastroProfissional() {
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
+              )}
+              {erroDocumentoEmpresa && (
+                <p className="text-xs text-red-600 mt-1">{erroDocumentoEmpresa}</p>
               )}
             </div>
           )}
@@ -803,14 +839,18 @@ export default function CadastroProfissional() {
               <div className="grid grid-cols-2 gap-3">
                 {/* Frente do diploma */}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">Frente</p>
+                  <p className={`text-xs font-medium mb-1 ${erroDiplomaFrente ? 'text-red-600' : 'text-gray-600'}`}>Frente</p>
                   {!diplomaTemp.frente ? (
                     <label
                       htmlFor="diplomaFrente"
-                      className="flex flex-col items-center justify-center w-full h-20 border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors"
+                      className={`flex flex-col items-center justify-center w-full h-20 border rounded-lg cursor-pointer transition-colors ${
+                        erroDiplomaFrente
+                          ? 'border-red-400 bg-red-50 hover:bg-red-100'
+                          : 'border-gray-300 bg-white hover:bg-gray-100'
+                      }`}
                     >
-                      <Upload className="w-4 h-4 mb-1 text-gray-400" />
-                      <p className="text-xs text-gray-500">Selecionar</p>
+                      <Upload className={`w-4 h-4 mb-1 ${erroDiplomaFrente ? 'text-red-400' : 'text-gray-400'}`} />
+                      <p className={`text-xs ${erroDiplomaFrente ? 'text-red-500' : 'text-gray-500'}`}>Selecionar</p>
                       <input
                         id="diplomaFrente"
                         type="file"
@@ -836,18 +876,25 @@ export default function CadastroProfissional() {
                       </Button>
                     </div>
                   )}
+                  {erroDiplomaFrente && (
+                    <p className="text-xs text-red-600 mt-1">{erroDiplomaFrente}</p>
+                  )}
                 </div>
 
                 {/* Verso do diploma */}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1">Verso <span className="text-gray-400">(opcional)</span></p>
+                  <p className={`text-xs font-medium mb-1 ${erroDiplomaVerso ? 'text-red-600' : 'text-gray-600'}`}>Verso <span className="text-gray-400">(opcional)</span></p>
                   {!diplomaTemp.verso ? (
                     <label
                       htmlFor="diplomaVerso"
-                      className="flex flex-col items-center justify-center w-full h-20 border border-gray-300 rounded-lg cursor-pointer bg-white hover:bg-gray-100 transition-colors"
+                      className={`flex flex-col items-center justify-center w-full h-20 border rounded-lg cursor-pointer transition-colors ${
+                        erroDiplomaVerso
+                          ? 'border-red-400 bg-red-50 hover:bg-red-100'
+                          : 'border-gray-300 bg-white hover:bg-gray-100'
+                      }`}
                     >
-                      <Upload className="w-4 h-4 mb-1 text-gray-400" />
-                      <p className="text-xs text-gray-500">Selecionar</p>
+                      <Upload className={`w-4 h-4 mb-1 ${erroDiplomaVerso ? 'text-red-400' : 'text-gray-400'}`} />
+                      <p className={`text-xs ${erroDiplomaVerso ? 'text-red-500' : 'text-gray-500'}`}>Selecionar</p>
                       <input
                         id="diplomaVerso"
                         type="file"
@@ -872,6 +919,9 @@ export default function CadastroProfissional() {
                         <X className="w-3 h-3" />
                       </Button>
                     </div>
+                  )}
+                  {erroDiplomaVerso && (
+                    <p className="text-xs text-red-600 mt-1">{erroDiplomaVerso}</p>
                   )}
                 </div>
               </div>
