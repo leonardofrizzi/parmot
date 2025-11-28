@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
     // Temporarily ignore type errors to allow deployment
     ignoreBuildErrors: true,
   },
+  // Aumentar limite de body para upload de documentos (50MB total)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
 };
 
 export default nextConfig;

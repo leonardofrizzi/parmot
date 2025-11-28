@@ -218,6 +218,13 @@ export default function CadastroProfissional() {
 
       console.log("Response status:", response.status)
 
+      // Verificar erro 413 antes de tentar parsear JSON
+      if (response.status === 413) {
+        setError("Os arquivos são muito grandes! Reduza o tamanho das imagens (máximo 4MB cada) e tente novamente. Dica: tire fotos com resolução menor ou use um app para comprimir as imagens.")
+        setLoading(false)
+        return
+      }
+
       let data
       try {
         data = await response.json()
@@ -264,18 +271,28 @@ export default function CadastroProfissional() {
     }
   }
 
+  // Limite de 4MB (Vercel tem limite de 4.5MB)
+  const MAX_FILE_SIZE = 4 * 1024 * 1024
+  const MAX_FILE_SIZE_MB = 4
+
+  const formatFileSize = (bytes: number) => {
+    return (bytes / 1024 / 1024).toFixed(1) + "MB"
+  }
+
   const handleIdentidadeFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validar tamanho (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("O arquivo deve ter no máximo 5MB")
+      // Validar tamanho
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo permitido: ${MAX_FILE_SIZE_MB}MB. Tire uma foto com resolução menor ou comprima a imagem.`)
+        e.target.value = '' // Limpar input
         return
       }
       // Validar tipo
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
-        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        setError(`Formato inválido! "${file.name}" não é aceito. Use apenas JPG, PNG ou PDF.`)
+        e.target.value = ''
         return
       }
       setIdentidadeFrente(file)
@@ -286,13 +303,15 @@ export default function CadastroProfissional() {
   const handleIdentidadeVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("O arquivo deve ter no máximo 5MB")
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo permitido: ${MAX_FILE_SIZE_MB}MB. Tire uma foto com resolução menor ou comprima a imagem.`)
+        e.target.value = ''
         return
       }
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
-        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        setError(`Formato inválido! "${file.name}" não é aceito. Use apenas JPG, PNG ou PDF.`)
+        e.target.value = ''
         return
       }
       setIdentidadeVerso(file)
@@ -303,13 +322,15 @@ export default function CadastroProfissional() {
   const handleEmpresaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("O arquivo deve ter no máximo 5MB")
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo permitido: ${MAX_FILE_SIZE_MB}MB. Tire uma foto com resolução menor ou comprima a imagem.`)
+        e.target.value = ''
         return
       }
       const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
       if (!allowedTypes.includes(file.type)) {
-        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
+        setError(`Formato inválido! "${file.name}" não é aceito. Use apenas JPG, PNG ou PDF.`)
+        e.target.value = ''
         return
       }
       setDocumentoEmpresa(file)
@@ -318,13 +339,13 @@ export default function CadastroProfissional() {
   }
 
   const validateFile = (file: File): boolean => {
-    if (file.size > 5 * 1024 * 1024) {
-      setError(`O arquivo ${file.name} deve ter no máximo 5MB`)
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`Arquivo muito grande! "${file.name}" tem ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
       return false
     }
     const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
     if (!allowedTypes.includes(file.type)) {
-      setError(`O arquivo ${file.name} deve ser PDF, JPG ou PNG`)
+      setError(`Formato inválido! "${file.name}" não é aceito. Use JPG, PNG ou PDF.`)
       return false
     }
     return true

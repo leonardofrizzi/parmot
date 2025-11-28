@@ -5,6 +5,16 @@ import bcrypt from 'bcryptjs'
 // Aumentar timeout para 3 minutos devido ao upload de documentos
 export const maxDuration = 180
 
+// Configurar limite de body size para upload de documentos (50MB)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+    responseLimit: false,
+  },
+}
+
 export async function POST(request: NextRequest) {
   console.log('=== INÍCIO CADASTRO PROFISSIONAL ===')
 
@@ -134,10 +144,10 @@ export async function POST(request: NextRequest) {
     const uploadFile = async (file: File, folder: string): Promise<string | null> => {
       console.log(`Upload iniciado: ${file.name} (${file.size} bytes) -> ${folder}`)
 
-      // Validar tamanho do arquivo (máximo 5MB)
-      const maxSize = 5 * 1024 * 1024 // 5MB
+      // Validar tamanho do arquivo (máximo 4MB - Vercel limita em 4.5MB)
+      const maxSize = 4 * 1024 * 1024 // 4MB
       if (file.size > maxSize) {
-        ultimoErroUpload = `Arquivo ${file.name} é muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Máximo permitido: 5MB`
+        ultimoErroUpload = `Arquivo ${file.name} é muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Máximo permitido: 4MB`
         console.error(ultimoErroUpload)
         return null
       }
