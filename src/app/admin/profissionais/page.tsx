@@ -372,7 +372,7 @@ export default function AdminProfissionais() {
                                 href={diploma.verso}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline ml-4"
+                                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
                               >
                                 <GraduationCap size={14} />
                                 <span>Diploma {idx + 1} - Verso</span>

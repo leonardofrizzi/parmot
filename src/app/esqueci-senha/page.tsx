@@ -100,6 +100,14 @@ export default function EsqueciSenha() {
       return
     }
 
+    // Validar senha forte (maiúscula + caractere especial)
+    const temMaiuscula = /[A-Z]/.test(novaSenha)
+    const temEspecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(novaSenha)
+    if (!temMaiuscula || !temEspecial) {
+      setError("A senha deve conter pelo menos uma letra maiúscula e um caractere especial (!@#$%...)")
+      return
+    }
+
     if (novaSenha !== confirmarSenha) {
       setError("As senhas não coincidem")
       return

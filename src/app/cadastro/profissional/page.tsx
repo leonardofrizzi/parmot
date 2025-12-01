@@ -173,6 +173,15 @@ export default function CadastroProfissional() {
       return
     }
 
+    // Validar senha forte (maiúscula + caractere especial)
+    const temMaiuscula = /[A-Z]/.test(formData.senha)
+    const temEspecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(formData.senha)
+    if (!temMaiuscula || !temEspecial) {
+      setError("A senha deve conter pelo menos uma letra maiúscula e um caractere especial (!@#$%...)")
+      setLoading(false)
+      return
+    }
+
     // Validar documento de identidade pessoal - frente e verso (obrigatório para todos)
     if (!identidadeFrente || !identidadeVerso) {
       setError("É obrigatório enviar a frente e o verso do documento de identificação (RG/CNH)")

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { compressImage } from "@/lib/compressImage"
 
 interface SidebarProps {
   tipo: "cliente" | "profissional"
@@ -208,47 +209,72 @@ export default function Sidebar({ tipo }: SidebarProps) {
     return true
   }
 
-  // Handler para upload de identidade frente
-  const handleIdentidadeFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler para upload de identidade frente (com compressão)
+  const handleIdentidadeFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
-      setIdentidadeFrente(file)
+      try {
+        const compressed = await compressImage(file)
+        setIdentidadeFrente(compressed)
+      } catch {
+        setIdentidadeFrente(file)
+      }
       setModalError("")
     }
   }
 
-  // Handler para upload de identidade verso
-  const handleIdentidadeVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler para upload de identidade verso (com compressão)
+  const handleIdentidadeVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
-      setIdentidadeVerso(file)
+      try {
+        const compressed = await compressImage(file)
+        setIdentidadeVerso(compressed)
+      } catch {
+        setIdentidadeVerso(file)
+      }
       setModalError("")
     }
   }
 
-  // Handler para upload de documento da empresa
-  const handleEmpresaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler para upload de documento da empresa (com compressão)
+  const handleEmpresaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
-      setDocumentoEmpresa(file)
+      try {
+        const compressed = await compressImage(file)
+        setDocumentoEmpresa(compressed)
+      } catch {
+        setDocumentoEmpresa(file)
+      }
       setModalError("")
     }
   }
 
-  // Handler para upload de diploma frente
-  const handleDiplomaFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler para upload de diploma frente (com compressão)
+  const handleDiplomaFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
-      setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: file })
+      try {
+        const compressed = await compressImage(file)
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: compressed })
+      } catch {
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: file })
+      }
       setModalError("")
     }
   }
 
-  // Handler para upload de diploma verso
-  const handleDiplomaVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler para upload de diploma verso (com compressão)
+  const handleDiplomaVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
-      setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: file })
+      try {
+        const compressed = await compressImage(file)
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: compressed })
+      } catch {
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: file })
+      }
       setModalError("")
     }
   }
@@ -278,6 +304,15 @@ export default function Sidebar({ tipo }: SidebarProps) {
 
     if (profForm.senha.length < 6) {
       setModalError("A senha deve ter no mínimo 6 caracteres")
+      setModalLoading(false)
+      return
+    }
+
+    // Validar senha forte (maiúscula + caractere especial)
+    const temMaiuscula = /[A-Z]/.test(profForm.senha)
+    const temEspecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(profForm.senha)
+    if (!temMaiuscula || !temEspecial) {
+      setModalError("A senha deve conter pelo menos uma letra maiúscula e um caractere especial (!@#$%...)")
       setModalLoading(false)
       return
     }
@@ -326,13 +361,22 @@ export default function Sidebar({ tipo }: SidebarProps) {
       }
 
       // Diplomas/certificados com frente e verso (opcional, múltiplos)
-      diplomas.forEach((diploma, index) => {
+      // Incluir diploma pendente (selecionado mas não adicionado à lista)
+      const diplomasParaEnviar = [...diplomas]
+      if (diplomaEmAndamento.frente) {
+        diplomasParaEnviar.push({
+          frente: diplomaEmAndamento.frente,
+          verso: diplomaEmAndamento.verso
+        })
+      }
+
+      diplomasParaEnviar.forEach((diploma, index) => {
         formData.append(`diploma_${index}_frente`, diploma.frente)
         if (diploma.verso) {
           formData.append(`diploma_${index}_verso`, diploma.verso)
         }
       })
-      formData.append("diplomasCount", diplomas.length.toString())
+      formData.append("diplomasCount", diplomasParaEnviar.length.toString())
 
       console.log("Enviando dados para API...")
       const response = await fetch("/api/cliente/tornar-profissional", {

@@ -151,6 +151,15 @@ function CadastroClienteContent() {
       return
     }
 
+    // Validar senha forte (maiúscula + caractere especial)
+    const temMaiuscula = /[A-Z]/.test(formData.senha)
+    const temEspecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(formData.senha)
+    if (!temMaiuscula || !temEspecial) {
+      setError("A senha deve conter pelo menos uma letra maiúscula e um caractere especial (!@#$%...)")
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch("/api/cadastro/cliente", {
         method: "POST",

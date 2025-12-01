@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Briefcase, CheckCircle2, Clock, Upload, FileText, X } from "lucide-react"
+import { Briefcase, CheckCircle2, Clock, Upload, FileText, X, GraduationCap, Loader2 } from "lucide-react"
+import { compressImage } from "@/lib/compressImage"
 
 interface Cliente {
   id: string
@@ -20,6 +21,8 @@ interface Cliente {
   estado: string
   profissional_id?: string
 }
+
+const MAX_FILE_SIZE = 15 * 1024 * 1024 // 15MB (compressão vai reduzir)
 
 export default function PerfilCliente() {
   const router = useRouter()
@@ -33,7 +36,6 @@ export default function PerfilCliente() {
   const [showProfModal, setShowProfModal] = useState(false)
   const [profLoading, setProfLoading] = useState(false)
   const [profSuccess, setProfSuccess] = useState(false)
-  const [documento, setDocumento] = useState<File | null>(null)
   const [profForm, setProfForm] = useState({
     tipo: "autonomo" as "autonomo" | "empresa",
     cpf_cnpj: "",
@@ -42,6 +44,20 @@ export default function PerfilCliente() {
     senha: "",
     confirmarSenha: "",
   })
+
+  // Estados para documentos
+  const [identidadeFrente, setIdentidadeFrente] = useState<File | null>(null)
+  const [identidadeVerso, setIdentidadeVerso] = useState<File | null>(null)
+  const [documentoEmpresa, setDocumentoEmpresa] = useState<File | null>(null)
+  const [diplomas, setDiplomas] = useState<{ frente: File; verso: File | null }[]>([])
+  const [diplomaEmAndamento, setDiplomaEmAndamento] = useState<{ frente: File | null; verso: File | null }>({ frente: null, verso: null })
+
+  // Estados de loading para compressão
+  const [comprimindoIdentFrente, setComprimindoIdentFrente] = useState(false)
+  const [comprimindoIdentVerso, setComprimindoIdentVerso] = useState(false)
+  const [comprimindoEmpresa, setComprimindoEmpresa] = useState(false)
+  const [comprimindoDiplomaFrente, setComprimindoDiplomaFrente] = useState(false)
+  const [comprimindoDiplomaVerso, setComprimindoDiplomaVerso] = useState(false)
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -73,6 +89,45 @@ export default function PerfilCliente() {
     })
   }
 
+  // Formatar CPF: 000.000.000-00
+  const formatarCPF = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 11)
+    return numeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+  }
+
+  // Formatar CNPJ: 00.000.000/0000-00
+  const formatarCNPJ = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 14)
+    return numeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+  }
+
+  // Formatar telefone: (00) 00000-0000
+  const formatarTelefone = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 11)
+    if (numeros.length <= 2) return numeros
+    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
+  }
+
+  const handleProfFormChange = (field: string, value: string) => {
+    let valorFormatado = value
+
+    if (field === 'cpf_cnpj') {
+      valorFormatado = profForm.tipo === 'autonomo' ? formatarCPF(value) : formatarCNPJ(value)
+    } else if (field === 'telefone') {
+      valorFormatado = formatarTelefone(value)
+    }
+
+    setProfForm({ ...profForm, [field]: valorFormatado })
+  }
+
   const handleSaveProfile = async () => {
     setError("")
     setSuccess("")
@@ -98,7 +153,6 @@ export default function PerfilCliente() {
         return
       }
 
-      // Atualizar localStorage
       localStorage.setItem('usuario', JSON.stringify(data.cliente))
       setCliente(data.cliente)
       setSuccess("Perfil atualizado com sucesso!")
@@ -111,21 +165,105 @@ export default function PerfilCliente() {
     }
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("O arquivo deve ter no máximo 5MB")
-        return
-      }
-      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-      if (!allowedTypes.includes(file.type)) {
-        setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
-        return
-      }
-      setDocumento(file)
-      setError("")
+  // Validar arquivo
+  const validarArquivo = (file: File): boolean => {
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`Arquivo muito grande! Máximo: 15MB`)
+      return false
     }
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+    if (!allowedTypes.includes(file.type)) {
+      setError("Formato inválido! Use JPG, PNG ou PDF.")
+      return false
+    }
+    return true
+  }
+
+  // Handlers de upload com compressão
+  const handleIdentidadeFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setComprimindoIdentFrente(true)
+      setError("")
+      try {
+        const compressed = await compressImage(file)
+        setIdentidadeFrente(compressed)
+      } catch {
+        setIdentidadeFrente(file)
+      }
+      setComprimindoIdentFrente(false)
+    }
+  }
+
+  const handleIdentidadeVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setComprimindoIdentVerso(true)
+      setError("")
+      try {
+        const compressed = await compressImage(file)
+        setIdentidadeVerso(compressed)
+      } catch {
+        setIdentidadeVerso(file)
+      }
+      setComprimindoIdentVerso(false)
+    }
+  }
+
+  const handleEmpresaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setComprimindoEmpresa(true)
+      setError("")
+      try {
+        const compressed = await compressImage(file)
+        setDocumentoEmpresa(compressed)
+      } catch {
+        setDocumentoEmpresa(file)
+      }
+      setComprimindoEmpresa(false)
+    }
+  }
+
+  const handleDiplomaFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setComprimindoDiplomaFrente(true)
+      setError("")
+      try {
+        const compressed = await compressImage(file)
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: compressed })
+      } catch {
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: file })
+      }
+      setComprimindoDiplomaFrente(false)
+    }
+  }
+
+  const handleDiplomaVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && validarArquivo(file)) {
+      setComprimindoDiplomaVerso(true)
+      setError("")
+      try {
+        const compressed = await compressImage(file)
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: compressed })
+      } catch {
+        setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: file })
+      }
+      setComprimindoDiplomaVerso(false)
+    }
+  }
+
+  const adicionarDiploma = () => {
+    if (diplomaEmAndamento.frente) {
+      setDiplomas([...diplomas, { frente: diplomaEmAndamento.frente, verso: diplomaEmAndamento.verso }])
+      setDiplomaEmAndamento({ frente: null, verso: null })
+    }
+  }
+
+  const removerDiploma = (index: number) => {
+    setDiplomas(diplomas.filter((_, i) => i !== index))
   }
 
   const handleTornarProfissional = async () => {
@@ -144,33 +282,77 @@ export default function PerfilCliente() {
       return
     }
 
+    // Validar senha forte
+    const temMaiuscula = /[A-Z]/.test(profForm.senha)
+    const temEspecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(profForm.senha)
+    if (!temMaiuscula || !temEspecial) {
+      setError("A senha deve conter pelo menos uma letra maiúscula e um caractere especial (!@#$%...)")
+      setProfLoading(false)
+      return
+    }
+
+    if (!profForm.cpf_cnpj) {
+      setError(profForm.tipo === "autonomo" ? "CPF é obrigatório" : "CNPJ é obrigatório")
+      setProfLoading(false)
+      return
+    }
+
     if (!profForm.telefone) {
       setError("Telefone é obrigatório para profissionais")
       setProfLoading(false)
       return
     }
 
-    if (!documento) {
-      setError("O documento de identificação é obrigatório")
+    if (!identidadeFrente || !identidadeVerso) {
+      setError("É obrigatório enviar a frente e o verso do documento de identificação (RG/CNH)")
+      setProfLoading(false)
+      return
+    }
+
+    if (profForm.tipo === "empresa" && !documentoEmpresa) {
+      setError("O documento da empresa (Contrato Social/Cartão CNPJ) é obrigatório")
       setProfLoading(false)
       return
     }
 
     try {
-      const formData = new FormData()
-      formData.append("cliente_id", cliente?.id || "")
-      formData.append("tipo", profForm.tipo)
-      formData.append("cpf_cnpj", profForm.cpf_cnpj)
-      formData.append("razao_social", profForm.razao_social || "")
-      formData.append("telefone", profForm.telefone)
-      formData.append("senha", profForm.senha)
-      if (documento) {
-        formData.append("documento", documento)
+      const formDataToSend = new FormData()
+      formDataToSend.append("cliente_id", cliente?.id || "")
+      formDataToSend.append("tipo", profForm.tipo)
+      formDataToSend.append("cpf_cnpj", profForm.cpf_cnpj)
+      formDataToSend.append("razao_social", profForm.razao_social || "")
+      formDataToSend.append("telefone", profForm.telefone)
+      formDataToSend.append("senha", profForm.senha)
+
+      // Documento de identidade - frente e verso
+      formDataToSend.append("identidadeFrente", identidadeFrente)
+      formDataToSend.append("identidadeVerso", identidadeVerso)
+
+      // Documento da empresa
+      if (documentoEmpresa) {
+        formDataToSend.append("documentoEmpresa", documentoEmpresa)
       }
+
+      // Diplomas - incluir pendente se houver
+      const diplomasParaEnviar = [...diplomas]
+      if (diplomaEmAndamento.frente) {
+        diplomasParaEnviar.push({
+          frente: diplomaEmAndamento.frente,
+          verso: diplomaEmAndamento.verso
+        })
+      }
+
+      diplomasParaEnviar.forEach((diploma, index) => {
+        formDataToSend.append(`diploma_${index}_frente`, diploma.frente)
+        if (diploma.verso) {
+          formDataToSend.append(`diploma_${index}_verso`, diploma.verso)
+        }
+      })
+      formDataToSend.append("diplomasCount", diplomasParaEnviar.length.toString())
 
       const response = await fetch("/api/cliente/tornar-profissional", {
         method: "POST",
-        body: formData,
+        body: formDataToSend,
       })
 
       const data = await response.json()
@@ -183,7 +365,12 @@ export default function PerfilCliente() {
 
       setProfSuccess(true)
       setProfLoading(false)
-      setDocumento(null)
+      // Limpar estados
+      setIdentidadeFrente(null)
+      setIdentidadeVerso(null)
+      setDocumentoEmpresa(null)
+      setDiplomas([])
+      setDiplomaEmAndamento({ frente: null, verso: null })
 
     } catch (err) {
       setError("Erro ao conectar com o servidor")
@@ -229,7 +416,7 @@ export default function PerfilCliente() {
         <p className="text-gray-600">Gerencie suas informações pessoais e senha</p>
       </div>
 
-      {error && (
+      {error && !showProfModal && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
           {error}
         </div>
@@ -412,7 +599,7 @@ export default function PerfilCliente() {
 
       {/* Modal para Tornar-se Profissional */}
       <Dialog open={showProfModal} onOpenChange={setShowProfModal}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           {!profSuccess ? (
             <>
               <DialogHeader>
@@ -430,7 +617,7 @@ export default function PerfilCliente() {
                     <Button
                       type="button"
                       variant={profForm.tipo === "autonomo" ? "default" : "outline"}
-                      onClick={() => setProfForm({ ...profForm, tipo: "autonomo" })}
+                      onClick={() => setProfForm({ ...profForm, tipo: "autonomo", cpf_cnpj: "" })}
                       className="w-full"
                       size="sm"
                     >
@@ -439,7 +626,7 @@ export default function PerfilCliente() {
                     <Button
                       type="button"
                       variant={profForm.tipo === "empresa" ? "default" : "outline"}
-                      onClick={() => setProfForm({ ...profForm, tipo: "empresa" })}
+                      onClick={() => setProfForm({ ...profForm, tipo: "empresa", cpf_cnpj: "" })}
                       className="w-full"
                       size="sm"
                     >
@@ -454,7 +641,7 @@ export default function PerfilCliente() {
                   <Input
                     placeholder={profForm.tipo === "autonomo" ? "000.000.000-00" : "00.000.000/0000-00"}
                     value={profForm.cpf_cnpj}
-                    onChange={(e) => setProfForm({ ...profForm, cpf_cnpj: e.target.value })}
+                    onChange={(e) => handleProfFormChange('cpf_cnpj', e.target.value)}
                   />
                 </div>
 
@@ -477,73 +664,286 @@ export default function PerfilCliente() {
                     type="tel"
                     placeholder="(00) 00000-0000"
                     value={profForm.telefone}
-                    onChange={(e) => setProfForm({ ...profForm, telefone: e.target.value })}
+                    onChange={(e) => handleProfFormChange('telefone', e.target.value)}
                   />
                 </div>
 
                 {/* Senha */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Senha <span className="text-red-500">*</span></Label>
+                <div className="space-y-2">
+                  <Label>Senha <span className="text-red-500">*</span></Label>
+                  <p className="text-xs text-gray-500">Mínimo 6 caracteres, 1 maiúscula e 1 especial (!@#$%...)</p>
+                  <div className="grid grid-cols-2 gap-4">
                     <Input
                       type="password"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Sua senha"
                       value={profForm.senha}
                       onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Confirmar senha <span className="text-red-500">*</span></Label>
                     <Input
                       type="password"
-                      placeholder="Confirme sua senha"
+                      placeholder="Confirmar senha"
                       value={profForm.confirmarSenha}
                       onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
                     />
                   </div>
                 </div>
 
-                {/* Upload de Documento */}
+                {/* Documento de Identidade - Frente e Verso */}
                 <div className="space-y-2">
-                  <Label>Documento <span className="text-red-500">*</span></Label>
-                  <p className="text-xs text-gray-500">
-                    {profForm.tipo === "autonomo"
-                      ? "RG, CNH ou Certificado MEI"
-                      : "Contrato Social ou CNPJ"}
-                  </p>
+                  <Label>Documento de Identificação (RG/CNH) <span className="text-red-500">*</span></Label>
+                  <p className="text-xs text-gray-500">Envie frente e verso do documento</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Frente */}
+                    <div>
+                      {comprimindoIdentFrente ? (
+                        <div className="flex items-center justify-center h-20 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
+                          <Loader2 className="w-5 h-5 animate-spin text-gray-400 mr-2" />
+                          <span className="text-xs text-gray-500">Otimizando...</span>
+                        </div>
+                      ) : !identidadeFrente ? (
+                        <label
+                          htmlFor="ident-frente-perfil"
+                          className="flex flex-col items-center justify-center h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                          <p className="text-xs text-gray-500">Frente</p>
+                          <input
+                            id="ident-frente-perfil"
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleIdentidadeFrenteChange}
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50 h-20">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                            <p className="text-xs text-gray-900 truncate">Frente</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIdentidadeFrente(null)}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
 
-                  {!documento ? (
-                    <label
-                      htmlFor="documento-perfil"
-                      className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                    >
-                      <Upload className="w-6 h-6 mb-1 text-gray-400" />
-                      <p className="text-sm text-gray-500">Clique para enviar</p>
-                      <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
-                      <input
-                        id="documento-perfil"
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                  ) : (
-                    <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg bg-gray-50">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileText className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                        <p className="text-sm font-medium text-gray-900 truncate">{documento.name}</p>
+                    {/* Verso */}
+                    <div>
+                      {comprimindoIdentVerso ? (
+                        <div className="flex items-center justify-center h-20 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
+                          <Loader2 className="w-5 h-5 animate-spin text-gray-400 mr-2" />
+                          <span className="text-xs text-gray-500">Otimizando...</span>
+                        </div>
+                      ) : !identidadeVerso ? (
+                        <label
+                          htmlFor="ident-verso-perfil"
+                          className="flex flex-col items-center justify-center h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                          <p className="text-xs text-gray-500">Verso</p>
+                          <input
+                            id="ident-verso-perfil"
+                            type="file"
+                            className="hidden"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onChange={handleIdentidadeVersoChange}
+                          />
+                        </label>
+                      ) : (
+                        <div className="flex items-center justify-between p-2 border border-green-300 rounded-lg bg-green-50 h-20">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                            <p className="text-xs text-gray-900 truncate">Verso</p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIdentidadeVerso(null)}
+                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documento da Empresa (só para empresas) */}
+                {profForm.tipo === "empresa" && (
+                  <div className="space-y-2">
+                    <Label>Documento da Empresa <span className="text-red-500">*</span></Label>
+                    <p className="text-xs text-gray-500">Contrato Social ou Cartão CNPJ</p>
+                    {comprimindoEmpresa ? (
+                      <div className="flex items-center justify-center h-20 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-400 mr-2" />
+                        <span className="text-xs text-gray-500">Otimizando...</span>
                       </div>
+                    ) : !documentoEmpresa ? (
+                      <label
+                        htmlFor="doc-empresa-perfil"
+                        className="flex flex-col items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <Upload className="w-5 h-5 mb-1 text-gray-400" />
+                        <p className="text-xs text-gray-500">Clique para enviar</p>
+                        <input
+                          id="doc-empresa-perfil"
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={handleEmpresaChange}
+                        />
+                      </label>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 border border-green-300 rounded-lg bg-green-50">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-4 h-4 text-green-600 flex-shrink-0" />
+                          <p className="text-sm text-gray-900 truncate">{documentoEmpresa.name}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDocumentoEmpresa(null)}
+                          className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Diplomas/Certificados */}
+                <div className="space-y-2">
+                  <Label>Diplomas e Certificados <span className="text-gray-400 text-xs font-normal">(opcional)</span></Label>
+                  <p className="text-xs text-gray-500">Adicione frente e opcionalmente verso de cada diploma</p>
+
+                  {/* Adicionar novo diploma */}
+                  <div className="border border-gray-200 rounded-lg p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Frente do diploma */}
+                      <div>
+                        {comprimindoDiplomaFrente ? (
+                          <div className="flex items-center justify-center h-16 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
+                            <Loader2 className="w-4 h-4 animate-spin text-gray-400 mr-1" />
+                            <span className="text-xs text-gray-500">Otimizando...</span>
+                          </div>
+                        ) : !diplomaEmAndamento.frente ? (
+                          <label
+                            htmlFor="diploma-frente-perfil"
+                            className="flex flex-col items-center justify-center h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <GraduationCap className="w-4 h-4 mb-1 text-gray-400" />
+                            <p className="text-xs text-gray-500">Frente</p>
+                            <input
+                              id="diploma-frente-perfil"
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={handleDiplomaFrenteChange}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex items-center justify-between p-2 border border-blue-300 rounded-lg bg-blue-50 h-16">
+                            <p className="text-xs text-gray-900 truncate flex-1">{diplomaEmAndamento.frente.name}</p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDiplomaEmAndamento({ ...diplomaEmAndamento, frente: null })}
+                              className="h-5 w-5 p-0 text-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Verso do diploma */}
+                      <div>
+                        {comprimindoDiplomaVerso ? (
+                          <div className="flex items-center justify-center h-16 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50">
+                            <Loader2 className="w-4 h-4 animate-spin text-gray-400 mr-1" />
+                            <span className="text-xs text-gray-500">Otimizando...</span>
+                          </div>
+                        ) : !diplomaEmAndamento.verso ? (
+                          <label
+                            htmlFor="diploma-verso-perfil"
+                            className="flex flex-col items-center justify-center h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+                          >
+                            <GraduationCap className="w-4 h-4 mb-1 text-gray-400" />
+                            <p className="text-xs text-gray-500">Verso (opcional)</p>
+                            <input
+                              id="diploma-verso-perfil"
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={handleDiplomaVersoChange}
+                            />
+                          </label>
+                        ) : (
+                          <div className="flex items-center justify-between p-2 border border-blue-300 rounded-lg bg-blue-50 h-16">
+                            <p className="text-xs text-gray-900 truncate flex-1">{diplomaEmAndamento.verso.name}</p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDiplomaEmAndamento({ ...diplomaEmAndamento, verso: null })}
+                              className="h-5 w-5 p-0 text-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {diplomaEmAndamento.frente && (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => setDocumento(null)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                        onClick={adicionarDiploma}
+                        className="w-full"
                       >
-                        <X className="w-4 h-4" />
+                        Adicionar este diploma
                       </Button>
+                    )}
+                  </div>
+
+                  {/* Lista de diplomas adicionados */}
+                  {diplomas.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-600 font-medium">Diplomas adicionados:</p>
+                      {diplomas.map((diploma, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 border border-blue-200 rounded-lg bg-blue-50">
+                          <div className="flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4 text-blue-600" />
+                            <div>
+                              <p className="text-xs text-gray-900">Diploma {index + 1}</p>
+                              <p className="text-xs text-gray-500">Frente{diploma.verso ? ' + Verso' : ''}</p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removerDiploma(index)}
+                            className="h-6 w-6 p-0 text-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
