@@ -252,7 +252,7 @@ export default function CadastroProfissional() {
 
       // Verificar erro 413 antes de tentar parsear JSON
       if (response.status === 413) {
-        setError("Os arquivos são muito grandes! Reduza o tamanho das imagens (máximo 4MB cada) e tente novamente. Dica: tire fotos com resolução menor ou use um app para comprimir as imagens.")
+        setError("Os arquivos são muito grandes! Tente novamente com arquivos menores.")
         setLoading(false)
         return
       }
@@ -867,7 +867,7 @@ export default function CadastroProfissional() {
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 4MB cada)</p>
+            <p className="text-xs text-gray-400">PDF, JPG ou PNG</p>
           </div>
 
           {/* Campo de Upload de Documento da Empresa (Obrigatório apenas para empresas) */}
@@ -894,7 +894,7 @@ export default function CadastroProfissional() {
                     <p className={`text-sm ${erroDocumentoEmpresa ? 'text-red-500' : 'text-gray-500'}`}>
                       <span className="font-semibold">Clique para enviar</span>
                     </p>
-                    <p className={`text-xs ${erroDocumentoEmpresa ? 'text-red-500' : 'text-gray-500'}`}>PDF, JPG ou PNG (máx. 4MB)</p>
+                    <p className={`text-xs ${erroDocumentoEmpresa ? 'text-red-500' : 'text-gray-500'}`}>PDF, JPG ou PNG</p>
                   </div>
                   <input
                     id="documentoEmpresa"

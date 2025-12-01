@@ -144,14 +144,6 @@ export async function POST(request: NextRequest) {
     const uploadFile = async (file: File, folder: string): Promise<string | null> => {
       console.log(`Upload iniciado: ${file.name} (${file.size} bytes) -> ${folder}`)
 
-      // Validar tamanho do arquivo (máximo 4MB - Vercel limita em 4.5MB)
-      const maxSize = 4 * 1024 * 1024 // 4MB
-      if (file.size > maxSize) {
-        ultimoErroUpload = `Arquivo ${file.name} é muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Máximo permitido: 4MB`
-        console.error(ultimoErroUpload)
-        return null
-      }
-
       try {
         const fileExt = file.name.split('.').pop()
         const fileName = `${cpfCnpj.replace(/[^\d]/g, '')}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`

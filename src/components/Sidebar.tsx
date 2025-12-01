@@ -919,7 +919,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
                           >
                             <Upload className="w-6 h-6 mb-1 text-gray-400" />
                             <p className="text-sm text-gray-500">Clique para enviar</p>
-                            <p className="text-xs text-gray-400">PDF, JPG ou PNG (máx. 5MB)</p>
+                            <p className="text-xs text-gray-400">PDF, JPG ou PNG</p>
                             <input
                               id="documento-empresa-modal"
                               type="file"
