@@ -90,6 +90,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verificar se já existe um profissional com o mesmo email e criar vínculo
+    const { data: profissionalExistente } = await supabase
+      .from('profissionais')
+      .select('id')
+      .eq('email', body.email)
+      .single()
+
+    if (profissionalExistente) {
+      console.log('Profissional existente encontrado, criando vínculo:', profissionalExistente.id)
+      // Atualizar cliente com profissional_id
+      await supabase
+        .from('clientes')
+        .update({ profissional_id: profissionalExistente.id })
+        .eq('id', data.id)
+
+      // Atualizar profissional com cliente_id
+      await supabase
+        .from('profissionais')
+        .update({ cliente_id: data.id })
+        .eq('id', profissionalExistente.id)
+    }
+
     // Remover senha_hash da resposta
     const { senha_hash, ...cliente } = data
 
