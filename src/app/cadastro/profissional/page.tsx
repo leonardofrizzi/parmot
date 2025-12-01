@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Upload, FileText, X, Mail, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
+import { compressImage } from "@/lib/compressImage"
 
 type TipoProfissional = "autonomo" | "empresa"
 type Etapa = "email" | "verificacao" | "dados"
@@ -44,6 +45,12 @@ export default function CadastroProfissional() {
   const [erroDocumentoEmpresa, setErroDocumentoEmpresa] = useState("")
   const [erroDiplomaFrente, setErroDiplomaFrente] = useState("")
   const [erroDiplomaVerso, setErroDiplomaVerso] = useState("")
+  // Estados de compressão
+  const [comprimindoFrente, setComprimindoFrente] = useState(false)
+  const [comprimindoVerso, setComprimindoVerso] = useState(false)
+  const [comprimindoEmpresa, setComprimindoEmpresa] = useState(false)
+  const [comprimindoDiplomaFrente, setComprimindoDiplomaFrente] = useState(false)
+  const [comprimindoDiplomaVerso, setComprimindoDiplomaVerso] = useState(false)
   const [success, setSuccess] = useState(false)
   const [tempoReenvio, setTempoReenvio] = useState(0)
 
@@ -277,21 +284,21 @@ export default function CadastroProfissional() {
     }
   }
 
-  // Limite de 4MB (Vercel tem limite de 4.5MB)
-  const MAX_FILE_SIZE = 4 * 1024 * 1024
-  const MAX_FILE_SIZE_MB = 4
+  // Limite de 15MB antes da compressão (imagens serão comprimidas automaticamente)
+  const MAX_FILE_SIZE = 15 * 1024 * 1024
+  const MAX_FILE_SIZE_MB = 15
 
   const formatFileSize = (bytes: number) => {
     return (bytes / 1024 / 1024).toFixed(1) + "MB"
   }
 
-  const handleIdentidadeFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdentidadeFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // Validar tamanho
       if (file.size > MAX_FILE_SIZE) {
         setErroIdentidadeFrente(`Arquivo muito grande! ${formatFileSize(file.size)}. Máximo: ${MAX_FILE_SIZE_MB}MB`)
-        e.target.value = '' // Limpar input
+        e.target.value = ''
         return
       }
       // Validar tipo
@@ -301,12 +308,20 @@ export default function CadastroProfissional() {
         e.target.value = ''
         return
       }
-      setIdentidadeFrente(file)
+      // Comprimir se for imagem
+      setComprimindoFrente(true)
       setErroIdentidadeFrente("")
+      try {
+        const compressed = await compressImage(file)
+        setIdentidadeFrente(compressed)
+      } catch {
+        setIdentidadeFrente(file)
+      }
+      setComprimindoFrente(false)
     }
   }
 
-  const handleIdentidadeVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdentidadeVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
@@ -320,12 +335,19 @@ export default function CadastroProfissional() {
         e.target.value = ''
         return
       }
-      setIdentidadeVerso(file)
+      setComprimindoVerso(true)
       setErroIdentidadeVerso("")
+      try {
+        const compressed = await compressImage(file)
+        setIdentidadeVerso(compressed)
+      } catch {
+        setIdentidadeVerso(file)
+      }
+      setComprimindoVerso(false)
     }
   }
 
-  const handleEmpresaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmpresaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
@@ -339,12 +361,19 @@ export default function CadastroProfissional() {
         e.target.value = ''
         return
       }
-      setDocumentoEmpresa(file)
+      setComprimindoEmpresa(true)
       setErroDocumentoEmpresa("")
+      try {
+        const compressed = await compressImage(file)
+        setDocumentoEmpresa(compressed)
+      } catch {
+        setDocumentoEmpresa(file)
+      }
+      setComprimindoEmpresa(false)
     }
   }
 
-  const handleDiplomaFrenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDiplomaFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
@@ -358,12 +387,19 @@ export default function CadastroProfissional() {
         e.target.value = ''
         return
       }
-      setDiplomaTemp(prev => ({ ...prev, frente: file }))
+      setComprimindoDiplomaFrente(true)
       setErroDiplomaFrente("")
+      try {
+        const compressed = await compressImage(file)
+        setDiplomaTemp(prev => ({ ...prev, frente: compressed }))
+      } catch {
+        setDiplomaTemp(prev => ({ ...prev, frente: file }))
+      }
+      setComprimindoDiplomaFrente(false)
     }
   }
 
-  const handleDiplomaVersoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDiplomaVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > MAX_FILE_SIZE) {
@@ -377,8 +413,15 @@ export default function CadastroProfissional() {
         e.target.value = ''
         return
       }
-      setDiplomaTemp(prev => ({ ...prev, verso: file }))
+      setComprimindoDiplomaVerso(true)
       setErroDiplomaVerso("")
+      try {
+        const compressed = await compressImage(file)
+        setDiplomaTemp(prev => ({ ...prev, verso: compressed }))
+      } catch {
+        setDiplomaTemp(prev => ({ ...prev, verso: file }))
+      }
+      setComprimindoDiplomaVerso(false)
     }
   }
 
@@ -670,7 +713,12 @@ export default function CadastroProfissional() {
               {/* Frente */}
               <div>
                 <p className={`text-xs font-medium mb-1 ${erroIdentidadeFrente ? 'text-red-600' : 'text-gray-700'}`}>Frente</p>
-                {!identidadeFrente ? (
+                {comprimindoFrente ? (
+                  <div className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                    <Loader2 className="w-5 h-5 mb-1 text-blue-500 animate-spin" />
+                    <p className="text-xs text-blue-600">Otimizando...</p>
+                  </div>
+                ) : !identidadeFrente ? (
                   <label
                     htmlFor="identidadeFrente"
                     className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
@@ -716,7 +764,12 @@ export default function CadastroProfissional() {
               {/* Verso */}
               <div>
                 <p className={`text-xs font-medium mb-1 ${erroIdentidadeVerso ? 'text-red-600' : 'text-gray-700'}`}>Verso</p>
-                {!identidadeVerso ? (
+                {comprimindoVerso ? (
+                  <div className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50">
+                    <Loader2 className="w-5 h-5 mb-1 text-blue-500 animate-spin" />
+                    <p className="text-xs text-blue-600">Otimizando...</p>
+                  </div>
+                ) : !identidadeVerso ? (
                   <label
                     htmlFor="identidadeVerso"
                     className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
