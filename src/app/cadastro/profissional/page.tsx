@@ -215,13 +215,23 @@ export default function CadastroProfissional() {
       }
 
       // Diplomas/certificados (opcional, múltiplos) - com frente e verso
-      diplomas.forEach((diploma, index) => {
+      // Incluir diploma pendente (selecionado mas não adicionado à lista)
+      const diplomasParaEnviar = [...diplomas]
+      if (diplomaTemp.frente) {
+        diplomasParaEnviar.push({
+          frente: diplomaTemp.frente,
+          verso: diplomaTemp.verso,
+          nome: diplomaTemp.frente.name.replace(/\.[^/.]+$/, "")
+        })
+      }
+
+      diplomasParaEnviar.forEach((diploma, index) => {
         formDataToSend.append(`diploma_${index}_frente`, diploma.frente)
         if (diploma.verso) {
           formDataToSend.append(`diploma_${index}_verso`, diploma.verso)
         }
       })
-      formDataToSend.append("diplomasCount", diplomas.length.toString())
+      formDataToSend.append("diplomasCount", diplomasParaEnviar.length.toString())
 
       console.log("Enviando cadastro para API...")
       const response = await fetch("/api/cadastro/profissional", {

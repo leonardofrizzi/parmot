@@ -127,7 +127,15 @@ function LoginContent() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="senha">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="senha">Senha</Label>
+                <Link
+                  href="/esqueci-senha"
+                  className="text-xs text-primary-600 hover:underline"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
               <Input
                 id="senha"
                 name="senha"
