@@ -56,9 +56,37 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Erro ao cadastrar cliente:', error)
+
+      // Traduzir mensagens de erro do banco para português
+      let mensagemErro = 'Erro ao cadastrar cliente. Tente novamente.'
+
+      if (error.message.includes('value too long')) {
+        if (error.message.includes('telefone')) {
+          mensagemErro = 'Telefone inválido. Use apenas números com DDD (ex: 11999999999).'
+        } else if (error.message.includes('email')) {
+          mensagemErro = 'E-mail muito longo. Use um e-mail mais curto.'
+        } else if (error.message.includes('nome')) {
+          mensagemErro = 'Nome muito longo. Use no máximo 100 caracteres.'
+        } else if (error.message.includes('cidade')) {
+          mensagemErro = 'Nome da cidade muito longo. Use no máximo 100 caracteres.'
+        } else {
+          mensagemErro = 'Um dos campos está com valor muito grande. Verifique os dados e tente novamente.'
+        }
+      } else if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+        if (error.message.includes('email')) {
+          mensagemErro = 'Este e-mail já está cadastrado.'
+        } else {
+          mensagemErro = 'Este cadastro já existe no sistema.'
+        }
+      } else if (error.message.includes('not-null') || error.message.includes('null value')) {
+        mensagemErro = 'Preencha todos os campos obrigatórios.'
+      } else if (error.message.includes('invalid input')) {
+        mensagemErro = 'Dados inválidos. Verifique os campos e tente novamente.'
+      }
+
       return NextResponse.json(
-        { error: 'Erro ao cadastrar cliente' },
-        { status: 500 }
+        { error: mensagemErro },
+        { status: 400 }
       )
     }
 

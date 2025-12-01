@@ -51,6 +51,10 @@ export default function AdminProfissionais() {
       const data = await response.json()
 
       if (response.ok) {
+        console.log('Profissionais recebidos:', data.profissionais)
+        if (data.profissionais?.length > 0) {
+          console.log('Diplomas do primeiro:', data.profissionais[0]?.diplomas_urls)
+        }
         setProfissionais(data.profissionais)
       }
       setLoading(false)
@@ -347,9 +351,9 @@ export default function AdminProfissionais() {
                   </div>
 
                   {/* Diplomas/Certificados */}
-                  {prof.diplomas_urls && prof.diplomas_urls.length > 0 && (
-                    <div className="pt-2">
-                      <p className="text-xs text-gray-500 mb-1">Diplomas/Certificados:</p>
+                  <div className="pt-2">
+                    <p className="text-xs text-gray-500 mb-1">Diplomas/Certificados:</p>
+                    {prof.diplomas_urls && prof.diplomas_urls.length > 0 ? (
                       <div className="space-y-1">
                         {prof.diplomas_urls.map((diploma, idx) => (
                           <div key={idx} className="space-y-1">
@@ -378,8 +382,13 @@ export default function AdminProfissionais() {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-xs text-gray-500 italic flex items-center gap-1">
+                        <GraduationCap size={12} />
+                        Não enviado
+                      </p>
+                    )}
+                  </div>
 
                   <div className="pt-3 flex flex-col gap-2">
                     {prof.banido ? (

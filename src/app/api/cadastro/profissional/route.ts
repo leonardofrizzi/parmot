@@ -291,9 +291,41 @@ export async function POST(request: NextRequest) {
       console.error('Código do erro:', error.code)
       console.error('Detalhes:', error.details)
       console.error('Hint:', error.hint)
+
+      // Traduzir mensagens de erro do banco para português
+      let mensagemErro = 'Erro ao cadastrar profissional. Tente novamente.'
+
+      if (error.message.includes('value too long')) {
+        if (error.message.includes('cpf_cnpj') || error.message.includes('varying(18)')) {
+          mensagemErro = 'CPF/CNPJ inválido. Verifique se digitou apenas números (11 dígitos para CPF ou 14 para CNPJ).'
+        } else if (error.message.includes('telefone')) {
+          mensagemErro = 'Telefone inválido. Use apenas números com DDD (ex: 11999999999).'
+        } else if (error.message.includes('email')) {
+          mensagemErro = 'E-mail muito longo. Use um e-mail mais curto.'
+        } else if (error.message.includes('nome')) {
+          mensagemErro = 'Nome muito longo. Use no máximo 100 caracteres.'
+        } else if (error.message.includes('cidade')) {
+          mensagemErro = 'Nome da cidade muito longo. Use no máximo 100 caracteres.'
+        } else {
+          mensagemErro = 'Um dos campos está com valor muito grande. Verifique os dados e tente novamente.'
+        }
+      } else if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+        if (error.message.includes('email')) {
+          mensagemErro = 'Este e-mail já está cadastrado.'
+        } else if (error.message.includes('cpf_cnpj')) {
+          mensagemErro = 'Este CPF/CNPJ já está cadastrado.'
+        } else {
+          mensagemErro = 'Este cadastro já existe no sistema.'
+        }
+      } else if (error.message.includes('not-null') || error.message.includes('null value')) {
+        mensagemErro = 'Preencha todos os campos obrigatórios.'
+      } else if (error.message.includes('invalid input')) {
+        mensagemErro = 'Dados inválidos. Verifique os campos e tente novamente.'
+      }
+
       return NextResponse.json(
-        { error: `Erro ao cadastrar profissional: ${error.message}` },
-        { status: 500 }
+        { error: mensagemErro },
+        { status: 400 }
       )
     }
     console.log('✓ Profissional inserido com sucesso:', data.id)

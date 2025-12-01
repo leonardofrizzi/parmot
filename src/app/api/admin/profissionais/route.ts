@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
     console.log('Profissionais encontrados:', profissionais?.length || 0)
     if (profissionais && profissionais.length > 0) {
       console.log('Primeiro profissional:', profissionais[0]?.nome, profissionais[0]?.aprovado)
+      console.log('Diplomas do primeiro:', JSON.stringify(profissionais[0]?.diplomas_urls))
     }
 
     if (error) {

@@ -443,10 +443,46 @@ export default function CadastroProfissional() {
     setDiplomas(diplomas.filter((_, i) => i !== index))
   }
 
+  // Formatar CPF: 000.000.000-00
+  const formatarCPF = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 11)
+    return numeros
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+  }
+
+  // Formatar CNPJ: 00.000.000/0000-00
+  const formatarCNPJ = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 14)
+    return numeros
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2')
+  }
+
+  // Formatar telefone: (00) 00000-0000
+  const formatarTelefone = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 11)
+    if (numeros.length <= 2) return numeros
+    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value
+
+    // Aplicar formatação automática
+    if (e.target.name === 'cpfCnpj') {
+      valor = tipo === 'autonomo' ? formatarCPF(valor) : formatarCNPJ(valor)
+    } else if (e.target.name === 'telefone') {
+      valor = formatarTelefone(valor)
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: valor,
     })
   }
 

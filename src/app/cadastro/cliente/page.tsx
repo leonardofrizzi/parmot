@@ -194,10 +194,25 @@ function CadastroClienteContent() {
     }
   }
 
+  // Formatar telefone: (00) 00000-0000
+  const formatarTelefone = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 11)
+    if (numeros.length <= 2) return numeros
+    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let valor = e.target.value
+
+    // Aplicar formatação automática no telefone
+    if (e.target.name === 'telefone') {
+      valor = formatarTelefone(valor)
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: valor,
     })
   }
 
