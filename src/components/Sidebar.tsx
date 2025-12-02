@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign, ArrowLeftRight, Briefcase, Users, Clock, Upload, X, GraduationCap } from "lucide-react"
+import { Home, FileText, User, LogOut, ChevronRight, ChevronLeft, Plus, Moon, Search, Coins, ClipboardCheck, DollarSign, ArrowLeftRight, Briefcase, Users, Clock, Upload, X, GraduationCap, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -52,6 +52,10 @@ export default function Sidebar({ tipo }: SidebarProps) {
     senha: "",
     confirmarSenha: "",
   })
+
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Buscar dados atualizados do usuário e verificar se tem outro perfil
   useEffect(() => {
@@ -803,22 +807,42 @@ export default function Sidebar({ tipo }: SidebarProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Senha <span className="text-red-500">*</span></Label>
-                        <Input
-                          type="password"
-                          placeholder="Mínimo 6 caracteres"
-                          value={profForm.senha}
-                          onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Mínimo 6 caracteres"
+                            value={profForm.senha}
+                            onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
                         <Label>Confirmar senha <span className="text-red-500">*</span></Label>
-                        <Input
-                          type="password"
-                          placeholder="Confirme sua senha"
-                          value={profForm.confirmarSenha}
-                          onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirme sua senha"
+                            value={profForm.confirmarSenha}
+                            onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                          >
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1071,22 +1095,42 @@ export default function Sidebar({ tipo }: SidebarProps) {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Senha para acesso como cliente <span className="text-red-500">*</span></Label>
-                      <Input
-                        type="password"
-                        placeholder="Mínimo 6 caracteres"
-                        value={clienteForm.senha}
-                        onChange={(e) => setClienteForm({ ...clienteForm, senha: e.target.value })}
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Mínimo 6 caracteres"
+                          value={clienteForm.senha}
+                          onChange={(e) => setClienteForm({ ...clienteForm, senha: e.target.value })}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label>Confirmar senha <span className="text-red-500">*</span></Label>
-                      <Input
-                        type="password"
-                        placeholder="Confirme sua senha"
-                        value={clienteForm.confirmarSenha}
-                        onChange={(e) => setClienteForm({ ...clienteForm, confirmarSenha: e.target.value })}
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Confirme sua senha"
+                          value={clienteForm.confirmarSenha}
+                          onChange={(e) => setClienteForm({ ...clienteForm, confirmarSenha: e.target.value })}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

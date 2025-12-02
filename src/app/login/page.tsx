@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, User, Briefcase } from "lucide-react"
+import { Loader2, User, Briefcase, Eye, EyeOff } from "lucide-react"
 
 type TipoLogin = "cliente" | "profissional"
 
@@ -23,6 +23,7 @@ function LoginContent() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,15 +137,25 @@ function LoginContent() {
                   Esqueci minha senha
                 </Link>
               </div>
-              <Input
-                id="senha"
-                name="senha"
-                type="password"
-                placeholder="Sua senha"
-                value={formData.senha}
-                onChange={handleChange}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="senha"
+                  name="senha"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Sua senha"
+                  value={formData.senha}
+                  onChange={handleChange}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           </CardContent>
 

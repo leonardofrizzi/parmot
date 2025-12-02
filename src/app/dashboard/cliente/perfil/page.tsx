@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Briefcase, CheckCircle2, Clock, Upload, FileText, X, GraduationCap, Loader2 } from "lucide-react"
+import { Briefcase, CheckCircle2, Clock, Upload, FileText, X, GraduationCap, Loader2, Eye, EyeOff } from "lucide-react"
 import { compressImage } from "@/lib/compressImage"
 
 interface Cliente {
@@ -58,6 +58,10 @@ export default function PerfilCliente() {
   const [comprimindoEmpresa, setComprimindoEmpresa] = useState(false)
   const [comprimindoDiplomaFrente, setComprimindoDiplomaFrente] = useState(false)
   const [comprimindoDiplomaVerso, setComprimindoDiplomaVerso] = useState(false)
+
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -673,18 +677,38 @@ export default function PerfilCliente() {
                   <Label>Senha <span className="text-red-500">*</span></Label>
                   <p className="text-xs text-gray-500">Mínimo 6 caracteres, 1 maiúscula e 1 especial (!@#$%...)</p>
                   <div className="grid grid-cols-2 gap-4">
-                    <Input
-                      type="password"
-                      placeholder="Sua senha"
-                      value={profForm.senha}
-                      onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
-                    />
-                    <Input
-                      type="password"
-                      placeholder="Confirmar senha"
-                      value={profForm.confirmarSenha}
-                      onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
-                    />
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Sua senha"
+                        value={profForm.senha}
+                        onChange={(e) => setProfForm({ ...profForm, senha: e.target.value })}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirmar senha"
+                        value={profForm.confirmarSenha}
+                        onChange={(e) => setProfForm({ ...profForm, confirmarSenha: e.target.value })}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

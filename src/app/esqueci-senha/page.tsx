@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, ArrowLeft, Mail, KeyRound, CheckCircle2 } from "lucide-react"
+import { Loader2, ArrowLeft, Mail, KeyRound, CheckCircle2, Eye, EyeOff } from "lucide-react"
 
 type Etapa = "email" | "codigo" | "nova-senha" | "sucesso"
 
@@ -19,6 +19,8 @@ export default function EsqueciSenha() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [countdown, setCountdown] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Enviar código de recuperação
   const handleEnviarCodigo = async (e: React.FormEvent) => {
@@ -335,13 +337,20 @@ export default function EsqueciSenha() {
                     <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       id="novaSenha"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Mínimo 6 caracteres"
                       value={novaSenha}
                       onChange={(e) => setNovaSenha(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
 
@@ -351,13 +360,20 @@ export default function EsqueciSenha() {
                     <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       id="confirmarSenha"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Digite novamente"
                       value={confirmarSenha}
                       onChange={(e) => setConfirmarSenha(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 pr-10"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 </div>
               </CardContent>

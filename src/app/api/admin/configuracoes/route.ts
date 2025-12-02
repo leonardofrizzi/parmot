@@ -16,7 +16,14 @@ export async function GET() {
         custo_contato_exclusivo: 50,
         max_profissionais_por_solicitacao: 4,
         percentual_reembolso: 30,
-        dias_para_reembolso: 7
+        dias_para_reembolso: 7,
+        // Pacotes de moedas
+        pacote1_moedas: 250,
+        pacote1_preco: 25,
+        pacote2_moedas: 500,
+        pacote2_preco: 45,
+        pacote3_moedas: 1000,
+        pacote3_preco: 80
       })
     }
 
@@ -39,7 +46,14 @@ export async function PATCH(request: NextRequest) {
       custo_contato_exclusivo,
       max_profissionais_por_solicitacao,
       percentual_reembolso,
-      dias_para_reembolso
+      dias_para_reembolso,
+      // Pacotes de moedas
+      pacote1_moedas,
+      pacote1_preco,
+      pacote2_moedas,
+      pacote2_preco,
+      pacote3_moedas,
+      pacote3_preco
     } = body
 
     // Validações
@@ -90,6 +104,13 @@ export async function PATCH(request: NextRequest) {
     if (max_profissionais_por_solicitacao !== undefined) updateData.max_profissionais_por_solicitacao = max_profissionais_por_solicitacao
     if (percentual_reembolso !== undefined) updateData.percentual_reembolso = percentual_reembolso
     if (dias_para_reembolso !== undefined) updateData.dias_para_reembolso = dias_para_reembolso
+    // Pacotes de moedas
+    if (pacote1_moedas !== undefined) updateData.pacote1_moedas = pacote1_moedas
+    if (pacote1_preco !== undefined) updateData.pacote1_preco = pacote1_preco
+    if (pacote2_moedas !== undefined) updateData.pacote2_moedas = pacote2_moedas
+    if (pacote2_preco !== undefined) updateData.pacote2_preco = pacote2_preco
+    if (pacote3_moedas !== undefined) updateData.pacote3_moedas = pacote3_moedas
+    if (pacote3_preco !== undefined) updateData.pacote3_preco = pacote3_preco
 
     let result
     if (existingConfig) {
@@ -109,7 +130,13 @@ export async function PATCH(request: NextRequest) {
           custo_contato_exclusivo: custo_contato_exclusivo ?? 50,
           max_profissionais_por_solicitacao: max_profissionais_por_solicitacao ?? 4,
           percentual_reembolso: percentual_reembolso ?? 30,
-          dias_para_reembolso: dias_para_reembolso ?? 7
+          dias_para_reembolso: dias_para_reembolso ?? 7,
+          pacote1_moedas: pacote1_moedas ?? 250,
+          pacote1_preco: pacote1_preco ?? 25,
+          pacote2_moedas: pacote2_moedas ?? 500,
+          pacote2_preco: pacote2_preco ?? 45,
+          pacote3_moedas: pacote3_moedas ?? 1000,
+          pacote3_preco: pacote3_preco ?? 80
         })
         .select()
         .single()

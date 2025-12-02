@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { LocationSelects } from "@/components/LocationSelects"
-import { Upload, FileText, X, Mail, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
+import { Upload, FileText, X, Mail, ArrowLeft, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react"
 import { compressImage } from "@/lib/compressImage"
 
 type TipoProfissional = "autonomo" | "empresa"
@@ -53,6 +53,8 @@ export default function CadastroProfissional() {
   const [comprimindoDiplomaVerso, setComprimindoDiplomaVerso] = useState(false)
   const [success, setSuccess] = useState(false)
   const [tempoReenvio, setTempoReenvio] = useState(0)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Enviar código de verificação
   const enviarCodigo = async () => {
@@ -1085,28 +1087,48 @@ export default function CadastroProfissional() {
 
           <div className="space-y-2">
             <Label htmlFor="senha">Senha <span className="text-red-500">*</span></Label>
-            <Input
-              id="senha"
-              name="senha"
-              type="password"
-              placeholder="Mínimo 6 caracteres"
-              value={formData.senha}
-              onChange={handleChange}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="senha"
+                name="senha"
+                type={showPassword ? "text" : "password"}
+                placeholder="Mínimo 6 caracteres"
+                value={formData.senha}
+                onChange={handleChange}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="confirmarSenha">Confirmar senha <span className="text-red-500">*</span></Label>
-            <Input
-              id="confirmarSenha"
-              name="confirmarSenha"
-              type="password"
-              placeholder="Confirme sua senha"
-              value={formData.confirmarSenha}
-              onChange={handleChange}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="confirmarSenha"
+                name="confirmarSenha"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirme sua senha"
+                value={formData.confirmarSenha}
+                onChange={handleChange}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           {/* Termos de Uso */}

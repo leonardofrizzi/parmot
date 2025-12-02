@@ -25,6 +25,13 @@ interface Configuracoes {
   max_profissionais_por_solicitacao: number
   percentual_reembolso: number
   dias_para_reembolso: number
+  // Pacotes de moedas
+  pacote1_moedas: number
+  pacote1_preco: number
+  pacote2_moedas: number
+  pacote2_preco: number
+  pacote3_moedas: number
+  pacote3_preco: number
 }
 
 export default function ComprarMoedas() {
@@ -39,7 +46,14 @@ export default function ComprarMoedas() {
     custo_contato_exclusivo: 50,
     max_profissionais_por_solicitacao: 4,
     percentual_reembolso: 30,
-    dias_para_reembolso: 7
+    dias_para_reembolso: 7,
+    // Pacotes de moedas (valores padrão)
+    pacote1_moedas: 250,
+    pacote1_preco: 25,
+    pacote2_moedas: 500,
+    pacote2_preco: 45,
+    pacote3_moedas: 1000,
+    pacote3_preco: 80
   })
 
   useEffect(() => {
@@ -89,54 +103,75 @@ export default function ComprarMoedas() {
 
   // Calcular quantos contatos cada pacote permite com base nas configurações
   const getPlanos = (): PlanoMoedas[] => {
-    const contatosPadrao30 = Math.floor(30 / config.custo_contato_normal)
-    const contatosPadrao80 = Math.floor(80 / config.custo_contato_normal)
-    const contatosExclusivos80 = Math.floor(80 / config.custo_contato_exclusivo)
-    const contatosPadrao200 = Math.floor(200 / config.custo_contato_normal)
-    const contatosExclusivos200 = Math.floor(200 / config.custo_contato_exclusivo)
+    // Valores dinâmicos do banco
+    const p1 = { moedas: config.pacote1_moedas || 250, preco: config.pacote1_preco || 25 }
+    const p2 = { moedas: config.pacote2_moedas || 500, preco: config.pacote2_preco || 45 }
+    const p3 = { moedas: config.pacote3_moedas || 1000, preco: config.pacote3_preco || 80 }
+
+    // Pacote 1 - Essencial
+    const contatosPadrao1 = Math.floor(p1.moedas / config.custo_contato_normal)
+    const contatosExclusivos1 = Math.floor(p1.moedas / config.custo_contato_exclusivo)
+
+    // Pacote 2 - Avançado
+    const contatosPadrao2 = Math.floor(p2.moedas / config.custo_contato_normal)
+    const contatosExclusivos2 = Math.floor(p2.moedas / config.custo_contato_exclusivo)
+
+    // Pacote 3 - Ilimitado
+    const contatosPadrao3 = Math.floor(p3.moedas / config.custo_contato_normal)
+    const contatosExclusivos3 = Math.floor(p3.moedas / config.custo_contato_exclusivo)
+
+    // Calcular desconto do pacote 2 em relação ao pacote 1
+    const precoPorMoeda1 = p1.preco / p1.moedas
+    const precoOriginal2 = Math.round(p2.moedas * precoPorMoeda1)
+    const desconto2 = precoOriginal2 > p2.preco ? `-${Math.round((1 - p2.preco / precoOriginal2) * 100)}%` : undefined
+
+    // Calcular desconto do pacote 3 em relação ao pacote 1
+    const precoOriginal3 = Math.round(p3.moedas * precoPorMoeda1)
+    const desconto3 = precoOriginal3 > p3.preco ? `-${Math.round((1 - p3.preco / precoOriginal3) * 100)}%` : undefined
 
     return [
       {
-        id: "pacote_inicial",
-        nome: "Pacote Inicial",
-        moedas: 30,
-        preco: 29.90,
+        id: "pacote_essencial",
+        nome: "Pacote Essencial",
+        moedas: p1.moedas,
+        preco: p1.preco,
         vantagens: [
-          "30 moedas",
-          `Até ${contatosPadrao30} contatos padrão`,
+          `${p1.moedas} moedas`,
+          `Até ${contatosPadrao1} contatos padrão`,
+          `Ou ${contatosExclusivos1} contato${contatosExclusivos1 > 1 ? 's' : ''} exclusivo${contatosExclusivos1 > 1 ? 's' : ''}`,
           "Moedas nunca expiram",
           "Ideal para começar"
         ]
       },
       {
-        id: "pacote_profissional",
-        nome: "Pacote Profissional",
-        moedas: 80,
-        preco: 69.90,
-        precoOriginal: 79.90,
-        desconto: "-12%",
+        id: "pacote_avancado",
+        nome: "Pacote Avançado",
+        moedas: p2.moedas,
+        preco: p2.preco,
+        precoOriginal: desconto2 ? precoOriginal2 : undefined,
+        desconto: desconto2,
         recomendado: true,
         vantagens: [
-          "80 moedas",
-          `Até ${contatosPadrao80} contatos padrão`,
-          `Ou ${contatosExclusivos80} contato${contatosExclusivos80 > 1 ? 's' : ''} exclusivo${contatosExclusivos80 > 1 ? 's' : ''}`,
+          `${p2.moedas} moedas`,
+          `Até ${contatosPadrao2} contatos padrão`,
+          `Ou ${contatosExclusivos2} contato${contatosExclusivos2 > 1 ? 's' : ''} exclusivo${contatosExclusivos2 > 1 ? 's' : ''}`,
           "Moedas nunca expiram",
           "Melhor custo-benefício"
         ]
       },
       {
-        id: "pacote_premium",
-        nome: "Pacote Premium",
-        moedas: 200,
-        preco: 149.90,
-        precoOriginal: 199.90,
-        desconto: "-25%",
+        id: "pacote_ilimitado",
+        nome: "Pacote Ilimitado",
+        moedas: p3.moedas,
+        preco: p3.preco,
+        precoOriginal: desconto3 ? precoOriginal3 : undefined,
+        desconto: desconto3,
         vantagens: [
-          "200 moedas",
-          `Até ${contatosPadrao200} contatos padrão`,
-          `Ou ${contatosExclusivos200} contatos exclusivos`,
+          `${p3.moedas} moedas`,
+          `Até ${contatosPadrao3} contatos padrão`,
+          `Ou ${contatosExclusivos3} contatos exclusivos`,
           "Moedas nunca expiram",
-          "Suporte prioritário"
+          "Máximo aproveitamento"
         ]
       }
     ]
@@ -391,9 +426,9 @@ export default function ComprarMoedas() {
                     <Shield className="text-blue-600" size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Reembolso de {config.percentual_reembolso}%</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">Garantia Automática de {config.percentual_reembolso}%</h3>
                     <p className="text-sm text-gray-600">
-                      Se não fechar negócio com o cliente, você recebe {config.percentual_reembolso}% das moedas de volta.
+                      Não fechou negócio? Clique em "Não fechei negócio" e receba {config.percentual_reembolso}% das moedas de volta automaticamente!
                     </p>
                   </div>
                 </div>
@@ -453,9 +488,9 @@ export default function ComprarMoedas() {
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold text-gray-900 mb-1">Posso pedir reembolso?</h4>
+                <h4 className="font-semibold text-gray-900 mb-1">Como funciona a garantia?</h4>
                 <p className="text-sm text-gray-600">
-                  Sim! Se não fechar negócio com o cliente, você pode solicitar reembolso em até {config.dias_para_reembolso} dias e receber {config.percentual_reembolso}% das moedas de volta.
+                  Se não fechar negócio com o cliente, basta clicar em "Não fechei negócio" na página de atendimentos e você recebe {config.percentual_reembolso}% das moedas de volta automaticamente, sem precisar de aprovação!
                 </p>
               </div>
               <div>

@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ReembolsoModal } from "@/components/ReembolsoModal"
-import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users, DollarSign, ExternalLink, Clock, CheckCircle2, XCircle } from "lucide-react"
+import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users, DollarSign, ExternalLink, Clock, CheckCircle2, XCircle, ThumbsDown, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import * as Icons from "lucide-react"
 
 type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
@@ -45,6 +46,10 @@ export default function AtendimentosProfissional() {
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos")
   const [showReembolsoModal, setShowReembolsoModal] = useState(false)
   const [atendimentoSelecionado, setAtendimentoSelecionado] = useState<Atendimento | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [loadingReembolso, setLoadingReembolso] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [reembolsoResult, setReembolsoResult] = useState<{ moedas: number; saldo: number } | null>(null)
 
   useEffect(() => {
     const usuarioData = localStorage.getItem('usuario')
@@ -98,6 +103,60 @@ export default function AtendimentosProfissional() {
     // Recarregar atendimentos para mostrar que já foi solicitado
     if (profissional) {
       fetchAtendimentos(profissional.id)
+    }
+  }
+
+  const handleNaoFecheiNegocio = (atendimento: Atendimento) => {
+    setAtendimentoSelecionado(atendimento)
+    setShowConfirmDialog(true)
+  }
+
+  const confirmarReembolsoAutomatico = async () => {
+    if (!atendimentoSelecionado || !profissional) return
+
+    setLoadingReembolso(true)
+
+    try {
+      const response = await fetch('/api/profissional/reembolso/automatico', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profissional_id: profissional.id,
+          resposta_id: atendimentoSelecionado.resposta_id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Erro ao processar reembolso')
+        setLoadingReembolso(false)
+        setShowConfirmDialog(false)
+        return
+      }
+
+      // Atualizar localStorage com novo saldo
+      const updatedUser = { ...profissional, saldo_moedas: data.novo_saldo }
+      localStorage.setItem('usuario', JSON.stringify(updatedUser))
+      setProfissional(updatedUser)
+
+      // Mostrar resultado
+      setReembolsoResult({
+        moedas: data.moedas_reembolsadas,
+        saldo: data.novo_saldo
+      })
+
+      setShowConfirmDialog(false)
+      setShowSuccessDialog(true)
+
+      // Recarregar atendimentos
+      fetchAtendimentos(profissional.id)
+
+    } catch (err) {
+      console.error('Erro ao solicitar reembolso:', err)
+      setError('Erro ao conectar com o servidor')
+    } finally {
+      setLoadingReembolso(false)
     }
   }
 
@@ -403,7 +462,7 @@ export default function AtendimentosProfissional() {
 
                     {/* Botão Dinâmico de Reembolso */}
                     {atendimento.tem_reembolso ? (
-                      // Já tem reembolso solicitado
+                      // Já tem reembolso solicitado/aprovado
                       <Button
                         size="sm"
                         variant="outline"
@@ -420,20 +479,20 @@ export default function AtendimentosProfissional() {
                         {atendimento.reembolso_status === 'aprovado' && <CheckCircle2 size={16} className="mr-2" />}
                         {atendimento.reembolso_status === 'negado' && <XCircle size={16} className="mr-2" />}
                         {atendimento.reembolso_status === 'pendente' && 'Reembolso Pendente'}
-                        {atendimento.reembolso_status === 'aprovado' && 'Reembolso Aprovado'}
+                        {atendimento.reembolso_status === 'aprovado' && 'Garantia Utilizada'}
                         {atendimento.reembolso_status === 'negado' && 'Reembolso Negado'}
                         <ExternalLink size={14} className="ml-2" />
                       </Button>
                     ) : (
-                      // Não tem reembolso - mostrar botão para solicitar
+                      // Não tem reembolso - mostrar botão de garantia automática
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleSolicitarReembolso(atendimento)}
+                        onClick={() => handleNaoFecheiNegocio(atendimento)}
                         className="border-orange-300 text-orange-700 hover:bg-orange-50"
                       >
-                        <DollarSign size={16} className="mr-2" />
-                        Solicitar Reembolso
+                        <ThumbsDown size={16} className="mr-2" />
+                        Não fechei negócio
                       </Button>
                     )}
                   </div>
@@ -443,7 +502,7 @@ export default function AtendimentosProfissional() {
           </div>
         )}
 
-        {/* Modal de Reembolso */}
+        {/* Modal de Reembolso (legado) */}
         {atendimentoSelecionado && profissional && (
           <ReembolsoModal
             open={showReembolsoModal}
@@ -453,6 +512,103 @@ export default function AtendimentosProfissional() {
             onReembolsoSolicitado={handleReembolsoSolicitado}
           />
         )}
+
+        {/* Dialog de Confirmação - Não fechei negócio */}
+        <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <ThumbsDown className="text-orange-500" size={24} />
+                Confirmar: Não fechei negócio
+              </DialogTitle>
+              <DialogDescription>
+                Você está confirmando que não fechou negócio com <strong>{atendimentoSelecionado?.cliente_nome}</strong>.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                  <CheckCircle2 size={18} />
+                  Garantia de 30%
+                </h4>
+                <p className="text-sm text-green-800">
+                  Você receberá automaticamente <strong>30% das moedas</strong> gastas neste contato de volta em seu saldo.
+                </p>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Atenção:</strong> Esta ação não pode ser desfeita. Após confirmar, você não poderá solicitar outro tipo de reembolso para este atendimento.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmDialog(false)}
+                disabled={loadingReembolso}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmarReembolsoAutomatico}
+                disabled={loadingReembolso}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {loadingReembolso ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  'Confirmar e receber 30%'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Sucesso */}
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <div className="flex flex-col items-center text-center gap-4 py-4">
+                <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="text-green-600" size={40} />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl mb-2">
+                    Moedas Creditadas!
+                  </DialogTitle>
+                  <DialogDescription className="text-base">
+                    Sua garantia de 30% foi aplicada com sucesso.
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            {reembolsoResult && (
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Moedas devolvidas:</span>
+                  <span className="font-semibold text-green-600">+{reembolsoResult.moedas} moedas</span>
+                </div>
+                <div className="border-t pt-2 flex justify-between">
+                  <span className="font-semibold text-gray-900">Novo saldo:</span>
+                  <span className="font-bold text-primary-600 text-lg">{reembolsoResult.saldo} moedas</span>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="sm:justify-center">
+              <Button onClick={() => setShowSuccessDialog(false)} className="bg-green-600 hover:bg-green-700">
+                Entendi
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

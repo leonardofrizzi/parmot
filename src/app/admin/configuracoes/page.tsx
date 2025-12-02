@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Settings, Coins, Users, RefreshCw, Save, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Settings, Coins, Users, RefreshCw, Save, AlertCircle, CheckCircle2, Package } from "lucide-react"
 
 interface Configuracoes {
   custo_contato_normal: number
@@ -14,6 +14,13 @@ interface Configuracoes {
   max_profissionais_por_solicitacao: number
   percentual_reembolso: number
   dias_para_reembolso: number
+  // Pacotes de moedas
+  pacote1_moedas: number
+  pacote1_preco: number
+  pacote2_moedas: number
+  pacote2_preco: number
+  pacote3_moedas: number
+  pacote3_preco: number
 }
 
 export default function AdminConfiguracoes() {
@@ -22,7 +29,14 @@ export default function AdminConfiguracoes() {
     custo_contato_exclusivo: 50,
     max_profissionais_por_solicitacao: 4,
     percentual_reembolso: 30,
-    dias_para_reembolso: 7
+    dias_para_reembolso: 7,
+    // Pacotes de moedas
+    pacote1_moedas: 250,
+    pacote1_preco: 25,
+    pacote2_moedas: 500,
+    pacote2_preco: 45,
+    pacote3_moedas: 1000,
+    pacote3_preco: 80
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -199,6 +213,113 @@ export default function AdminConfiguracoes() {
                   value={config.max_profissionais_por_solicitacao}
                   onChange={(e) => handleChange('max_profissionais_por_solicitacao', e.target.value)}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pacotes de Moedas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="text-purple-500" size={20} />
+                Pacotes de Moedas
+              </CardTitle>
+              <CardDescription>
+                Configure os pacotes de moedas disponíveis para compra
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Pacote 1 - Essencial */}
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-3">Pacote Essencial</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pacote1_moedas">Quantidade de moedas</Label>
+                    <Input
+                      id="pacote1_moedas"
+                      type="number"
+                      min="1"
+                      value={config.pacote1_moedas}
+                      onChange={(e) => handleChange('pacote1_moedas', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pacote1_preco">Preço (R$)</Label>
+                    <Input
+                      id="pacote1_preco"
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={config.pacote1_preco}
+                      onChange={(e) => handleChange('pacote1_preco', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  R$ {(config.pacote1_preco / config.pacote1_moedas).toFixed(3)} por moeda
+                </p>
+              </div>
+
+              {/* Pacote 2 - Avançado */}
+              <div className="p-4 border rounded-lg border-primary-200 bg-primary-50/30">
+                <h4 className="font-semibold text-gray-900 mb-3">Pacote Avançado (Recomendado)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pacote2_moedas">Quantidade de moedas</Label>
+                    <Input
+                      id="pacote2_moedas"
+                      type="number"
+                      min="1"
+                      value={config.pacote2_moedas}
+                      onChange={(e) => handleChange('pacote2_moedas', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pacote2_preco">Preço (R$)</Label>
+                    <Input
+                      id="pacote2_preco"
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={config.pacote2_preco}
+                      onChange={(e) => handleChange('pacote2_preco', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  R$ {(config.pacote2_preco / config.pacote2_moedas).toFixed(3)} por moeda
+                </p>
+              </div>
+
+              {/* Pacote 3 - Ilimitado */}
+              <div className="p-4 border rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-3">Pacote Ilimitado</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pacote3_moedas">Quantidade de moedas</Label>
+                    <Input
+                      id="pacote3_moedas"
+                      type="number"
+                      min="1"
+                      value={config.pacote3_moedas}
+                      onChange={(e) => handleChange('pacote3_moedas', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pacote3_preco">Preço (R$)</Label>
+                    <Input
+                      id="pacote3_preco"
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={config.pacote3_preco}
+                      onChange={(e) => handleChange('pacote3_preco', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  R$ {(config.pacote3_preco / config.pacote3_moedas).toFixed(3)} por moeda
+                </p>
               </div>
             </CardContent>
           </Card>
