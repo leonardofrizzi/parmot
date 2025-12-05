@@ -118,6 +118,36 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
 
     fetchUsuarioAtualizado()
+
+    // Escutar mudanças no localStorage para atualizar saldo em tempo real
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'usuario' && e.newValue && tipo === "profissional") {
+        const updatedUser = JSON.parse(e.newValue)
+        setUsuario(updatedUser)
+        if (updatedUser.saldo_moedas !== undefined) {
+          setSaldoMoedas(updatedUser.saldo_moedas)
+        }
+      }
+    }
+
+    // Também escutar evento customizado para mudanças na mesma aba
+    const handleSaldoUpdate = () => {
+      const usuarioData = localStorage.getItem('usuario')
+      if (usuarioData && tipo === "profissional") {
+        const user = JSON.parse(usuarioData)
+        setUsuario(user)
+        // Buscar saldo atualizado do banco
+        fetchSaldo(user.id)
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('saldoAtualizado', handleSaldoUpdate)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('saldoAtualizado', handleSaldoUpdate)
+    }
   }, [tipo])
 
   const fetchSaldo = async (profissionalId: string) => {

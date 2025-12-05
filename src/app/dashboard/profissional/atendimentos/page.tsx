@@ -140,6 +140,9 @@ export default function AtendimentosProfissional() {
       localStorage.setItem('usuario', JSON.stringify(updatedUser))
       setProfissional(updatedUser)
 
+      // Disparar evento para atualizar o Sidebar
+      window.dispatchEvent(new Event('saldoAtualizado'))
+
       // Mostrar resultado
       setReembolsoResult({
         moedas: data.moedas_reembolsadas,
