@@ -50,7 +50,7 @@ export default function ReembolsosProfissional() {
         return
       }
 
-      setSolicitacoes(data.solicitacoes)
+      setSolicitacoes(data.reembolsos || [])
       setLoading(false)
     } catch (err) {
       setError("Erro ao conectar com o servidor")

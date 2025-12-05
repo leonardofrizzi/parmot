@@ -131,13 +131,25 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
 
     // Também escutar evento customizado para mudanças na mesma aba
-    const handleSaldoUpdate = () => {
+    const handleSaldoUpdate = async () => {
       const usuarioData = localStorage.getItem('usuario')
       if (usuarioData && tipo === "profissional") {
         const user = JSON.parse(usuarioData)
         setUsuario(user)
-        // Buscar saldo atualizado do banco
-        fetchSaldo(user.id)
+        // Atualizar saldo diretamente do localStorage primeiro (instantâneo)
+        if (user.saldo_moedas !== undefined) {
+          setSaldoMoedas(user.saldo_moedas)
+        }
+        // Depois buscar do banco para confirmar
+        try {
+          const response = await fetch(`/api/profissional/saldo?profissional_id=${user.id}`)
+          if (response.ok) {
+            const data = await response.json()
+            setSaldoMoedas(data.saldo)
+          }
+        } catch (error) {
+          console.error("Erro ao buscar saldo:", error)
+        }
       }
     }
 

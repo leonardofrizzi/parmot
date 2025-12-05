@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-// Função para buscar configurações do banco
-async function getConfiguracoes() {
-  const { data: config } = await supabase
-    .from('configuracoes')
-    .select('percentual_reembolso')
-    .single()
-
-  return {
-    percentual_reembolso: config?.percentual_reembolso ?? 30
-  }
+// Criar cliente apenas quando a função for chamada (não no build)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 }
 
 export async function PATCH(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin()
+
     const {
       reembolso_id,
       admin_id,
@@ -67,8 +60,11 @@ export async function PATCH(request: NextRequest) {
     // Se APROVADO, devolver moedas ao profissional (apenas percentual configurado)
     if (status === 'aprovado') {
       // Buscar configurações para obter o percentual de reembolso
-      const configuracoes = await getConfiguracoes()
-      const percentualReembolso = configuracoes.percentual_reembolso
+      const { data: config } = await supabase
+        .from('configuracoes')
+        .select('percentual_reembolso')
+        .single()
+      const percentualReembolso = config?.percentual_reembolso ?? 30
 
       // Calcular valor do reembolso (apenas o percentual configurado)
       const moedasReembolso = Math.round(reembolso.moedas_gastas * percentualReembolso / 100)

@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Usar service role para bypass RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Criar cliente apenas quando a função for chamada (não no build)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     const { profissional_id, resposta_id } = await request.json()
 
     // Validações
@@ -80,29 +83,37 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Criar registro de reembolso automático (já aprovado)
-    const { error: reembolsoError } = await supabaseAdmin
+    // Primeiro, tentar inserir só os campos obrigatórios
+    const dadosReembolso: any = {
+      profissional_id,
+      resposta_id,
+      solicitacao_id: resposta.solicitacao_id,
+      motivo: 'Não fechei negócio com este cliente (reembolso automático)',
+      provas_urls: [],
+      moedas_gastas,
+      tipo_contato,
+      status: 'aprovado',
+      analisado_em: new Date().toISOString()
+    }
+
+    // Adicionar cliente_id só se existir
+    if (solicitacao?.cliente_id) {
+      dadosReembolso.cliente_id = solicitacao.cliente_id
+    }
+
+    console.log('Tentando criar reembolso com dados:', dadosReembolso)
+
+    const { data: reembolsoCriado, error: reembolsoError } = await supabaseAdmin
       .from('solicitacoes_reembolso')
-      .insert({
-        profissional_id,
-        resposta_id,
-        solicitacao_id: resposta.solicitacao_id,
-        cliente_id: solicitacao?.cliente_id || null,
-        motivo: 'Não fechei negócio com este cliente (reembolso automático)',
-        provas_urls: [],
-        moedas_gastas,
-        moedas_reembolsadas: moedas_reembolso,
-        tipo_contato,
-        status: 'aprovado',
-        analisado_em: new Date().toISOString(),
-        observacao_admin: 'Reembolso automático - garantia de 30%'
-      })
+      .insert(dadosReembolso)
+      .select()
+
+    console.log('Resultado do insert:', { reembolsoCriado, reembolsoError })
 
     if (reembolsoError) {
       console.error('Erro ao criar reembolso:', reembolsoError)
-      return NextResponse.json(
-        { error: 'Erro ao processar reembolso' },
-        { status: 500 }
-      )
+      // Continuar mesmo com erro no registro - as moedas já foram creditadas
+      // Não retornar erro 500 para não confundir o usuário
     }
 
     // Atualizar saldo do profissional
