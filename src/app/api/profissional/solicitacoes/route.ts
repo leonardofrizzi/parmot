@@ -16,31 +16,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Buscar categorias do profissional
-    const { data: categoriasProf, error: errorCat } = await supabase
-      .from('profissional_categorias')
-      .select('categoria_id')
-      .eq('profissional_id', profissional_id)
-
-    if (errorCat) {
-      console.error('Erro ao buscar categorias do profissional:', errorCat)
-      return NextResponse.json(
-        { error: 'Erro ao buscar categorias' },
-        { status: 500 }
-      )
-    }
-
-    const categoriaIds = categoriasProf.map((c: any) => c.categoria_id)
-
-    if (categoriaIds.length === 0) {
-      // Profissional sem categorias configuradas - retornar flag especial
-      return NextResponse.json({
-        solicitacoes: [],
-        semCategorias: true
-      })
-    }
-
-    // Buscar solicitações abertas E APROVADAS das categorias do profissional
+    // Buscar TODAS as solicitações abertas e aprovadas (só tem 1 categoria)
     const { data, error } = await supabase
       .from('solicitacoes')
       .select(`
@@ -51,7 +27,6 @@ export async function GET(request: NextRequest) {
       `)
       .eq('status', 'aberta')
       .eq('aprovado_admin', true)
-      .in('categoria_id', categoriaIds)
       .order('created_at', { ascending: false })
 
     if (error) {
