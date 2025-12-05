@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
-import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins } from "lucide-react"
+import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, Settings } from "lucide-react"
 import * as Icons from "lucide-react"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
@@ -18,6 +18,7 @@ interface Profissional {
   estado: string
   cidade: string
   atende_online?: boolean
+  aprovado?: boolean
 }
 
 interface SolicitacaoComStatus extends Solicitacao {
@@ -44,6 +45,7 @@ export default function SolicitacoesProfissional() {
     custo_contato_normal: 15,
     custo_contato_exclusivo: 50
   })
+  const [semCategorias, setSemCategorias] = useState(false)
 
   useEffect(() => {
     // Buscar configurações de moedas
@@ -77,6 +79,11 @@ export default function SolicitacoesProfissional() {
         setError(data.error || "Erro ao carregar solicitações")
         setLoading(false)
         return
+      }
+
+      // Verificar se profissional não tem categorias configuradas
+      if (data.semCategorias) {
+        setSemCategorias(true)
       }
 
       setSolicitacoes(data.solicitacoes as SolicitacaoComStatus[])
@@ -240,7 +247,24 @@ export default function SolicitacoesProfissional() {
         )}
 
         {/* Lista de Solicitações */}
-        {solicitacoes.length === 0 ? (
+        {semCategorias ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <div className="mb-4 text-orange-400">
+                <Settings size={64} className="mx-auto" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Configure suas categorias
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Para ver as solicitações de clientes, você precisa configurar quais categorias de serviços você atende.
+              </p>
+              <Button onClick={() => router.push('/dashboard/profissional/perfil/categorias')}>
+                Configurar Categorias
+              </Button>
+            </CardContent>
+          </Card>
+        ) : solicitacoes.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
               <div className="mb-4 text-gray-400">

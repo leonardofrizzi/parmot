@@ -33,8 +33,11 @@ export async function GET(request: NextRequest) {
     const categoriaIds = categoriasProf.map((c: any) => c.categoria_id)
 
     if (categoriaIds.length === 0) {
-      // Profissional sem categorias configuradas
-      return NextResponse.json({ solicitacoes: [] })
+      // Profissional sem categorias configuradas - retornar flag especial
+      return NextResponse.json({
+        solicitacoes: [],
+        semCategorias: true
+      })
     }
 
     // Buscar solicitações abertas E APROVADAS das categorias do profissional

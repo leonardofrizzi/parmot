@@ -27,37 +27,61 @@ export async function POST(request: NextRequest) {
       .eq('email', email)
       .single()
 
-    // Se o usuário escolheu profissional e existe como profissional, tentar primeiro
-    if (tipoPreferido === 'profissional' && profissional) {
+    // Se o usuário escolheu profissional, tentar APENAS como profissional
+    if (tipoPreferido === 'profissional') {
+      if (!profissional) {
+        return NextResponse.json(
+          { error: 'Não existe conta de profissional com este email' },
+          { status: 401 }
+        )
+      }
+
       const senhaCorreta = await bcrypt.compare(senha, profissional.senha_hash)
 
-      if (senhaCorreta) {
-        const { senha_hash, ...profissionalData } = profissional
-
-        return NextResponse.json({
-          tipo: 'profissional',
-          usuario: profissionalData,
-          redirectTo: '/dashboard/profissional'
-        })
+      if (!senhaCorreta) {
+        return NextResponse.json(
+          { error: 'Senha incorreta' },
+          { status: 401 }
+        )
       }
+
+      const { senha_hash, ...profissionalData } = profissional
+
+      return NextResponse.json({
+        tipo: 'profissional',
+        usuario: profissionalData,
+        redirectTo: '/dashboard/profissional'
+      })
     }
 
-    // Se o usuário escolheu cliente e existe como cliente, tentar primeiro
-    if (tipoPreferido === 'cliente' && cliente) {
+    // Se o usuário escolheu cliente, tentar APENAS como cliente
+    if (tipoPreferido === 'cliente') {
+      if (!cliente) {
+        return NextResponse.json(
+          { error: 'Não existe conta de cliente com este email' },
+          { status: 401 }
+        )
+      }
+
       const senhaCorreta = await bcrypt.compare(senha, cliente.senha_hash)
 
-      if (senhaCorreta) {
-        const { senha_hash, ...clienteData } = cliente
-
-        return NextResponse.json({
-          tipo: 'cliente',
-          usuario: clienteData,
-          redirectTo: '/dashboard/cliente'
-        })
+      if (!senhaCorreta) {
+        return NextResponse.json(
+          { error: 'Senha incorreta' },
+          { status: 401 }
+        )
       }
+
+      const { senha_hash, ...clienteData } = cliente
+
+      return NextResponse.json({
+        tipo: 'cliente',
+        usuario: clienteData,
+        redirectTo: '/dashboard/cliente'
+      })
     }
 
-    // Fallback: tentar cliente primeiro (comportamento padrão)
+    // Sem tipo preferido: tentar cliente primeiro (comportamento padrão)
     if (cliente) {
       const senhaCorreta = await bcrypt.compare(senha, cliente.senha_hash)
 
@@ -72,7 +96,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fallback: tentar profissional
+    // Sem tipo preferido: tentar profissional
     if (profissional) {
       const senhaCorreta = await bcrypt.compare(senha, profissional.senha_hash)
 
