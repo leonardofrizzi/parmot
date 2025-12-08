@@ -18,7 +18,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     console.log('Dados recebidos:', body)
 
-    const { id, nome, razao_social, email, telefone, cidade, estado, sobre, slug: slugCustom } = body
+    const { id, nome, razao_social, email, telefone, cep, endereco, cidade, estado, sobre, slug: slugCustom, atende_online } = body
 
     // Validações básicas
     if (!id || !nome || !email || !telefone || !cidade || !estado) {
@@ -89,10 +89,13 @@ export async function PUT(request: NextRequest) {
         razao_social: razao_social || null,
         email,
         telefone,
+        cep: cep ? cep.replace(/\D/g, '') : null,
+        endereco: endereco || null,
         cidade,
         estado,
         sobre: sobre || null,
         slug: slugFinal,
+        atende_online: atende_online || false,
       })
       .eq('id', id)
       .select()

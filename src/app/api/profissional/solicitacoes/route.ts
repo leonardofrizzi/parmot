@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar TODAS as solicitações abertas e aprovadas (só tem 1 categoria)
-    // Inclui nome, email e telefone do cliente para mostrar quando liberado
+    // Inclui nome, email, telefone e CEP do cliente para mostrar quando liberado
     const { data, error } = await supabase
       .from('solicitacoes')
       .select(`
         *,
         categorias:categoria_id(nome, slug, icone),
         subcategorias:subcategoria_id(nome, slug),
-        clientes:cliente_id(nome, email, telefone, cidade, estado)
+        clientes:cliente_id(nome, email, telefone, cep, cidade, estado)
       `)
       .eq('status', 'aberta')
       .eq('aprovado_admin', true)
@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         categoria_nome: solicitacao.categorias?.nome || '',
         categoria_icone: solicitacao.categorias?.icone || '',
         subcategoria_nome: solicitacao.subcategorias?.nome || '',
+        cliente_cep: solicitacao.clientes?.cep || '',
         cliente_cidade: solicitacao.clientes?.cidade || '',
         cliente_estado: solicitacao.clientes?.estado || '',
         ja_liberou: jaLiberou,

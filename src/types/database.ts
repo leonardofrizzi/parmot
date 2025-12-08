@@ -105,10 +105,13 @@ export interface TransacaoMoeda {
 export interface CadastroClienteDTO {
   nome: string
   email: string
-  telefone: string
+  telefone?: string
+  cep: string
+  endereco?: string
   cidade: string
   estado: string
   senha: string
+  email_verificado?: boolean
 }
 
 export interface CadastroProfissionalDTO {
@@ -118,6 +121,8 @@ export interface CadastroProfissionalDTO {
   email: string
   telefone: string
   cpfCnpj: string
+  cep: string
+  endereco?: string
   cidade: string
   estado: string
   senha: string

@@ -6,13 +6,13 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     console.log('Dados recebidos:', body)
 
-    const { id, nome, email, telefone, cidade, estado } = body
+    const { id, nome, email, telefone, cep, endereco, cidade, estado } = body
 
-    // Validações básicas
-    if (!id || !nome || !email || !telefone || !cidade || !estado) {
-      console.log('Erro de validação:', { id, nome, email, telefone, cidade, estado })
+    // Validações básicas (telefone, cep e endereco são opcionais)
+    if (!id || !nome || !email || !cidade || !estado) {
+      console.log('Erro de validação:', { id, nome, email, cidade, estado })
       return NextResponse.json(
-        { error: 'Todos os campos são obrigatórios' },
+        { error: 'Nome, email, cidade e estado são obrigatórios' },
         { status: 400 }
       )
     }
@@ -39,7 +39,9 @@ export async function PUT(request: NextRequest) {
       .update({
         nome,
         email,
-        telefone,
+        telefone: telefone || null,
+        cep: cep ? cep.replace(/\D/g, '') : null,
+        endereco: endereco || null,
         cidade,
         estado,
       })

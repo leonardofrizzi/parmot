@@ -21,11 +21,14 @@ function CadastroClienteContent() {
     nome: "",
     email: "",
     telefone: "",
+    cep: "",
+    endereco: "",
     cidade: "",
     estado: "",
     senha: "",
     confirmarSenha: "",
   })
+  const [buscandoCep, setBuscandoCep] = useState(false)
   const [codigoVerificacao, setCodigoVerificacao] = useState("")
   const [aceiteTermos, setAceiteTermos] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -162,6 +165,21 @@ function CadastroClienteContent() {
       return
     }
 
+    // Validar CEP obrigatório
+    const cepLimpo = formData.cep.replace(/\D/g, '')
+    if (!cepLimpo || cepLimpo.length !== 8) {
+      setError("CEP é obrigatório e deve ter 8 dígitos")
+      setLoading(false)
+      return
+    }
+
+    // Validar cidade e estado
+    if (!formData.cidade || !formData.estado) {
+      setError("Cidade e estado são obrigatórios")
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch("/api/cadastro/cliente", {
         method: "POST",
@@ -172,6 +190,8 @@ function CadastroClienteContent() {
           nome: formData.nome,
           email: formData.email,
           telefone: formData.telefone,
+          cep: formData.cep.replace(/\D/g, ''),
+          endereco: formData.endereco,
           cidade: formData.cidade,
           estado: formData.estado,
           senha: formData.senha,
@@ -213,12 +233,53 @@ function CadastroClienteContent() {
     return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
   }
 
+  // Formatar CEP: 00000-000
+  const formatarCep = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 8)
+    if (numeros.length <= 5) return numeros
+    return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
+  }
+
+  // Buscar endereço pelo CEP
+  const buscarCep = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return
+
+    setBuscandoCep(true)
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await response.json()
+
+      if (!data.erro) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: data.logradouro ? `${data.logradouro}${data.bairro ? ', ' + data.bairro : ''}` : prev.endereco,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+        }))
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err)
+    } finally {
+      setBuscandoCep(false)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let valor = e.target.value
 
     // Aplicar formatação automática no telefone
     if (e.target.name === 'telefone') {
       valor = formatarTelefone(valor)
+    }
+
+    // Aplicar formatação automática no CEP e buscar endereço
+    if (e.target.name === 'cep') {
+      valor = formatarCep(valor)
+      // Buscar CEP quando tiver 8 dígitos
+      if (valor.replace(/\D/g, '').length === 8) {
+        buscarCep(valor)
+      }
     }
 
     setFormData({
@@ -417,6 +478,37 @@ function CadastroClienteContent() {
               type="tel"
               placeholder="(00) 00000-0000"
               value={formData.telefone}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cep">CEP <span className="text-red-500">*</span></Label>
+            <div className="relative">
+              <Input
+                id="cep"
+                name="cep"
+                type="text"
+                placeholder="00000-000"
+                value={formData.cep}
+                onChange={handleChange}
+                required
+              />
+              {buscandoCep && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+              )}
+            </div>
+            <p className="text-xs text-gray-500">Digite o CEP para preencher automaticamente</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="endereco">Endereço <span className="text-gray-400 text-xs font-normal">(opcional)</span></Label>
+            <Input
+              id="endereco"
+              name="endereco"
+              type="text"
+              placeholder="Rua, número, bairro"
+              value={formData.endereco}
               onChange={handleChange}
             />
           </div>

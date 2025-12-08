@@ -56,6 +56,73 @@ function toRad(deg: number): number {
 // Cache de geocodificação para evitar chamadas repetidas
 const geocodeCache: Record<string, { lat: number; lng: number } | null> = {}
 
+// Buscar coordenadas pelo CEP usando ViaCEP + Nominatim
+export async function buscarCoordenadasPorCep(
+  cep: string
+): Promise<{ lat: number; lng: number } | null> {
+  const cepLimpo = cep?.replace(/\D/g, '')
+  if (!cepLimpo || cepLimpo.length !== 8) return null
+
+  const cacheKey = `cep-${cepLimpo}`
+  if (geocodeCache[cacheKey] !== undefined) {
+    return geocodeCache[cacheKey]
+  }
+
+  try {
+    // Primeiro buscar dados do CEP
+    const viaCepResponse = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+    const viaCepData = await viaCepResponse.json()
+
+    if (viaCepData.erro) {
+      geocodeCache[cacheKey] = null
+      return null
+    }
+
+    // Montar query com logradouro + bairro + cidade + estado para maior precisão
+    const partes = []
+    if (viaCepData.logradouro) partes.push(viaCepData.logradouro)
+    if (viaCepData.bairro) partes.push(viaCepData.bairro)
+    if (viaCepData.localidade) partes.push(viaCepData.localidade)
+    if (viaCepData.uf) partes.push(viaCepData.uf)
+    partes.push('Brasil')
+
+    const query = encodeURIComponent(partes.join(', '))
+    const nominatimResponse = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
+      {
+        headers: {
+          'User-Agent': 'ParmotServicos/1.0'
+        }
+      }
+    )
+
+    const nominatimData = await nominatimResponse.json()
+
+    if (nominatimData && nominatimData.length > 0) {
+      const coords = {
+        lat: parseFloat(nominatimData[0].lat),
+        lng: parseFloat(nominatimData[0].lon)
+      }
+      geocodeCache[cacheKey] = coords
+      return coords
+    }
+
+    // Fallback: tentar só com cidade + estado
+    if (viaCepData.localidade && viaCepData.uf) {
+      const coords = await buscarCoordenadas(viaCepData.localidade, viaCepData.uf)
+      geocodeCache[cacheKey] = coords
+      return coords
+    }
+
+    geocodeCache[cacheKey] = null
+    return null
+  } catch (err) {
+    console.error('Erro ao buscar coordenadas por CEP:', err)
+    geocodeCache[cacheKey] = null
+    return null
+  }
+}
+
 export async function buscarCoordenadas(
   cidade: string,
   estado: string

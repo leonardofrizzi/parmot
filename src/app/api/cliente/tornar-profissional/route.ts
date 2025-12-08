@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
     let cpf_cnpj: string
     let razao_social: string | null
     let telefone: string
+    let cep: string
+    let endereco: string | null
+    let cidade: string
+    let estado: string
     let senha: string
     let identidadeFrente: File | null = null
     let identidadeVerso: File | null = null
@@ -38,6 +42,10 @@ export async function POST(request: NextRequest) {
       cpf_cnpj = formData.get('cpf_cnpj') as string
       razao_social = formData.get('razao_social') as string || null
       telefone = formData.get('telefone') as string
+      cep = formData.get('cep') as string || ''
+      endereco = formData.get('endereco') as string || null
+      cidade = formData.get('cidade') as string || ''
+      estado = formData.get('estado') as string || ''
       senha = formData.get('senha') as string
       identidadeFrente = formData.get('identidadeFrente') as File | null
       identidadeVerso = formData.get('identidadeVerso') as File | null
@@ -60,12 +68,16 @@ export async function POST(request: NextRequest) {
       cpf_cnpj = body.cpf_cnpj
       razao_social = body.razao_social || null
       telefone = body.telefone
+      cep = body.cep || ''
+      endereco = body.endereco || null
+      cidade = body.cidade || ''
+      estado = body.estado || ''
       senha = body.senha
     }
 
-    if (!cliente_id || !tipo || !cpf_cnpj || !telefone || !senha) {
+    if (!cliente_id || !tipo || !cpf_cnpj || !telefone || !senha || !cep || !cidade || !estado) {
       return NextResponse.json(
-        { error: 'Todos os campos são obrigatórios (incluindo telefone)' },
+        { error: 'Todos os campos são obrigatórios (incluindo telefone, CEP, cidade e estado)' },
         { status: 400 }
       )
     }
@@ -204,8 +216,10 @@ export async function POST(request: NextRequest) {
         email: cliente.email,
         telefone: telefone,
         cpf_cnpj,
-        cidade: cliente.cidade,
-        estado: cliente.estado,
+        cep,
+        endereco: endereco || null,
+        cidade,
+        estado,
         senha_hash: senhaHash,
         saldo_moedas: 0,
         aprovado: false,

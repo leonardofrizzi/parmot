@@ -80,6 +80,8 @@ interface Profissional {
   email: string
   telefone: string
   cpf_cnpj: string
+  cep?: string
+  endereco?: string
   cidade: string
   estado: string
   saldo_moedas: number
@@ -90,6 +92,7 @@ interface Profissional {
   foto_url?: string | null
   sobre?: string | null
   slug?: string | null
+  atende_online?: boolean
 }
 
 function StarDisplay({ rating, size = 16 }: { rating: number; size?: number }) {
@@ -147,10 +150,14 @@ export default function PerfilProfissional() {
     razao_social: "",
     email: "",
     telefone: "",
+    cep: "",
+    endereco: "",
     cidade: "",
     estado: "",
     sobre: "",
+    atende_online: false,
   })
+  const [buscandoCep, setBuscandoCep] = useState(false)
 
   useEffect(() => {
     fetchProfissionalData()
@@ -174,9 +181,12 @@ export default function PerfilProfissional() {
           razao_social: prof.razao_social || "",
           email: prof.email,
           telefone: prof.telefone,
+          cep: prof.cep || "",
+          endereco: prof.endereco || "",
           cidade: prof.cidade || "",
           estado: prof.estado || "",
           sobre: prof.sobre || "",
+          atende_online: prof.atende_online || false,
         })
         fetchAvaliacoes(prof.id)
         fetchSelos(prof.id)
@@ -187,9 +197,12 @@ export default function PerfilProfissional() {
           razao_social: user.razao_social || "",
           email: user.email,
           telefone: user.telefone,
+          cep: user.cep || "",
+          endereco: user.endereco || "",
           cidade: user.cidade || "",
           estado: user.estado || "",
           sobre: user.sobre || "",
+          atende_online: user.atende_online || false,
         })
       }
     } catch {
@@ -199,9 +212,12 @@ export default function PerfilProfissional() {
         razao_social: user.razao_social || "",
         email: user.email,
         telefone: user.telefone,
+        cep: user.cep || "",
+        endereco: user.endereco || "",
         cidade: user.cidade || "",
         estado: user.estado || "",
         sobre: user.sobre || "",
+        atende_online: user.atende_online || false,
       })
     }
   }
@@ -251,10 +267,51 @@ export default function PerfilProfissional() {
     setTimeout(() => setCopiado(false), 2000)
   }
 
+  // Formatar CEP: 00000-000
+  const formatarCep = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 8)
+    if (numeros.length <= 5) return numeros
+    return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
+  }
+
+  // Buscar endereço pelo CEP via ViaCEP
+  const buscarCep = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return
+
+    setBuscandoCep(true)
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await response.json()
+      if (!data.erro) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: data.logradouro ? `${data.logradouro}${data.bairro ? ', ' + data.bairro : ''}` : prev.endereco,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+        }))
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err)
+    } finally {
+      setBuscandoCep(false)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    let valorFormatado = value
+
+    if (name === 'cep') {
+      valorFormatado = formatarCep(value)
+      if (valorFormatado.replace(/\D/g, '').length === 8) {
+        buscarCep(valorFormatado)
+      }
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: valorFormatado,
     })
   }
 
@@ -732,6 +789,35 @@ export default function PerfilProfissional() {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="cep">CEP</Label>
+                      <div className="relative">
+                        <Input
+                          id="cep"
+                          name="cep"
+                          placeholder="00000-000"
+                          value={formData.cep}
+                          onChange={handleChange}
+                        />
+                        {buscandoCep && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="endereco">Endereço</Label>
+                      <Input
+                        id="endereco"
+                        name="endereco"
+                        placeholder="Rua, número, bairro"
+                        value={formData.endereco}
+                        onChange={handleChange}
+                      />
+                    </div>
+
                     <div className="space-y-2 md:col-span-2">
                       <LocationSelects
                         estado={formData.estado}
@@ -756,19 +842,24 @@ export default function PerfilProfissional() {
                     </div>
                   </div>
 
-                  {/* Categorias */}
+                  {/* Atende Online */}
                   <div className="mt-6 pt-6 border-t">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Categorias de Atuação</h4>
-                        <p className="text-sm text-gray-500">Defina quais tipos de serviço você atende</p>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="atende_online"
+                        checked={formData.atende_online || false}
+                        onChange={(e) => setFormData({ ...formData, atende_online: e.target.checked })}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="atende_online" className="font-medium cursor-pointer">
+                          Atendo clientes online (todo o Brasil)
+                        </Label>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Marque esta opção se você pode atender clientes remotamente, de qualquer lugar do Brasil.
+                        </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push('/dashboard/profissional/perfil/categorias')}
-                      >
-                        Gerenciar
-                      </Button>
                     </div>
                   </div>
                 </CardContent>

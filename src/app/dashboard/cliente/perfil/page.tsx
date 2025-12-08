@@ -17,6 +17,8 @@ interface Cliente {
   nome: string
   email: string
   telefone: string
+  cep?: string
+  endereco?: string
   cidade: string
   estado: string
   profissional_id?: string
@@ -41,9 +43,14 @@ export default function PerfilCliente() {
     cpf_cnpj: "",
     razao_social: "",
     telefone: "",
+    cep: "",
+    endereco: "",
+    cidade: "",
+    estado: "",
     senha: "",
     confirmarSenha: "",
   })
+  const [buscandoCepProf, setBuscandoCepProf] = useState(false)
 
   // Estados para documentos
   const [identidadeFrente, setIdentidadeFrente] = useState<File | null>(null)
@@ -67,9 +74,12 @@ export default function PerfilCliente() {
     nome: "",
     email: "",
     telefone: "",
+    cep: "",
+    endereco: "",
     cidade: "",
     estado: "",
   })
+  const [buscandoCep, setBuscandoCep] = useState(false)
 
   useEffect(() => {
     const usuarioData = localStorage.getItem('usuario')
@@ -80,16 +90,59 @@ export default function PerfilCliente() {
         nome: user.nome,
         email: user.email,
         telefone: user.telefone,
+        cep: user.cep || "",
+        endereco: user.endereco || "",
         cidade: user.cidade || "",
         estado: user.estado || "",
       })
     }
   }, [])
 
+  // Formatar CEP: 00000-000
+  const formatarCep = (valor: string) => {
+    const numeros = valor.replace(/\D/g, '').slice(0, 8)
+    if (numeros.length <= 5) return numeros
+    return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
+  }
+
+  // Buscar endereço pelo CEP via ViaCEP
+  const buscarCep = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return
+
+    setBuscandoCep(true)
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await response.json()
+      if (!data.erro) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: data.logradouro ? `${data.logradouro}${data.bairro ? ', ' + data.bairro : ''}` : prev.endereco,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+        }))
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err)
+    } finally {
+      setBuscandoCep(false)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    let valorFormatado = value
+
+    if (name === 'cep') {
+      valorFormatado = formatarCep(value)
+      if (valorFormatado.replace(/\D/g, '').length === 8) {
+        buscarCep(valorFormatado)
+      }
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: valorFormatado,
     })
   }
 
@@ -120,6 +173,30 @@ export default function PerfilCliente() {
     return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
   }
 
+  // Buscar endereço pelo CEP via ViaCEP para profissional
+  const buscarCepProf = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) return
+
+    setBuscandoCepProf(true)
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await response.json()
+      if (!data.erro) {
+        setProfForm(prev => ({
+          ...prev,
+          endereco: data.logradouro ? `${data.logradouro}${data.bairro ? ', ' + data.bairro : ''}` : prev.endereco,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+        }))
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err)
+    } finally {
+      setBuscandoCepProf(false)
+    }
+  }
+
   const handleProfFormChange = (field: string, value: string) => {
     let valorFormatado = value
 
@@ -127,6 +204,11 @@ export default function PerfilCliente() {
       valorFormatado = profForm.tipo === 'autonomo' ? formatarCPF(value) : formatarCNPJ(value)
     } else if (field === 'telefone') {
       valorFormatado = formatarTelefone(value)
+    } else if (field === 'cep') {
+      valorFormatado = formatarCep(value)
+      if (valorFormatado.replace(/\D/g, '').length === 8) {
+        buscarCepProf(valorFormatado)
+      }
     }
 
     setProfForm({ ...profForm, [field]: valorFormatado })
@@ -307,6 +389,18 @@ export default function PerfilCliente() {
       return
     }
 
+    if (!profForm.cep || profForm.cep.replace(/\D/g, '').length !== 8) {
+      setError("CEP é obrigatório")
+      setProfLoading(false)
+      return
+    }
+
+    if (!profForm.cidade || !profForm.estado) {
+      setError("Cidade e Estado são obrigatórios")
+      setProfLoading(false)
+      return
+    }
+
     if (!identidadeFrente || !identidadeVerso) {
       setError("É obrigatório enviar a frente e o verso do documento de identificação (RG/CNH)")
       setProfLoading(false)
@@ -326,6 +420,10 @@ export default function PerfilCliente() {
       formDataToSend.append("cpf_cnpj", profForm.cpf_cnpj)
       formDataToSend.append("razao_social", profForm.razao_social || "")
       formDataToSend.append("telefone", profForm.telefone)
+      formDataToSend.append("cep", profForm.cep.replace(/\D/g, ''))
+      formDataToSend.append("endereco", profForm.endereco)
+      formDataToSend.append("cidade", profForm.cidade)
+      formDataToSend.append("estado", profForm.estado)
       formDataToSend.append("senha", profForm.senha)
 
       // Documento de identidade - frente e verso
@@ -477,6 +575,39 @@ export default function PerfilCliente() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="cep">CEP</Label>
+                <div className="relative">
+                  <Input
+                    id="cep"
+                    name="cep"
+                    type="text"
+                    placeholder="00000-000"
+                    value={formData.cep}
+                    onChange={handleChange}
+                    disabled={!editMode}
+                  />
+                  {buscandoCep && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endereco">Endereço</Label>
+                <Input
+                  id="endereco"
+                  name="endereco"
+                  type="text"
+                  placeholder="Rua, número, bairro"
+                  value={formData.endereco}
+                  onChange={handleChange}
+                  disabled={!editMode}
+                />
+              </div>
+
               {editMode ? (
                 <LocationSelects
                   estado={formData.estado}
@@ -534,6 +665,8 @@ export default function PerfilCliente() {
                           nome: cliente.nome,
                           email: cliente.email,
                           telefone: cliente.telefone,
+                          cep: cliente.cep || "",
+                          endereco: cliente.endereco || "",
                           cidade: cliente.cidade || "",
                           estado: cliente.estado || "",
                         })
@@ -670,6 +803,58 @@ export default function PerfilCliente() {
                     value={profForm.telefone}
                     onChange={(e) => handleProfFormChange('telefone', e.target.value)}
                   />
+                </div>
+
+                {/* CEP */}
+                <div className="space-y-2">
+                  <Label>CEP <span className="text-red-500">*</span></Label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="00000-000"
+                      value={profForm.cep}
+                      onChange={(e) => handleProfFormChange('cep', e.target.value)}
+                    />
+                    {buscandoCepProf && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Endereço */}
+                <div className="space-y-2">
+                  <Label>Endereço</Label>
+                  <Input
+                    type="text"
+                    placeholder="Rua, número, bairro"
+                    value={profForm.endereco}
+                    onChange={(e) => setProfForm({ ...profForm, endereco: e.target.value })}
+                  />
+                </div>
+
+                {/* Cidade e Estado */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cidade <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="text"
+                      placeholder="Sua cidade"
+                      value={profForm.cidade}
+                      onChange={(e) => setProfForm({ ...profForm, cidade: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Estado <span className="text-red-500">*</span></Label>
+                    <Input
+                      type="text"
+                      placeholder="UF"
+                      maxLength={2}
+                      value={profForm.estado}
+                      onChange={(e) => setProfForm({ ...profForm, estado: e.target.value.toUpperCase() })}
+                    />
+                  </div>
                 </div>
 
                 {/* Senha */}

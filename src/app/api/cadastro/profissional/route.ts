@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
     const email = formData.get('email') as string
     const telefone = formData.get('telefone') as string
     const cpfCnpj = formData.get('cpfCnpj') as string
+    const cep = formData.get('cep') as string
+    const endereco = formData.get('endereco') as string | null
     const cidade = formData.get('cidade') as string
     const estado = formData.get('estado') as string
     const senha = formData.get('senha') as string
@@ -59,11 +61,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('Dados recebidos:', { tipo, nome, email, telefone, cpfCnpj: cpfCnpj?.substring(0, 4) + '***', cidade, estado, emailVerificado })
+    console.log('Dados recebidos:', { tipo, nome, email, telefone, cpfCnpj: cpfCnpj?.substring(0, 4) + '***', cep, cidade, estado, emailVerificado })
 
     // Validações básicas
-    if (!nome || !email || !telefone || !cpfCnpj || !cidade || !estado || !senha) {
-      console.error('ERRO: Campos obrigatórios faltando:', { nome: !!nome, email: !!email, telefone: !!telefone, cpfCnpj: !!cpfCnpj, cidade: !!cidade, estado: !!estado, senha: !!senha })
+    if (!nome || !email || !telefone || !cpfCnpj || !cep || !cidade || !estado || !senha) {
+      console.error('ERRO: Campos obrigatórios faltando:', { nome: !!nome, email: !!email, telefone: !!telefone, cpfCnpj: !!cpfCnpj, cep: !!cep, cidade: !!cidade, estado: !!estado, senha: !!senha })
       return NextResponse.json(
         { error: 'Todos os campos são obrigatórios' },
         { status: 400 }
@@ -256,6 +258,8 @@ export async function POST(request: NextRequest) {
       email,
       telefone,
       cpf_cnpj: cpfCnpj,
+      cep,
+      endereco: endereco || null,
       cidade,
       estado,
       senha_hash: senhaHash,

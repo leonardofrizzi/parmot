@@ -36,7 +36,7 @@ export async function GET(
         *,
         categorias:categoria_id(nome, slug, icone),
         subcategorias:subcategoria_id(nome, slug),
-        clientes:cliente_id(nome, email, telefone, cidade, estado)
+        clientes:cliente_id(nome, email, telefone, cep, cidade, estado)
       `)
       .eq('id', id)
 
@@ -90,6 +90,7 @@ export async function GET(
       categoria_nome: solicitacao.categorias?.nome || '',
       categoria_icone: solicitacao.categorias?.icone || '',
       subcategoria_nome: solicitacao.subcategorias?.nome || '',
+      cliente_cep: solicitacao.clientes?.cep || '',
       cliente_cidade: solicitacao.clientes?.cidade || '',
       cliente_estado: solicitacao.clientes?.estado || ''
     }

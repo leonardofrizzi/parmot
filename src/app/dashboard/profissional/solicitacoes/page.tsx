@@ -13,9 +13,11 @@ import * as Icons from "lucide-react"
 import DistanciaIndicador from "@/components/DistanciaIndicador"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
+type FiltroModalidade = "todos" | "minha_cidade" | "online"
 
 interface Profissional {
   id: string
+  cep?: string
   estado: string
   cidade: string
   atende_online?: boolean
@@ -25,6 +27,7 @@ interface Profissional {
 interface SolicitacaoComStatus extends Solicitacao {
   ja_liberou?: boolean
   vagas_disponiveis?: number
+  cliente_cep?: string
   cliente_cidade?: string
   cliente_estado?: string
 }
@@ -42,6 +45,7 @@ export default function SolicitacoesProfissional() {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>("todos")
+  const [filtroModalidade, setFiltroModalidade] = useState<FiltroModalidade>("todos")
   const [config, setConfig] = useState<Configuracoes>({
     custo_contato_normal: 15,
     custo_contato_exclusivo: 50
@@ -69,9 +73,10 @@ export default function SolicitacoesProfissional() {
 
       const user = JSON.parse(usuarioData)
 
-      // Buscar solicitações filtradas por categorias e região
+      // Buscar TODAS as solicitações (atende_online=true para trazer de todo o Brasil)
+      // O filtro de localização será feito no frontend
       const response = await fetch(
-        `/api/profissional/solicitacoes?estado=${estado}&cidade=${cidade}&profissional_id=${user.id}&atende_online=${user.atende_online || false}`
+        `/api/profissional/solicitacoes?estado=${estado}&cidade=${cidade}&profissional_id=${user.id}&atende_online=true`
       )
       const data = await response.json()
 
@@ -103,9 +108,20 @@ export default function SolicitacoesProfissional() {
     })
   }
 
-  // Filtrar solicitações com base na pesquisa e status
+  // Filtrar solicitações com base na pesquisa, status e modalidade
   const solicitacoesFiltradas = useMemo(() => {
     let resultado = [...solicitacoes]
+
+    // Aplicar filtro de modalidade (localização)
+    if (filtroModalidade === "minha_cidade" && profissional) {
+      resultado = resultado.filter(
+        (s) => s.cliente_cidade === profissional.cidade && s.cliente_estado === profissional.estado
+      )
+    } else if (filtroModalidade === "online" && profissional) {
+      resultado = resultado.filter(
+        (s) => s.cliente_cidade !== profissional.cidade || s.cliente_estado !== profissional.estado
+      )
+    }
 
     // Aplicar filtro de status
     if (filtroStatus === "nao_liberados") {
@@ -129,7 +145,7 @@ export default function SolicitacoesProfissional() {
     }
 
     return resultado
-  }, [solicitacoes, searchTerm, filtroStatus])
+  }, [solicitacoes, searchTerm, filtroStatus, filtroModalidade, profissional])
 
   if (loading) {
     return (
@@ -204,8 +220,22 @@ export default function SolicitacoesProfissional() {
         {solicitacoes.length > 0 && (
           <div className="mb-6 space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
+              {/* Filtro por Modalidade (Localização) */}
+              <div className="w-full sm:w-48">
+                <Select value={filtroModalidade} onValueChange={(value) => setFiltroModalidade(value as FiltroModalidade)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Localização" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas as regiões</SelectItem>
+                    <SelectItem value="minha_cidade">Minha cidade</SelectItem>
+                    <SelectItem value="online">Outras cidades</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Filtro por Status */}
-              <div className="w-full sm:w-64">
+              <div className="w-full sm:w-56">
                 <Select value={filtroStatus} onValueChange={(value) => setFiltroStatus(value as FiltroStatus)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filtrar por status" />
@@ -233,7 +263,7 @@ export default function SolicitacoesProfissional() {
             </div>
 
             {/* Contador de Resultados */}
-            {(searchTerm || filtroStatus !== "todos") && (
+            {(searchTerm || filtroStatus !== "todos" || filtroModalidade !== "todos") && (
               <p className="text-sm text-gray-600">
                 {solicitacoesFiltradas.length} resultado(s) encontrado(s)
               </p>
@@ -306,12 +336,14 @@ export default function SolicitacoesProfissional() {
                             {solicitacao.cliente_cidade}, {solicitacao.cliente_estado}
                           </span>
                         )}
-                        {profissional && solicitacao.cliente_cidade && solicitacao.cliente_estado && (
+                        {profissional && (solicitacao.cliente_cep || (solicitacao.cliente_cidade && solicitacao.cliente_estado)) && (
                           <DistanciaIndicador
+                            cepOrigem={profissional.cep}
                             cidadeOrigem={profissional.cidade}
                             estadoOrigem={profissional.estado}
-                            cidadeDestino={solicitacao.cliente_cidade}
-                            estadoDestino={solicitacao.cliente_estado}
+                            cepDestino={solicitacao.cliente_cep}
+                            cidadeDestino={solicitacao.cliente_cidade || ''}
+                            estadoDestino={solicitacao.cliente_estado || ''}
                           />
                         )}
                         {!solicitacao.ja_liberou && (

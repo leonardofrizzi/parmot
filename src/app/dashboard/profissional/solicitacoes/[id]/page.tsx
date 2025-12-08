@@ -281,7 +281,7 @@ export default function DetalheSolicitacaoProfissional() {
             )}
 
             {/* Distância do profissional até o cliente */}
-            {solicitacao.cliente_cidade && solicitacao.cliente_estado && profissional && (
+            {((solicitacao as any).cliente_cep || (solicitacao.cliente_cidade && solicitacao.cliente_estado)) && profissional && (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Distância até o serviço</h3>
                 <div className="flex items-center gap-4">
@@ -299,10 +299,12 @@ export default function DetalheSolicitacaoProfissional() {
                     </div>
                     <div className="text-lg font-bold">
                       <DistanciaIndicador
+                        cepOrigem={profissional.cep}
                         cidadeOrigem={profissional.cidade}
                         estadoOrigem={profissional.estado}
-                        cidadeDestino={solicitacao.cliente_cidade}
-                        estadoDestino={solicitacao.cliente_estado}
+                        cepDestino={(solicitacao as any).cliente_cep}
+                        cidadeDestino={solicitacao.cliente_cidade || ''}
+                        estadoDestino={solicitacao.cliente_estado || ''}
                         showIcon={false}
                         className="text-lg"
                       />

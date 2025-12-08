@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { Navigation } from "lucide-react"
-import { buscarCoordenadas, calcularDistanciaKm, formatarDistancia } from "@/lib/distancia"
+import { buscarCoordenadas, buscarCoordenadasPorCep, calcularDistanciaKm, formatarDistancia } from "@/lib/distancia"
 
 interface DistanciaIndicadorProps {
   cidadeOrigem: string
   estadoOrigem: string
   cidadeDestino: string
   estadoDestino: string
+  cepOrigem?: string
+  cepDestino?: string
   className?: string
   showIcon?: boolean
 }
@@ -18,6 +20,8 @@ export default function DistanciaIndicador({
   estadoOrigem,
   cidadeDestino,
   estadoDestino,
+  cepOrigem,
+  cepDestino,
   className = "",
   showIcon = true
 }: DistanciaIndicadorProps) {
@@ -26,21 +30,24 @@ export default function DistanciaIndicador({
 
   useEffect(() => {
     const calcularDistancia = async () => {
-      // Se mesma cidade e estado, distância é praticamente 0
-      if (
-        cidadeOrigem?.toLowerCase() === cidadeDestino?.toLowerCase() &&
-        estadoOrigem === estadoDestino
-      ) {
-        setDistancia(0)
-        setLoading(false)
-        return
-      }
-
       try {
-        const [coordsOrigem, coordsDestino] = await Promise.all([
-          buscarCoordenadas(cidadeOrigem, estadoOrigem),
-          buscarCoordenadas(cidadeDestino, estadoDestino)
-        ])
+        let coordsOrigem = null
+        let coordsDestino = null
+
+        // Tentar buscar por CEP primeiro (mais preciso)
+        if (cepOrigem) {
+          coordsOrigem = await buscarCoordenadasPorCep(cepOrigem)
+        }
+        if (!coordsOrigem && cidadeOrigem && estadoOrigem) {
+          coordsOrigem = await buscarCoordenadas(cidadeOrigem, estadoOrigem)
+        }
+
+        if (cepDestino) {
+          coordsDestino = await buscarCoordenadasPorCep(cepDestino)
+        }
+        if (!coordsDestino && cidadeDestino && estadoDestino) {
+          coordsDestino = await buscarCoordenadas(cidadeDestino, estadoDestino)
+        }
 
         if (coordsOrigem && coordsDestino) {
           const dist = calcularDistanciaKm(
@@ -58,12 +65,16 @@ export default function DistanciaIndicador({
       }
     }
 
-    if (cidadeOrigem && estadoOrigem && cidadeDestino && estadoDestino) {
+    // Precisa ter pelo menos cidade/estado OU cep para ambos
+    const temOrigem = cepOrigem || (cidadeOrigem && estadoOrigem)
+    const temDestino = cepDestino || (cidadeDestino && estadoDestino)
+
+    if (temOrigem && temDestino) {
       calcularDistancia()
     } else {
       setLoading(false)
     }
-  }, [cidadeOrigem, estadoOrigem, cidadeDestino, estadoDestino])
+  }, [cidadeOrigem, estadoOrigem, cidadeDestino, estadoDestino, cepOrigem, cepDestino])
 
   if (loading) {
     return (
@@ -90,7 +101,7 @@ export default function DistanciaIndicador({
     <span className={`flex items-center gap-1 ${getCorDistancia(distancia)} ${className}`}>
       {showIcon && <Navigation size={14} />}
       <span className="text-sm font-medium">
-        {distancia === 0 ? "Mesma cidade" : formatarDistancia(distancia)}
+        {formatarDistancia(distancia)}
       </span>
     </span>
   )
