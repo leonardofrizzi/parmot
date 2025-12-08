@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
-import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins } from "lucide-react"
+import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, Navigation, MessageCircle, Mail, Phone } from "lucide-react"
 import * as Icons from "lucide-react"
+import DistanciaIndicador from "@/components/DistanciaIndicador"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
 
@@ -305,6 +306,14 @@ export default function SolicitacoesProfissional() {
                             {solicitacao.cliente_cidade}, {solicitacao.cliente_estado}
                           </span>
                         )}
+                        {profissional && solicitacao.cliente_cidade && solicitacao.cliente_estado && (
+                          <DistanciaIndicador
+                            cidadeOrigem={profissional.cidade}
+                            estadoOrigem={profissional.estado}
+                            cidadeDestino={solicitacao.cliente_cidade}
+                            estadoDestino={solicitacao.cliente_estado}
+                          />
+                        )}
                         {!solicitacao.ja_liberou && (
                           <span className="flex items-center gap-1 text-orange-600">
                             <Users size={14} />
@@ -317,7 +326,51 @@ export default function SolicitacoesProfissional() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-700 mb-4">{solicitacao.descricao}</p>
-                  <div className="flex items-center justify-between">
+
+                  {/* Dados do cliente quando já liberou */}
+                  {solicitacao.ja_liberou && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs text-green-600 font-medium mb-2 flex items-center gap-1">
+                        <CheckCircle2 size={12} />
+                        Contato Liberado
+                      </p>
+                      {(solicitacao as any).cliente_nome ? (
+                        <>
+                          <p className="font-semibold text-gray-900 mb-2">{(solicitacao as any).cliente_nome}</p>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {(solicitacao as any).cliente_telefone && (
+                              <a
+                                href={`https://wa.me/55${(solicitacao as any).cliente_telefone.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MessageCircle size={16} />
+                                WhatsApp
+                              </a>
+                            )}
+                            {(solicitacao as any).cliente_email && (
+                              <a
+                                href={`mailto:${(solicitacao as any).cliente_email}`}
+                                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Mail size={16} />
+                                Email
+                              </a>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-yellow-700 bg-yellow-50 p-2 rounded">
+                          Carregando dados do cliente...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="text-sm text-gray-600">
                       {solicitacao.ja_liberou ? (
                         <span className="flex items-center gap-1 text-green-600">
@@ -325,20 +378,22 @@ export default function SolicitacoesProfissional() {
                           Você já tem acesso ao contato do cliente
                         </span>
                       ) : (
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                           <span className="flex items-center gap-1">
                             <Lock size={14} />
                             Liberar contato:
                           </span>
-                          <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
-                            <Coins size={12} />
-                            {config.custo_contato_normal} moedas
-                          </span>
-                          <span className="text-gray-400">ou</span>
-                          <span className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 rounded-full text-xs font-medium">
-                            <Coins size={12} />
-                            {config.custo_contato_exclusivo} exclusivo
-                          </span>
+                          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                            <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium w-fit">
+                              <Coins size={12} />
+                              {config.custo_contato_normal} moedas
+                            </span>
+                            <span className="text-gray-400 hidden sm:inline">ou</span>
+                            <span className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 rounded-full text-xs font-medium w-fit">
+                              <Coins size={12} />
+                              {config.custo_contato_exclusivo} exclusivo
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -347,6 +402,7 @@ export default function SolicitacoesProfissional() {
                       onClick={() => router.push(`/dashboard/profissional/solicitacoes/${solicitacao.id}`)}
                       disabled={profissional && !profissional.aprovado}
                       title={profissional && !profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
+                      className="w-full sm:w-auto"
                     >
                       Ver detalhes
                     </Button>

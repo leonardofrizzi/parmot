@@ -17,17 +17,35 @@ export async function GET(
       )
     }
 
+    // Primeiro verificar se o profissional já liberou esta solicitação
+    const { data: respostaProf } = await supabase
+      .from('respostas')
+      .select('id')
+      .eq('solicitacao_id', id)
+      .eq('profissional_id', profissional_id)
+      .eq('contato_liberado', true)
+      .single()
+
+    const profissionalJaLiberou = !!respostaProf
+
     // Buscar solicitação com informações do cliente
-    const { data: solicitacaoData, error: solicitacaoError } = await supabase
+    // Se o profissional já liberou, não filtrar por status (pode ver mesmo se fechada)
+    let query = supabase
       .from('solicitacoes')
       .select(`
         *,
         categorias:categoria_id(nome, slug, icone),
         subcategorias:subcategoria_id(nome, slug),
-        clientes:cliente_id(cidade, estado)
+        clientes:cliente_id(nome, email, telefone, cidade, estado)
       `)
       .eq('id', id)
-      .eq('status', 'aberta')
+
+    // Se não liberou ainda, só pode ver solicitações abertas
+    if (!profissionalJaLiberou) {
+      query = query.eq('status', 'aberta')
+    }
+
+    const { data: solicitacaoData, error: solicitacaoError } = await query
 
     if (solicitacaoError) {
       console.error('Erro ao buscar solicitação:', solicitacaoError)
@@ -63,17 +81,29 @@ export async function GET(
       console.error('Erro ao buscar respostas:', respostasError)
     }
 
-    // Verificar se este profissional já liberou
-    const jaLiberou = respostasData?.some((r: any) => r.profissional_id === profissional_id) || false
+    // Usar a verificação que já fizemos antes
+    const jaLiberou = profissionalJaLiberou
 
-    // Formatar dados
-    const solicitacaoFormatada = {
+    // Formatar dados - incluir dados do cliente apenas se já liberou
+    const solicitacaoFormatada: any = {
       ...solicitacao,
       categoria_nome: solicitacao.categorias?.nome || '',
       categoria_icone: solicitacao.categorias?.icone || '',
       subcategoria_nome: solicitacao.subcategorias?.nome || '',
       cliente_cidade: solicitacao.clientes?.cidade || '',
       cliente_estado: solicitacao.clientes?.estado || ''
+    }
+
+    // Se o profissional já liberou, incluir dados de contato do cliente
+    if (jaLiberou) {
+      solicitacaoFormatada.cliente_nome = solicitacao.clientes?.nome || ''
+      solicitacaoFormatada.cliente_email = solicitacao.clientes?.email || ''
+      solicitacaoFormatada.cliente_telefone = solicitacao.clientes?.telefone || ''
+      console.log('Dados do cliente incluídos:', {
+        nome: solicitacaoFormatada.cliente_nome,
+        email: solicitacaoFormatada.cliente_email,
+        telefone: solicitacaoFormatada.cliente_telefone
+      })
     }
 
     const respostasFormatadas = (respostasData || []).map((resposta: any) => ({

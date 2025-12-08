@@ -5,9 +5,9 @@ import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Solicitacao } from "@/types/database"
-import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building, Navigation, Phone, Mail, User, MessageCircle } from "lucide-react"
 import * as Icons from "lucide-react"
-import MapaLocalizacao from "@/components/MapaLocalizacao"
+import DistanciaIndicador from "@/components/DistanciaIndicador"
 
 interface Resposta {
   id: string
@@ -187,10 +187,10 @@ export default function DetalheSolicitacaoProfissional() {
   if (!solicitacao) return null
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <Button variant="outline" onClick={() => router.back()} className="mb-6">
+        <Button variant="outline" onClick={() => router.back()} className="mb-4 md:mb-6">
           <ArrowLeft size={16} className="mr-2" /> Voltar
         </Button>
 
@@ -280,39 +280,128 @@ export default function DetalheSolicitacaoProfissional() {
               </div>
             )}
 
-            {/* Mapa de localização aproximada */}
-            {solicitacao.cliente_cidade && solicitacao.cliente_estado && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Localização aproximada</h3>
-                <MapaLocalizacao
-                  cidade={solicitacao.cliente_cidade}
-                  estado={solicitacao.cliente_estado}
-                  className="h-[250px]"
-                />
+            {/* Distância do profissional até o cliente */}
+            {solicitacao.cliente_cidade && solicitacao.cliente_estado && profissional && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Distância até o serviço</h3>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <Navigation size={24} className="text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-gray-600 text-sm">De:</span>
+                      <span className="font-medium">{profissional.cidade}, {profissional.estado}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-gray-600 text-sm">Para:</span>
+                      <span className="font-medium">{solicitacao.cliente_cidade}, {solicitacao.cliente_estado}</span>
+                    </div>
+                    <div className="text-lg font-bold">
+                      <DistanciaIndicador
+                        cidadeOrigem={profissional.cidade}
+                        estadoOrigem={profissional.estado}
+                        cidadeDestino={solicitacao.cliente_cidade}
+                        estadoDestino={solicitacao.cliente_estado}
+                        showIcon={false}
+                        className="text-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Dados do Cliente - Mostrar PRIMEIRO quando já liberou */}
+        {jaLiberou && (
+          <Card className="mb-4 md:mb-6 border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <User size={20} className="text-green-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg text-green-800">Dados do Cliente</CardTitle>
+                  <CardDescription className="text-green-600">Contato liberado com sucesso!</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(solicitacao as any).cliente_nome ? (
+                <>
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+                    <User size={18} className="text-gray-500" />
+                    <div>
+                      <p className="text-xs text-gray-500">Nome</p>
+                      <p className="font-semibold text-gray-900">{(solicitacao as any).cliente_nome}</p>
+                    </div>
+                  </div>
+
+                  {(solicitacao as any).cliente_telefone && (
+                    <a
+                      href={`https://wa.me/55${(solicitacao as any).cliente_telefone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-green-50 transition-colors group"
+                    >
+                      <MessageCircle size={18} className="text-green-600" />
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">WhatsApp</p>
+                        <p className="font-semibold text-gray-900">{(solicitacao as any).cliente_telefone}</p>
+                      </div>
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        Abrir WhatsApp
+                      </Button>
+                    </a>
+                  )}
+
+                  {(solicitacao as any).cliente_email && (
+                    <a
+                      href={`mailto:${(solicitacao as any).cliente_email}`}
+                      className="flex items-center gap-3 p-3 bg-white rounded-lg hover:bg-blue-50 transition-colors"
+                    >
+                      <Mail size={18} className="text-blue-600" />
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="font-semibold text-gray-900">{(solicitacao as any).cliente_email}</p>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        Enviar Email
+                      </Button>
+                    </a>
+                  )}
+                </>
+              ) : (
+                <div className="p-4 bg-yellow-50 rounded-lg text-yellow-800 text-sm">
+                  <p>Carregando dados do cliente... Se persistir, atualize a página.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status de Vagas */}
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users size={24} className="text-blue-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Users size={20} className="text-blue-600 md:hidden" />
+                  <Users size={24} className="text-blue-600 hidden md:block" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">
                     {vagasDisponiveis} {vagasDisponiveis === 1 ? 'vaga disponível' : 'vagas disponíveis'}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {respostas.length} de {config.max_profissionais_por_solicitacao} profissionais já liberaram o contato
+                    {respostas.length} de {config.max_profissionais_por_solicitacao} profissionais já liberaram
                   </p>
                 </div>
               </div>
               {jaLiberou && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1">
+                <span className="px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-sm font-medium flex items-center gap-1 w-fit">
                   <Unlock size={14} />
                   Você já liberou
                 </span>
@@ -321,128 +410,143 @@ export default function DetalheSolicitacaoProfissional() {
           </CardContent>
         </Card>
 
-        {/* Ações de Liberação */}
+        {/* Ações de Liberação - Design mobile-first */}
         {!jaLiberou && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Liberação Normal */}
-            <Card className={`border-2 transition-all ${!podeLiberar ? 'opacity-50' : 'hover:border-primary-300 hover:shadow-md'}`}>
-              <CardHeader>
-                <div className="flex items-center justify-between mb-2">
-                  <CardTitle className="text-lg">Contato Padrão</CardTitle>
-                  <div className="flex items-center gap-1 text-orange-600 font-bold text-xl">
-                    <Coins size={20} />
-                    {config.custo_contato_normal}
-                  </div>
-                </div>
-                <CardDescription>
-                  Libere o contato do cliente e entre em contato
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 mb-4 text-sm text-gray-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Acesso ao WhatsApp e email do cliente</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span>Até {config.max_profissionais_por_solicitacao} profissionais podem liberar</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-orange-600 mt-0.5">⚠</span>
-                    <span>Outros profissionais podem concorrer</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 mt-0.5">ℹ</span>
-                    <span>Reembolso de {config.percentual_reembolso}% se não fechar negócio</span>
-                  </li>
-                </ul>
-                <Button
-                  onClick={() => handleLiberar(false)}
-                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_normal || !profissional.aprovado}
-                  className="w-full"
-                  title={!profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
-                >
-                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Liberar por ${config.custo_contato_normal} moedas`}
-                </Button>
-                {profissional.saldo_moedas < config.custo_contato_normal && (
-                  <p className="text-xs text-red-600 mt-2 text-center">
-                    Saldo insuficiente
-                  </p>
-                )}
-                {!profissional.aprovado && (
-                  <p className="text-xs text-yellow-600 mt-2 text-center">
-                    Aguardando aprovação da conta
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+          <div className="space-y-4 mb-4 md:mb-6">
+            {/* Botões rápidos para mobile - aparecem primeiro */}
+            <div className="md:hidden space-y-3">
+              <Button
+                onClick={() => handleLiberar(false)}
+                disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_normal || !profissional.aprovado}
+                className="w-full h-14 text-base"
+                size="lg"
+              >
+                <Coins size={20} className="mr-2" />
+                {unlocking ? "Liberando..." : `Liberar por ${config.custo_contato_normal} moedas`}
+              </Button>
+              <Button
+                onClick={() => handleLiberar(true)}
+                disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_exclusivo || !profissional.aprovado}
+                className="w-full h-14 text-base bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
+                size="lg"
+              >
+                <Shield size={20} className="mr-2" />
+                {unlocking ? "Liberando..." : `Exclusivo por ${config.custo_contato_exclusivo} moedas`}
+              </Button>
+              {profissional.saldo_moedas < config.custo_contato_normal && (
+                <p className="text-xs text-red-600 text-center">Saldo insuficiente</p>
+              )}
+              {!profissional.aprovado && (
+                <p className="text-xs text-yellow-600 text-center">Aguardando aprovação da conta</p>
+              )}
+            </div>
 
-            {/* Liberação Exclusiva */}
-            <Card className={`border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 transition-all ${!podeLiberar ? 'opacity-50' : 'hover:border-orange-300 hover:shadow-md'}`}>
-              <CardHeader>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">Exclusividade</CardTitle>
-                    <Shield size={18} className="text-orange-600" />
+            {/* Cards detalhados para desktop */}
+            <div className="hidden md:grid md:grid-cols-2 gap-4">
+              {/* Liberação Normal */}
+              <Card className={`border-2 transition-all ${!podeLiberar ? 'opacity-50' : 'hover:border-primary-300 hover:shadow-md'}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <CardTitle className="text-lg">Contato Padrão</CardTitle>
+                    <div className="flex items-center gap-1 text-orange-600 font-bold text-xl">
+                      <Coins size={20} />
+                      {config.custo_contato_normal}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-orange-600 font-bold text-xl">
-                    <Coins size={20} />
-                    {config.custo_contato_exclusivo}
+                  <CardDescription>
+                    Libere o contato do cliente e entre em contato
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 mb-4 text-sm text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Acesso ao WhatsApp e email do cliente</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span>Até {config.max_profissionais_por_solicitacao} profissionais podem liberar</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-orange-600 mt-0.5">⚠</span>
+                      <span>Outros profissionais podem concorrer</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">ℹ</span>
+                      <span>Reembolso de {config.percentual_reembolso}% se não fechar negócio</span>
+                    </li>
+                  </ul>
+                  <Button
+                    onClick={() => handleLiberar(false)}
+                    disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_normal || !profissional.aprovado}
+                    className="w-full"
+                  >
+                    {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Liberar por ${config.custo_contato_normal} moedas`}
+                  </Button>
+                  {profissional.saldo_moedas < config.custo_contato_normal && (
+                    <p className="text-xs text-red-600 mt-2 text-center">Saldo insuficiente</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Liberação Exclusiva */}
+              <Card className={`border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-yellow-50 transition-all ${!podeLiberar ? 'opacity-50' : 'hover:border-orange-300 hover:shadow-md'}`}>
+                <CardHeader>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">Exclusividade</CardTitle>
+                      <Shield size={18} className="text-orange-600" />
+                    </div>
+                    <div className="flex items-center gap-1 text-orange-600 font-bold text-xl">
+                      <Coins size={20} />
+                      {config.custo_contato_exclusivo}
+                    </div>
                   </div>
-                </div>
-                <CardDescription>
-                  Seja o único profissional a ter acesso
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 mb-4 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span className="font-medium">Acesso exclusivo ao contato</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span className="font-medium">Nenhum outro profissional poderá liberar</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">✓</span>
-                    <span className="font-medium">Cliente receberá apenas seu contato</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 mt-0.5">ℹ</span>
-                    <span className="font-medium">Reembolso de {config.percentual_reembolso}% se não fechar negócio</span>
-                  </li>
-                </ul>
-                <Button
-                  onClick={() => handleLiberar(true)}
-                  disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_exclusivo || !profissional.aprovado}
-                  className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
-                  title={!profissional.aprovado ? "Aguardando aprovação da sua conta" : ""}
-                >
-                  {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Garantir Exclusividade por ${config.custo_contato_exclusivo} moedas`}
-                </Button>
-                {profissional.saldo_moedas < config.custo_contato_exclusivo && (
-                  <p className="text-xs text-red-600 mt-2 text-center">
-                    Saldo insuficiente
-                  </p>
-                )}
-                {!profissional.aprovado && (
-                  <p className="text-xs text-yellow-600 mt-2 text-center">
-                    Aguardando aprovação da conta
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                  <CardDescription>
+                    Seja o único profissional a ter acesso
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 mb-4 text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span className="font-medium">Acesso exclusivo ao contato</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span className="font-medium">Nenhum outro profissional poderá liberar</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 mt-0.5">✓</span>
+                      <span className="font-medium">Cliente receberá apenas seu contato</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">ℹ</span>
+                      <span className="font-medium">Reembolso de {config.percentual_reembolso}% se não fechar negócio</span>
+                    </li>
+                  </ul>
+                  <Button
+                    onClick={() => handleLiberar(true)}
+                    disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_exclusivo || !profissional.aprovado}
+                    className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
+                  >
+                    {unlocking ? "Liberando..." : !profissional.aprovado ? "Conta pendente" : `Exclusividade por ${config.custo_contato_exclusivo} moedas`}
+                  </Button>
+                  {profissional.saldo_moedas < config.custo_contato_exclusivo && (
+                    <p className="text-xs text-red-600 mt-2 text-center">Saldo insuficiente</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </div>
         )}
 
         {!podeLiberar && !jaLiberou && (
-          <Card className="mb-6 border-red-200 bg-red-50">
+          <Card className="mb-4 md:mb-6 border-red-200 bg-red-50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3 text-red-800">
-                <Lock size={20} />
-                <p className="font-medium">
+                <Lock size={20} className="flex-shrink-0" />
+                <p className="font-medium text-sm md:text-base">
                   Esta solicitação já atingiu o limite de {config.max_profissionais_por_solicitacao} profissionais interessados.
                 </p>
               </div>
@@ -453,19 +557,21 @@ export default function DetalheSolicitacaoProfissional() {
         {/* Informações do seu saldo */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Coins size={24} className="text-orange-600" />
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Coins size={20} className="text-orange-600 md:hidden" />
+                  <Coins size={24} className="text-orange-600 hidden md:block" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Seu saldo atual</p>
-                  <p className="text-2xl font-bold text-gray-900">{profissional.saldo_moedas} moedas</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{profissional.saldo_moedas} moedas</p>
                 </div>
               </div>
               <Button
                 variant="outline"
                 onClick={() => router.push('/dashboard/profissional/moedas')}
+                className="w-full sm:w-auto"
               >
                 Comprar Moedas
               </Button>

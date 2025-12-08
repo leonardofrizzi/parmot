@@ -17,13 +17,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar TODAS as solicitações abertas e aprovadas (só tem 1 categoria)
+    // Inclui nome, email e telefone do cliente para mostrar quando liberado
     const { data, error } = await supabase
       .from('solicitacoes')
       .select(`
         *,
         categorias:categoria_id(nome, slug, icone),
         subcategorias:subcategoria_id(nome, slug),
-        clientes:cliente_id(cidade, estado)
+        clientes:cliente_id(nome, email, telefone, cidade, estado)
       `)
       .eq('status', 'aberta')
       .eq('aprovado_admin', true)
@@ -71,17 +72,37 @@ export async function GET(request: NextRequest) {
     })
 
     // Formatar dados com informações de liberação
-    const solicitacoesFormatadas = solicitacoesFiltradas.map((solicitacao: any) => ({
-      ...solicitacao,
-      categoria_nome: solicitacao.categorias?.nome || '',
-      categoria_icone: solicitacao.categorias?.icone || '',
-      subcategoria_nome: solicitacao.subcategorias?.nome || '',
-      cliente_cidade: solicitacao.clientes?.cidade || '',
-      cliente_estado: solicitacao.clientes?.estado || '',
-      ja_liberou: solicitacoesLiberadas.has(solicitacao.id),
-      total_liberacoes: contadorLiberacoes[solicitacao.id] || 0,
-      vagas_disponiveis: Math.max(0, 4 - (contadorLiberacoes[solicitacao.id] || 0))
-    }))
+    const solicitacoesFormatadas = solicitacoesFiltradas.map((solicitacao: any) => {
+      const jaLiberou = solicitacoesLiberadas.has(solicitacao.id)
+
+      const dados: any = {
+        ...solicitacao,
+        categoria_nome: solicitacao.categorias?.nome || '',
+        categoria_icone: solicitacao.categorias?.icone || '',
+        subcategoria_nome: solicitacao.subcategorias?.nome || '',
+        cliente_cidade: solicitacao.clientes?.cidade || '',
+        cliente_estado: solicitacao.clientes?.estado || '',
+        ja_liberou: jaLiberou,
+        total_liberacoes: contadorLiberacoes[solicitacao.id] || 0,
+        vagas_disponiveis: Math.max(0, 4 - (contadorLiberacoes[solicitacao.id] || 0))
+      }
+
+      // Se já liberou, incluir dados de contato do cliente
+      if (jaLiberou) {
+        dados.cliente_nome = solicitacao.clientes?.nome || ''
+        dados.cliente_email = solicitacao.clientes?.email || ''
+        dados.cliente_telefone = solicitacao.clientes?.telefone || ''
+        console.log('Dados do cliente incluídos na listagem:', {
+          solicitacao_id: solicitacao.id,
+          cliente_nome: dados.cliente_nome,
+          cliente_email: dados.cliente_email,
+          cliente_telefone: dados.cliente_telefone,
+          clientes_raw: solicitacao.clientes
+        })
+      }
+
+      return dados
+    })
 
     return NextResponse.json({
       solicitacoes: solicitacoesFormatadas
