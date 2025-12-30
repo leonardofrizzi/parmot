@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Coins, Search, CheckCircle, TrendingUp, Calendar, MapPin } from "lucide-react"
+import { Coins, FileText, CheckCircle, TrendingUp, Calendar, MapPin } from "lucide-react"
 
 interface Profissional {
   id: string
@@ -194,7 +194,7 @@ export default function DashboardProfissional() {
                 <p className="text-xs text-gray-500 mt-1">Na sua região</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Search className="text-blue-600" size={24} />
+                <FileText className="text-blue-600" size={24} />
               </div>
             </div>
           </CardContent>
@@ -246,7 +246,7 @@ export default function DashboardProfissional() {
                   onClick={() => router.push('/dashboard/profissional/solicitacoes')}
                   className="bg-white text-primary-600 hover:bg-primary-50"
                 >
-                  <Search size={16} className="mr-2" />
+                  <FileText size={16} className="mr-2" />
                   Ver Solicitações
                 </Button>
               </div>
