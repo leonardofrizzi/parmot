@@ -49,12 +49,16 @@ export async function GET(request: NextRequest) {
     })
 
     // Verificar quais solicitações já foram liberadas pelo profissional
+    // Inclui resposta_id para permitir solicitar reembolso
     const { data: respostasLiberadas } = await supabase
       .from('respostas')
-      .select('solicitacao_id')
+      .select('id, solicitacao_id, exclusivo')
       .eq('profissional_id', profissional_id)
       .eq('contato_liberado', true)
 
+    const respostasPorSolicitacao = new Map(
+      respostasLiberadas?.map((r: any) => [r.solicitacao_id, { resposta_id: r.id, exclusivo: r.exclusivo }]) || []
+    )
     const solicitacoesLiberadas = new Set(
       respostasLiberadas?.map((r: any) => r.solicitacao_id) || []
     )
@@ -88,18 +92,14 @@ export async function GET(request: NextRequest) {
         vagas_disponiveis: Math.max(0, 4 - (contadorLiberacoes[solicitacao.id] || 0))
       }
 
-      // Se já liberou, incluir dados de contato do cliente
+      // Se já liberou, incluir dados de contato do cliente e da resposta (para reembolso)
       if (jaLiberou) {
+        const respostaInfo = respostasPorSolicitacao.get(solicitacao.id)
         dados.cliente_nome = solicitacao.clientes?.nome || ''
         dados.cliente_email = solicitacao.clientes?.email || ''
         dados.cliente_telefone = solicitacao.clientes?.telefone || ''
-        console.log('Dados do cliente incluídos na listagem:', {
-          solicitacao_id: solicitacao.id,
-          cliente_nome: dados.cliente_nome,
-          cliente_email: dados.cliente_email,
-          cliente_telefone: dados.cliente_telefone,
-          clientes_raw: solicitacao.clientes
-        })
+        dados.resposta_id = respostaInfo?.resposta_id || null
+        dados.exclusivo = respostaInfo?.exclusivo || false
       }
 
       return dados
