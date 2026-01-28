@@ -12,6 +12,7 @@ import { ReembolsoModal } from "@/components/ReembolsoModal"
 import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users, DollarSign, ExternalLink, Clock, CheckCircle2, XCircle, ThumbsDown, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { IconRenderer } from "@/components/IconRenderer"
+import { EmptyState } from "@/components/EmptyState"
 
 type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
@@ -344,39 +345,25 @@ export default function AtendimentosProfissional() {
 
         {/* Lista de Atendimentos */}
         {atendimentos.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <Search size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum atendimento ainda
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Você ainda não liberou nenhum contato de cliente. Acesse "Buscar Serviços" para ver solicitações disponíveis.
-              </p>
-              <Button onClick={() => router.push('/dashboard/profissional/solicitacoes')}>
-                Buscar Serviços
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Search size={64} />}
+            title="Nenhum atendimento ainda"
+            description="Você ainda não liberou nenhum contato de cliente. Acesse 'Buscar Serviços' para ver solicitações disponíveis."
+            action={{
+              label: "Buscar Serviços",
+              onClick: () => router.push('/dashboard/profissional/solicitacoes')
+            }}
+          />
         ) : atendimentosFiltrados.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <Search size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum resultado encontrado
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Tente usar outros termos de pesquisa ou filtros.
-              </p>
-              <Button variant="outline" onClick={() => { setSearchTerm(""); setFiltroStatus("todos") }}>
-                Limpar filtros
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Search size={64} />}
+            title="Nenhum resultado encontrado"
+            description="Tente usar outros termos de pesquisa ou filtros."
+            action={{
+              label: "Limpar filtros",
+              onClick: () => { setSearchTerm(""); setFiltroStatus("todos") }
+            }}
+          />
         ) : (
           <div className="space-y-4">
             {atendimentosFiltrados.map((atendimento) => (

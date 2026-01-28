@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, MessageSquare, Plus, Search, Users, Crown, Edit, Trash2 } from "lucide-react"
 import { IconRenderer } from "@/components/IconRenderer"
+import { EmptyState } from "@/components/EmptyState"
 
 type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
@@ -186,39 +187,25 @@ export default function MinhasSolicitacoes() {
 
         {/* Lista de Solicitações */}
         {solicitacoes.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <MessageSquare size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhuma solicitação ainda
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Você ainda não fez nenhuma solicitação de serviço.
-              </p>
-              <Button onClick={() => router.push('/dashboard/cliente/solicitar')}>
-                <Plus size={16} className="mr-2" /> Criar primeira solicitação
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<MessageSquare size={64} />}
+            title="Nenhuma solicitação ainda"
+            description="Você ainda não fez nenhuma solicitação de serviço."
+            action={{
+              label: "Criar primeira solicitação",
+              onClick: () => router.push('/dashboard/cliente/solicitar')
+            }}
+          />
         ) : solicitacoesFiltradas.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <Search size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum resultado encontrado
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Tente usar outros termos de pesquisa.
-              </p>
-              <Button variant="outline" onClick={() => setSearchTerm("")}>
-                Limpar pesquisa
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Search size={64} />}
+            title="Nenhum resultado encontrado"
+            description="Tente usar outros termos de pesquisa."
+            action={{
+              label: "Limpar pesquisa",
+              onClick: () => setSearchTerm("")
+            }}
+          />
         ) : (
           <div className="space-y-4">
             {solicitacoesFiltradas.map((solicitacao) => (

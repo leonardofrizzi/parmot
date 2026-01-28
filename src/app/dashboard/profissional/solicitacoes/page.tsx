@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Solicitacao } from "@/types/database"
 import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, MessageCircle, Mail, DollarSign, AlertCircle, Handshake } from "lucide-react"
 import { IconRenderer } from "@/components/IconRenderer"
+import { EmptyState } from "@/components/EmptyState"
 import DistanciaIndicador from "@/components/DistanciaIndicador"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
@@ -387,36 +388,21 @@ export default function SolicitacoesProfissional() {
 
         {/* Lista de Solicitações */}
         {solicitacoes.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <Search size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhuma solicitação disponível
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Não há solicitações de clientes na sua região no momento.
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Search size={64} />}
+            title="Nenhuma solicitação disponível"
+            description="Não há solicitações de clientes na sua região no momento."
+          />
         ) : solicitacoesFiltradas.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <Search size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum resultado encontrado
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Tente usar outros termos de pesquisa.
-              </p>
-              <Button variant="outline" onClick={() => setSearchTerm("")}>
-                Limpar pesquisa
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Search size={64} />}
+            title="Nenhum resultado encontrado"
+            description="Tente usar outros termos de pesquisa."
+            action={{
+              label: "Limpar pesquisa",
+              onClick: () => setSearchTerm("")
+            }}
+          />
         ) : (
           <div className="space-y-3 sm:space-y-4">
             {solicitacoesFiltradas.map((solicitacao) => (

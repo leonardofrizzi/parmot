@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DollarSign, Calendar, FileText, Link as LinkIcon, CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react"
+import { EmptyState } from "@/components/EmptyState"
 
 interface SolicitacaoReembolso {
   id: string
@@ -188,19 +189,11 @@ export default function ReembolsosProfissional() {
 
         {/* Lista de Solicitações */}
         {!solicitacoes || solicitacoes.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="mb-4 text-gray-400">
-                <DollarSign size={64} className="mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhuma solicitação ainda
-              </h3>
-              <p className="text-gray-600">
-                Você ainda não fez nenhuma solicitação de reembolso.
-              </p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<DollarSign size={64} />}
+            title="Nenhuma solicitação ainda"
+            description="Você ainda não fez nenhuma solicitação de reembolso."
+          />
         ) : (
           <div className="space-y-4">
             {solicitacoes.map((solicitacao) => (
