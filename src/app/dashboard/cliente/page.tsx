@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
 import { Plus, FileText, Users, Clock, CheckCircle, Calendar } from "lucide-react"
 import { IconRenderer } from "@/components/IconRenderer"
+import { SkeletonPageHeader, SkeletonStatsGrid, SkeletonListCard } from "@/components/skeletons"
 
 interface Cliente {
   id: string
@@ -81,36 +81,16 @@ export default function DashboardCliente() {
   if (!cliente || loading) {
     return (
       <div className="p-8">
-        {/* Header Skeleton */}
-        <div className="mb-8">
-          <Skeleton className="h-9 w-48 mb-2" />
-          <Skeleton className="h-5 w-96" />
-        </div>
-
-        {/* Stats Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Skeleton className="h-4 w-32 mb-2" />
-                    <Skeleton className="h-8 w-12" />
-                  </div>
-                  <Skeleton className="w-12 h-12 rounded-full" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <SkeletonPageHeader />
+        <SkeletonStatsGrid count={4} />
 
         {/* CTA Skeleton */}
         <div className="mb-8">
           <Card>
             <CardContent className="pt-6">
-              <Skeleton className="h-6 w-48 mb-2" />
-              <Skeleton className="h-4 w-96 mb-4" />
-              <Skeleton className="h-10 w-40" />
+              <div className="h-6 w-48 mb-2 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-96 mb-4 bg-gray-200 rounded animate-pulse" />
+              <div className="h-10 w-40 bg-gray-200 rounded animate-pulse" />
             </CardContent>
           </Card>
         </div>
@@ -118,22 +98,13 @@ export default function DashboardCliente() {
         {/* Solicitações Skeleton */}
         <Card>
           <CardHeader>
-            <Skeleton className="h-6 w-48 mb-2" />
-            <Skeleton className="h-4 w-64" />
+            <div className="h-6 w-48 mb-2 bg-gray-200 rounded animate-pulse" />
+            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-3 flex-1">
-                    <Skeleton className="h-5 w-5" />
-                    <div className="flex-1">
-                      <Skeleton className="h-5 w-64 mb-2" />
-                      <Skeleton className="h-4 w-96" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-6 w-24 rounded-full" />
-                </div>
+                <SkeletonListCard key={i} variant="simple" />
               ))}
             </div>
           </CardContent>

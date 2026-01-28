@@ -7,12 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
 import { ReembolsoModal } from "@/components/ReembolsoModal"
 import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users, DollarSign, ExternalLink, Clock, CheckCircle2, XCircle, ThumbsDown, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { IconRenderer } from "@/components/IconRenderer"
 import { EmptyState } from "@/components/EmptyState"
+import { SkeletonPageHeader, SkeletonStatsGrid, SkeletonListCard } from "@/components/skeletons"
 
 type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
@@ -203,44 +203,13 @@ export default function AtendimentosProfissional() {
     return (
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
-          {/* Header Skeleton */}
-          <div className="mb-8">
-            <Skeleton className="h-9 w-64 mb-2" />
-            <Skeleton className="h-5 w-80" />
-          </div>
-
-          {/* Stats Skeleton */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i}>
-                <CardContent className="pt-6">
-                  <Skeleton className="h-8 w-16 mb-1" />
-                  <Skeleton className="h-4 w-20" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <SkeletonPageHeader />
+          <SkeletonStatsGrid count={4} variant="compact" />
 
           {/* Atendimentos Skeleton */}
           <div className="space-y-4">
             {[1, 2].map((i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="flex-1">
-                      <Skeleton className="h-6 w-48 mb-2" />
-                      <Skeleton className="h-4 w-32" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <Skeleton className="h-4 w-full mb-2" />
-                    <Skeleton className="h-4 w-3/4" />
-                  </div>
-                </CardContent>
-              </Card>
+              <SkeletonListCard key={i} variant="atendimento" />
             ))}
           </div>
         </div>
