@@ -35,7 +35,6 @@ export default function AdminSidebar() {
           expanded ? "w-64" : "w-20"
         )}
       >
-        {/* Botão de expandir/retrair */}
         <button
           onClick={() => setExpanded(!expanded)}
           className="absolute -right-3 top-8 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors z-10 shadow-sm"
@@ -43,7 +42,6 @@ export default function AdminSidebar() {
           {expanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
 
-        {/* Logo / Header */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           {expanded ? (
             <div className="flex items-center gap-2">
@@ -59,7 +57,6 @@ export default function AdminSidebar() {
           )}
         </div>
 
-        {/* Menu Items */}
         <nav className="flex-1 px-3 py-6 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon
@@ -106,7 +103,6 @@ export default function AdminSidebar() {
           })}
         </nav>
 
-        {/* Logout */}
         <div className="px-3 py-4 border-t border-gray-200">
           {expanded ? (
             <Button

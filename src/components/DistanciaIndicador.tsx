@@ -34,7 +34,6 @@ export default function DistanciaIndicador({
         let coordsOrigem = null
         let coordsDestino = null
 
-        // Tentar buscar por CEP primeiro (mais preciso)
         if (cepOrigem) {
           coordsOrigem = await buscarCoordenadasPorCep(cepOrigem)
         }
@@ -65,7 +64,6 @@ export default function DistanciaIndicador({
       }
     }
 
-    // Precisa ter pelo menos cidade/estado OU cep para ambos
     const temOrigem = cepOrigem || (cidadeOrigem && estadoOrigem)
     const temDestino = cepDestino || (cidadeDestino && estadoDestino)
 
@@ -89,7 +87,6 @@ export default function DistanciaIndicador({
     return null
   }
 
-  // Cores baseadas na distância
   const getCorDistancia = (km: number) => {
     if (km < 5) return "text-green-600"
     if (km < 20) return "text-blue-600"

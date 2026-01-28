@@ -35,7 +35,6 @@ export function LocationSelects({
   const previousEstado = useRef(estado)
 
   useEffect(() => {
-    // Carregar estados da API do IBGE
     fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome')
       .then(res => res.json())
       .then(data => setEstados(data))
@@ -43,12 +42,10 @@ export function LocationSelects({
   }, [])
 
   useEffect(() => {
-    // Carregar cidades quando um estado for selecionado
     if (estado) {
       setLoadingCidades(true)
       setCidades([])
 
-      // Só limpa a cidade se o estado realmente mudou
       if (previousEstado.current !== estado) {
         onCidadeChange("")
         previousEstado.current = estado

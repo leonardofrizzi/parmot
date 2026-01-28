@@ -61,17 +61,14 @@ export function AvaliacaoModal({
         return
       }
 
-      // Resetar form
       setNota(0)
       setComentario("")
       setLoading(false)
 
-      // Callback de sucesso
       if (onAvaliacaoEnviada) {
         onAvaliacaoEnviada()
       }
 
-      // Fechar modal
       onOpenChange(false)
 
     } catch (err) {
@@ -104,7 +101,6 @@ export function AvaliacaoModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Rating */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">
               Sua avaliação *
@@ -127,7 +123,6 @@ export function AvaliacaoModal({
             )}
           </div>
 
-          {/* Comentário */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <MessageSquare size={16} />

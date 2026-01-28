@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { MapPin, AlertCircle } from "lucide-react"
 
-// Importação dinâmica para evitar erros de SSR
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
@@ -65,18 +64,15 @@ export default function MapaLocalizacao({ cidade, estado, className = "" }: Mapa
     setMounted(true)
   }, [])
 
-  // Buscar coordenadas via API de geocodificação
   useEffect(() => {
     const buscarCoordenadas = async () => {
       if (!cidade || !estado) {
-        // Usar fallback do estado ou Brasil central
         setCoordenadas(coordenadasEstados[estado] || { lat: -14.235, lng: -51.9253 })
         setLoading(false)
         return
       }
 
       try {
-        // Usar API Nominatim (OpenStreetMap) para geocodificação
         const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`)
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
@@ -95,12 +91,10 @@ export default function MapaLocalizacao({ cidade, estado, className = "" }: Mapa
             lng: parseFloat(data[0].lon)
           })
         } else {
-          // Fallback para coordenadas do estado
           setCoordenadas(coordenadasEstados[estado] || { lat: -14.235, lng: -51.9253 })
         }
       } catch (err) {
         console.error('Erro ao buscar coordenadas:', err)
-        // Fallback para coordenadas do estado
         setCoordenadas(coordenadasEstados[estado] || { lat: -14.235, lng: -51.9253 })
         setError(true)
       } finally {
@@ -151,7 +145,6 @@ export default function MapaLocalizacao({ cidade, estado, className = "" }: Mapa
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {/* Círculo para mostrar região aproximada (não localização exata) */}
         <Circle
           center={[coordenadas.lat, coordenadas.lng]}
           radius={2000}

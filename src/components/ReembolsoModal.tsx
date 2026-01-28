@@ -76,13 +76,11 @@ export function ReembolsoModal({
         return
       }
 
-      // Resetar form
       setMotivo("")
       setProvasUrls([])
       setNovaProva("")
       setLoading(false)
 
-      // Fechar modal de reembolso e mostrar sucesso
       onOpenChange(false)
       setShowSucesso(true)
 
@@ -114,7 +112,6 @@ export function ReembolsoModal({
 
   return (
     <>
-      {/* Dialog de Sucesso */}
       <Dialog open={showSucesso} onOpenChange={handleSucessoClose}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -148,7 +145,6 @@ export function ReembolsoModal({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Solicitação de Reembolso */}
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -163,7 +159,6 @@ export function ReembolsoModal({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Motivo */}
           <div className="space-y-3">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <FileText size={16} />
@@ -182,7 +177,6 @@ export function ReembolsoModal({
             </p>
           </div>
 
-          {/* Provas */}
           <div className="space-y-3">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
               <LinkIcon size={16} />
@@ -238,7 +232,6 @@ export function ReembolsoModal({
             </p>
           </div>
 
-          {/* Aviso */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
               <strong>Importante:</strong> Sua solicitação será analisada por um administrador.

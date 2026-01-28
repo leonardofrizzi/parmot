@@ -26,13 +26,11 @@ export default function Sidebar({ tipo }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
-  // Modal states
   const [showModal, setShowModal] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
   const [modalSuccess, setModalSuccess] = useState(false)
   const [modalError, setModalError] = useState("")
 
-  // Form states para virar profissional (quando é cliente)
   const [profForm, setProfForm] = useState({
     tipo: "autonomo" as "autonomo" | "empresa",
     cpf_cnpj: "",
@@ -47,17 +45,14 @@ export default function Sidebar({ tipo }: SidebarProps) {
   const [diplomas, setDiplomas] = useState<{ frente: File; verso: File | null }[]>([])
   const [diplomaEmAndamento, setDiplomaEmAndamento] = useState<{ frente: File | null; verso: File | null }>({ frente: null, verso: null })
 
-  // Form states para virar cliente (quando é profissional)
   const [clienteForm, setClienteForm] = useState({
     senha: "",
     confirmarSenha: "",
   })
 
-  // Password visibility states
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Buscar dados atualizados do usuário e verificar se tem outro perfil
   useEffect(() => {
     const fetchUsuarioAtualizado = async () => {
       const usuarioData = localStorage.getItem('usuario')
@@ -66,7 +61,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
       const user = JSON.parse(usuarioData)
       setUsuario(user)
 
-      // Buscar dados atualizados do banco para garantir que temos profissional_id/cliente_id correto
       try {
         const endpoint = tipo === "profissional"
           ? `/api/profissional/${user.id}`
@@ -78,7 +72,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           const usuarioAtualizado = data.profissional || data.cliente
 
           if (usuarioAtualizado) {
-            // Atualizar localStorage com dados mais recentes
             localStorage.setItem('usuario', JSON.stringify(usuarioAtualizado))
             setUsuario(usuarioAtualizado)
 
@@ -91,7 +84,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
             } else {
               if (usuarioAtualizado.profissional_id) {
                 setOutroPerfilId(usuarioAtualizado.profissional_id)
-                // Buscar status de aprovação do profissional
                 const profResponse = await fetch(`/api/profissional/${usuarioAtualizado.profissional_id}`)
                 if (profResponse.ok) {
                   const profData = await profResponse.json()
@@ -103,7 +95,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
         }
       } catch (error) {
         console.error("Erro ao buscar dados atualizados:", error)
-        // Fallback para dados do localStorage
         if (tipo === "profissional") {
           fetchSaldo(user.id)
           if (user.cliente_id) {
@@ -119,7 +110,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
 
     fetchUsuarioAtualizado()
 
-    // Escutar mudanças no localStorage para atualizar saldo em tempo real
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'usuario' && e.newValue && tipo === "profissional") {
         const updatedUser = JSON.parse(e.newValue)
@@ -130,17 +120,14 @@ export default function Sidebar({ tipo }: SidebarProps) {
       }
     }
 
-    // Também escutar evento customizado para mudanças na mesma aba
     const handleSaldoUpdate = async () => {
       const usuarioData = localStorage.getItem('usuario')
       if (usuarioData && tipo === "profissional") {
         const user = JSON.parse(usuarioData)
         setUsuario(user)
-        // Atualizar saldo diretamente do localStorage primeiro (instantâneo)
         if (user.saldo_moedas !== undefined) {
           setSaldoMoedas(user.saldo_moedas)
         }
-        // Depois buscar do banco para confirmar
         try {
           const response = await fetch(`/api/profissional/saldo?profissional_id=${user.id}`)
           if (response.ok) {
@@ -198,25 +185,19 @@ export default function Sidebar({ tipo }: SidebarProps) {
     router.push('/login')
   }
 
-  // Função para clicar no toggle
   const handleToggleClick = () => {
     if (outroPerfilId) {
-      // Já tem outro perfil
       if (tipo === "cliente" && !outroPerfilAprovado) {
-        // Profissional ainda não aprovado, não permitir switch
         return
       }
-      // Fazer switch direto
       handleSwitchMode()
     } else {
-      // Não tem outro perfil, abrir modal para criar
       setShowModal(true)
       setModalError("")
       setModalSuccess(false)
     }
   }
 
-  // Função para alternar entre modos cliente/profissional (quando já tem ambos)
   const handleSwitchMode = async () => {
     if (!outroPerfilId || switching) return
 
@@ -241,7 +222,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Validação de arquivo
   const validarArquivo = (file: File): boolean => {
     if (file.size > 5 * 1024 * 1024) {
       setModalError("O arquivo deve ter no máximo 5MB")
@@ -255,7 +235,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     return true
   }
 
-  // Handler para upload de identidade frente (com compressão)
   const handleIdentidadeFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
@@ -269,7 +248,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Handler para upload de identidade verso (com compressão)
   const handleIdentidadeVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
@@ -283,7 +261,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Handler para upload de documento da empresa (com compressão)
   const handleEmpresaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
@@ -297,7 +274,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Handler para upload de diploma frente (com compressão)
   const handleDiplomaFrenteChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
@@ -311,7 +287,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Handler para upload de diploma verso (com compressão)
   const handleDiplomaVersoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file && validarArquivo(file)) {
@@ -325,7 +300,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Adicionar diploma à lista
   const adicionarDiploma = () => {
     if (diplomaEmAndamento.frente) {
       setDiplomas([...diplomas, { frente: diplomaEmAndamento.frente, verso: diplomaEmAndamento.verso }])
@@ -337,7 +311,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     setDiplomas(diplomas.filter((_, i) => i !== index))
   }
 
-  // Criar conta de profissional (quando é cliente)
   const handleCriarProfissional = async () => {
     setModalError("")
     setModalLoading(true)
@@ -354,7 +327,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
       return
     }
 
-    // Validar senha forte (maiúscula + caractere especial)
     const temMaiuscula = /[A-Z]/.test(profForm.senha)
     const temEspecial = /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/`~';]/.test(profForm.senha)
     if (!temMaiuscula || !temEspecial) {
@@ -388,7 +360,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
 
     try {
-      // Usar FormData para enviar documentos
       const formData = new FormData()
       formData.append("cliente_id", usuario?.id)
       formData.append("tipo", profForm.tipo)
@@ -397,17 +368,13 @@ export default function Sidebar({ tipo }: SidebarProps) {
       formData.append("telefone", profForm.telefone)
       formData.append("senha", profForm.senha)
 
-      // Documento de identidade - frente e verso (obrigatório)
       formData.append("identidadeFrente", identidadeFrente)
       formData.append("identidadeVerso", identidadeVerso)
 
-      // Documento da empresa (obrigatório para empresas)
       if (documentoEmpresa) {
         formData.append("documentoEmpresa", documentoEmpresa)
       }
 
-      // Diplomas/certificados com frente e verso (opcional, múltiplos)
-      // Incluir diploma pendente (selecionado mas não adicionado à lista)
       const diplomasParaEnviar = [...diplomas]
       if (diplomaEmAndamento.frente) {
         diplomasParaEnviar.push({
@@ -464,7 +431,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
     }
   }
 
-  // Criar conta de cliente (quando é profissional)
   const handleCriarCliente = async () => {
     setModalError("")
     setModalLoading(true)
@@ -522,7 +488,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           expanded ? "w-64" : "w-20"
         )}
       >
-        {/* Botão de expandir/retrair */}
         <button
           onClick={() => setExpanded(!expanded)}
           className="absolute -right-3 top-8 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors z-10 shadow-sm"
@@ -530,7 +495,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           {expanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
 
-        {/* Logo / Header */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           {expanded ? (
             <div className="flex items-center gap-2">
@@ -546,7 +510,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           )}
         </div>
 
-        {/* Toggle Modo Cliente/Profissional - SEMPRE APARECE */}
         <div className={cn("mx-3 mt-4", !expanded && "mx-2")}>
           {expanded ? (
             <button
@@ -633,7 +596,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           )}
         </div>
 
-        {/* Saldo de Moedas - Apenas para profissionais */}
         {tipo === "profissional" && saldoMoedas !== null && (
           <Link href="/dashboard/profissional/moedas">
             <div className={cn(
@@ -665,7 +627,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           </Link>
         )}
 
-        {/* Menu Items */}
         <nav className="flex-1 px-3 py-6 space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon
@@ -712,7 +673,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
           })}
         </nav>
 
-        {/* Dark Mode & Logout */}
         <div className="px-3 py-4 border-t border-gray-200 space-y-1">
           {expanded ? (
             <Button
@@ -768,7 +728,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
         </div>
       </aside>
 
-      {/* Modal para criar outro perfil */}
       <Dialog open={showModal} onOpenChange={handleModalClose}>
         <DialogContent className={cn(
           "max-h-[90vh] overflow-y-auto",
@@ -790,7 +749,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
 
               <div className="py-4">
                 {tipo === "cliente" ? (
-                  // Formulário para cliente virar profissional
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Tipo de cadastro</Label>
@@ -888,7 +846,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       </div>
                     </div>
 
-                    {/* Upload de Documento de Identificação Pessoal - Frente e Verso (Obrigatório) */}
                     <div className="space-y-2">
                       <Label>Documento de Identificação Pessoal <span className="text-red-500">*</span></Label>
                       <p className="text-xs text-gray-500">
@@ -896,7 +853,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       </p>
 
                       <div className="grid grid-cols-2 gap-2">
-                        {/* Frente */}
                         <div>
                           <p className="text-xs text-gray-600 mb-1 font-medium">Frente</p>
                           {!identidadeFrente ? (
@@ -933,7 +889,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                           )}
                         </div>
 
-                        {/* Verso */}
                         <div>
                           <p className="text-xs text-gray-600 mb-1 font-medium">Verso</p>
                           {!identidadeVerso ? (
@@ -972,7 +927,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       </div>
                     </div>
 
-                    {/* Upload de Documento da Empresa (Obrigatório apenas para empresas) */}
                     {profForm.tipo === "empresa" && (
                       <div className="space-y-2">
                         <Label>Documento da Empresa <span className="text-red-500">*</span></Label>
@@ -1014,15 +968,12 @@ export default function Sidebar({ tipo }: SidebarProps) {
                       </div>
                     )}
 
-                    {/* Upload de Diplomas/Certificados com Frente e Verso (Opcional) */}
                     <div className="space-y-2">
                       <Label>Diplomas e Certificados <span className="text-gray-400">(opcional)</span></Label>
                       <p className="text-xs text-gray-500">Adicione a frente e opcionalmente o verso de cada diploma</p>
 
-                      {/* Adicionar novo diploma */}
                       <div className="p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50 space-y-2">
                         <div className="grid grid-cols-2 gap-2">
-                          {/* Frente do diploma */}
                           <div>
                             <p className="text-xs text-gray-600 mb-1">Frente *</p>
                             {!diplomaEmAndamento.frente ? (
@@ -1056,7 +1007,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                             )}
                           </div>
 
-                          {/* Verso do diploma */}
                           <div>
                             <p className="text-xs text-gray-600 mb-1">Verso (opcional)</p>
                             {!diplomaEmAndamento.verso ? (
@@ -1104,7 +1054,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                         )}
                       </div>
 
-                      {/* Lista de diplomas adicionados */}
                       {diplomas.length > 0 && (
                         <div className="space-y-2">
                           <p className="text-xs text-gray-600 font-medium">Diplomas adicionados:</p>
@@ -1133,7 +1082,6 @@ export default function Sidebar({ tipo }: SidebarProps) {
                     </div>
                   </div>
                 ) : (
-                  // Formulário para profissional virar cliente
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>Senha para acesso como cliente <span className="text-red-500">*</span></Label>

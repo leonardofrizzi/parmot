@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Solicitacao } from "@/types/database"
-import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, MessageCircle, Mail, DollarSign, AlertCircle } from "lucide-react"
+import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, MessageCircle, Mail, DollarSign, AlertCircle, Handshake } from "lucide-react"
 import * as Icons from "lucide-react"
 import DistanciaIndicador from "@/components/DistanciaIndicador"
 
@@ -63,6 +63,12 @@ export default function SolicitacoesProfissional() {
   const [reembolsoLoading, setReembolsoLoading] = useState(false)
   const [reembolsoError, setReembolsoError] = useState("")
   const [reembolsoSuccess, setReembolsoSuccess] = useState(false)
+
+  // Modal fechei negócio
+  const [showFecheiNegocioModal, setShowFecheiNegocioModal] = useState(false)
+  const [fecheiNegocioSolicitacao, setFecheiNegocioSolicitacao] = useState<SolicitacaoComStatus | null>(null)
+  const [fecheiNegocioLoading, setFecheiNegocioLoading] = useState(false)
+  const [fecheiNegocioSuccess, setFecheiNegocioSuccess] = useState(false)
   
   useEffect(() => {
     // Buscar configurações de moedas
@@ -213,6 +219,52 @@ export default function SolicitacoesProfissional() {
     setReembolsoMotivo("")
     setReembolsoError("")
     setReembolsoSuccess(false)
+  }
+
+  const abrirModalFecheiNegocio = (solicitacao: SolicitacaoComStatus) => {
+    setFecheiNegocioSolicitacao(solicitacao)
+    setFecheiNegocioSuccess(false)
+    setShowFecheiNegocioModal(true)
+  }
+
+  const handleFecheiNegocio = async () => {
+    if (!profissional || !fecheiNegocioSolicitacao) return
+
+    setFecheiNegocioLoading(true)
+
+    try {
+      const response = await fetch('/api/profissional/fechar-negocio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profissional_id: profissional.id,
+          solicitacao_id: fecheiNegocioSolicitacao.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Erro ao fechar negócio")
+        setFecheiNegocioLoading(false)
+        return
+      }
+
+      setFecheiNegocioSuccess(true)
+      setFecheiNegocioLoading(false)
+
+      // Recarregar solicitações
+      fetchSolicitacoes(profissional.estado, profissional.cidade)
+    } catch (err) {
+      setError("Erro ao conectar com o servidor")
+      setFecheiNegocioLoading(false)
+    }
+  }
+
+  const fecharModalFecheiNegocio = () => {
+    setShowFecheiNegocioModal(false)
+    setFecheiNegocioSolicitacao(null)
+    setFecheiNegocioSuccess(false)
   }
 
   if (loading) {
@@ -435,20 +487,34 @@ export default function SolicitacoesProfissional() {
                           <CheckCircle2 size={12} />
                           Contato Liberado
                         </p>
-                        {solicitacao.resposta_id && (
+                        <div className="flex flex-wrap gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
-                              abrirModalReembolso(solicitacao)
+                              abrirModalFecheiNegocio(solicitacao)
                             }}
-                            className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs h-7 px-2"
+                            className="text-green-600 border-green-300 hover:bg-green-50 text-xs h-7 px-2"
                           >
-                            <DollarSign size={12} className="mr-1" />
-                            Solicitar Reembolso
+                            <Handshake size={12} className="mr-1" />
+                            Fechei Negócio
                           </Button>
-                        )}
+                          {solicitacao.resposta_id && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                abrirModalReembolso(solicitacao)
+                              }}
+                              className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs h-7 px-2"
+                            >
+                              <DollarSign size={12} className="mr-1" />
+                              Solicitar Reembolso
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {(solicitacao as any).cliente_nome ? (
                         <>
@@ -605,6 +671,66 @@ export default function SolicitacoesProfissional() {
               </DialogHeader>
               <DialogFooter>
                 <Button onClick={fecharModalReembolso} className="w-full">
+                  Entendi
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Fechei Negócio */}
+      <Dialog open={showFecheiNegocioModal} onOpenChange={fecharModalFecheiNegocio}>
+        <DialogContent className="sm:max-w-[425px]">
+          {!fecheiNegocioSuccess ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Handshake className="text-green-500" size={20} />
+                  Fechei Negócio
+                </DialogTitle>
+                <DialogDescription>
+                  Ao confirmar, esta solicitação será marcada como concluída e não ficará mais disponível para outros profissionais.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="py-4">
+                {fecheiNegocioSolicitacao && (
+                  <div className="p-3 bg-gray-50 rounded-lg text-sm">
+                    <p className="font-medium text-gray-900">{fecheiNegocioSolicitacao.titulo}</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      Cliente: {(fecheiNegocioSolicitacao as any).cliente_nome || 'N/A'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={fecharModalFecheiNegocio} className="w-full sm:w-auto">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleFecheiNegocio}
+                  disabled={fecheiNegocioLoading}
+                  className="w-full sm:w-auto bg-green-500 hover:bg-green-600"
+                >
+                  {fecheiNegocioLoading ? "Confirmando..." : "Confirmar"}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Handshake size={32} className="text-green-600" />
+                </div>
+                <DialogTitle className="text-center">Negócio Fechado!</DialogTitle>
+                <DialogDescription className="text-center">
+                  Parabéns! A solicitação foi marcada como concluída.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={fecharModalFecheiNegocio} className="w-full">
                   Entendi
                 </Button>
               </DialogFooter>
