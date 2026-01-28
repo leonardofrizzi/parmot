@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Solicitacao } from "@/types/database"
 import { Plus, FileText, Users, Clock, CheckCircle, Calendar } from "lucide-react"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 
 interface Cliente {
   id: string
@@ -68,12 +68,6 @@ export default function DashboardCliente() {
       console.error('Erro ao carregar solicitações:', err)
       setLoading(false)
     }
-  }
-
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as React.ComponentType<{ size?: number }>
-    return IconComponent ? <IconComponent size={16} /> : null
   }
 
   const formatData = (data: string) => {
@@ -284,7 +278,7 @@ export default function DashboardCliente() {
                 >
                   <div className="flex items-center gap-3 flex-1">
                     <div className="text-primary-600">
-                      {renderIcone(solicitacao.categoria_icone)}
+                      <IconRenderer name={solicitacao.categoria_icone} size={16} />
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">{solicitacao.titulo}</p>

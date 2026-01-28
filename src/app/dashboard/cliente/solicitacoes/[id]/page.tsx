@@ -10,7 +10,7 @@ import { StarRating } from "@/components/StarRating"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Calendar, MapPin, User, Phone, Mail, Crown, Star, MessageSquare, XCircle, CheckCircle, PlayCircle, Ban, ExternalLink, GraduationCap, Building2 } from "lucide-react"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 
 interface Cliente {
   id: string
@@ -200,12 +200,6 @@ export default function DetalheSolicitacaoCliente() {
     return statusConfig[status]
   }
 
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
-    return IconComponent ? <IconComponent size={24} /> : null
-  }
-
   const formatData = (data: string) => {
     return new Date(data).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -275,7 +269,7 @@ export default function DetalheSolicitacaoCliente() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center text-primary-600">
-                    {renderIcone(solicitacao.categoria_icone)}
+                    <IconRenderer name={solicitacao.categoria_icone} size={24} />
                   </div>
                   <div>
                     <CardTitle className="text-2xl mb-1">{solicitacao.titulo}</CardTitle>

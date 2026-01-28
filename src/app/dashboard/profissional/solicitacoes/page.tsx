@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Solicitacao } from "@/types/database"
 import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, MessageCircle, Mail, DollarSign, AlertCircle, Handshake } from "lucide-react"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 import DistanciaIndicador from "@/components/DistanciaIndicador"
 
 type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
@@ -111,12 +111,6 @@ export default function SolicitacoesProfissional() {
       setError("Erro ao conectar com o servidor")
       setLoading(false)
     }
-  }
-
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as React.ComponentType<{ size?: number }>
-    return IconComponent ? <IconComponent size={20} /> : null
   }
 
   const formatData = (data: string) => {
@@ -432,7 +426,7 @@ export default function SolicitacoesProfissional() {
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                       <div className="flex items-center gap-2 sm:gap-3">
                         <div className="text-primary-600 flex-shrink-0">
-                          {renderIcone(solicitacao.categoria_icone)}
+                          <IconRenderer name={solicitacao.categoria_icone} />
                         </div>
                         <CardTitle className="text-lg sm:text-xl">{solicitacao.titulo}</CardTitle>
                       </div>

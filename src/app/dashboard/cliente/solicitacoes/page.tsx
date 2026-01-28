@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, MessageSquare, Plus, Search, Users, Crown, Edit, Trash2 } from "lucide-react"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 
 type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
@@ -69,12 +69,6 @@ export default function MinhasSolicitacoes() {
       'cancelada': 'bg-gray-100 text-gray-800 border-gray-200'
     }
     return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200'
-  }
-
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
-    return IconComponent ? <IconComponent size={20} /> : null
   }
 
   const formatData = (data: string) => {
@@ -234,7 +228,7 @@ export default function MinhasSolicitacoes() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="text-primary-600">
-                          {renderIcone(solicitacao.categoria_icone)}
+                          <IconRenderer name={solicitacao.categoria_icone} />
                         </div>
                         <CardTitle className="text-xl">{solicitacao.titulo}</CardTitle>
                       </div>

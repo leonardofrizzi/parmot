@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Solicitacao } from "@/types/database"
 import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building, Navigation, Phone, Mail, User, MessageCircle } from "lucide-react"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 import DistanciaIndicador from "@/components/DistanciaIndicador"
 
 interface Resposta {
@@ -140,12 +140,6 @@ export default function DetalheSolicitacaoProfissional() {
     }
   }
 
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
-    return IconComponent ? <IconComponent size={32} /> : null
-  }
-
   const formatData = (data: string) => {
     return new Date(data).toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -212,7 +206,7 @@ export default function DetalheSolicitacaoProfissional() {
           <CardHeader className="bg-gradient-to-r from-primary-50 to-blue-50">
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center text-primary-600 shadow-sm">
-                {renderIcone(solicitacao.categoria_icone)}
+                <IconRenderer name={solicitacao.categoria_icone} size={32} />
               </div>
               <div className="flex-1">
                 <CardTitle className="text-2xl mb-2">{solicitacao.titulo}</CardTitle>

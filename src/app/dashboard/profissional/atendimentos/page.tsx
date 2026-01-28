@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ReembolsoModal } from "@/components/ReembolsoModal"
 import { Calendar, MapPin, Search, Phone, Mail, User, Crown, Users, DollarSign, ExternalLink, Clock, CheckCircle2, XCircle, ThumbsDown, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 
 type FiltroStatus = "todos" | "aberta" | "em_andamento" | "finalizada" | "cancelada"
 
@@ -77,12 +77,6 @@ export default function AtendimentosProfissional() {
       setError("Erro ao conectar com o servidor")
       setLoading(false)
     }
-  }
-
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
-    return IconComponent ? <IconComponent size={20} /> : null
   }
 
   const formatData = (data: string) => {
@@ -392,7 +386,7 @@ export default function AtendimentosProfissional() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <div className="text-primary-600">
-                          {renderIcone(atendimento.categoria_icone)}
+                          <IconRenderer name={atendimento.categoria_icone} />
                         </div>
                         <CardTitle className="text-xl">{atendimento.titulo}</CardTitle>
                         {getStatusBadge(atendimento.status)}

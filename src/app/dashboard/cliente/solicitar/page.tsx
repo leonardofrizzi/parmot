@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Categoria, Subcategoria } from "@/types/database"
 import { ChevronRight, ChevronLeft, Check, CheckCircle2, Clock } from "lucide-react"
-import * as Icons from "lucide-react"
+import { IconRenderer } from "@/components/IconRenderer"
 
 export default function SolicitarServico() {
   const router = useRouter()
@@ -85,12 +85,6 @@ export default function SolicitarServico() {
     }
   }
 
-  const renderIcone = (nomeIcone?: string) => {
-    if (!nomeIcone) return null
-    const IconComponent = Icons[nomeIcone as keyof typeof Icons] as any
-    return IconComponent ? <IconComponent size={24} /> : null
-  }
-
   return (
     <div className="p-8">
       <div className="max-w-4xl mx-auto">
@@ -145,7 +139,7 @@ export default function SolicitarServico() {
                 >
                   <CardContent className="p-4 flex flex-col items-center text-center">
                     <div className={`mb-2 ${formData.categoria_id === categoria.id ? 'text-primary-600' : 'text-gray-600'}`}>
-                      {renderIcone(categoria.icone)}
+                      <IconRenderer name={categoria.icone} size={24} />
                     </div>
                     <p className="text-sm font-medium">{categoria.nome}</p>
                   </CardContent>
