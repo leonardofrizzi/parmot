@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { StarRating } from "@/components/StarRating"
 import { Star, MessageSquare } from "lucide-react"
+import { useModalForm } from "@/hooks/useModalForm"
 
 interface AvaliacaoModalProps {
   open: boolean
@@ -28,8 +29,7 @@ export function AvaliacaoModal({
 }: AvaliacaoModalProps) {
   const [nota, setNota] = useState(0)
   const [comentario, setComentario] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const { loading, error, setError, submitForm, reset, canClose } = useModalForm()
 
   const handleSubmit = async () => {
     if (nota === 0) {
@@ -37,10 +37,7 @@ export function AvaliacaoModal({
       return
     }
 
-    setLoading(true)
-    setError("")
-
-    try {
+    const result = await submitForm(async () => {
       const response = await fetch('/api/avaliacoes/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,33 +53,25 @@ export function AvaliacaoModal({
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Erro ao enviar avaliação')
-        setLoading(false)
-        return
+        throw new Error(data.error || 'Erro ao enviar avaliação')
       }
 
+      return data
+    })
+
+    if (result) {
       setNota(0)
       setComentario("")
-      setLoading(false)
-
-      if (onAvaliacaoEnviada) {
-        onAvaliacaoEnviada()
-      }
-
+      onAvaliacaoEnviada?.()
       onOpenChange(false)
-
-    } catch (err) {
-      console.error('Erro ao enviar avaliação:', err)
-      setError('Erro ao conectar com o servidor')
-      setLoading(false)
     }
   }
 
   const handleClose = () => {
-    if (!loading) {
+    if (canClose) {
       setNota(0)
       setComentario("")
-      setError("")
+      reset()
       onOpenChange(false)
     }
   }

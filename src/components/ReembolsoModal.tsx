@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DollarSign, FileText, Link as LinkIcon, X, CheckCircle2 } from "lucide-react"
+import { useModalForm } from "@/hooks/useModalForm"
 
 interface Atendimento {
   resposta_id: string
@@ -32,9 +33,8 @@ export function ReembolsoModal({
   const [motivo, setMotivo] = useState("")
   const [provasUrls, setProvasUrls] = useState<string[]>([])
   const [novaProva, setNovaProva] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
   const [showSucesso, setShowSucesso] = useState(false)
+  const { loading, error, setError, submitForm, reset, canClose } = useModalForm()
 
   const handleAdicionarProva = () => {
     if (novaProva.trim()) {
@@ -53,10 +53,7 @@ export function ReembolsoModal({
       return
     }
 
-    setLoading(true)
-    setError("")
-
-    try {
+    const result = await submitForm(async () => {
       const response = await fetch('/api/profissional/reembolso/solicitar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,32 +68,27 @@ export function ReembolsoModal({
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || 'Erro ao solicitar reembolso')
-        setLoading(false)
-        return
+        throw new Error(data.error || 'Erro ao solicitar reembolso')
       }
 
+      return data
+    })
+
+    if (result) {
       setMotivo("")
       setProvasUrls([])
       setNovaProva("")
-      setLoading(false)
-
       onOpenChange(false)
       setShowSucesso(true)
-
-    } catch (err) {
-      console.error('Erro ao solicitar reembolso:', err)
-      setError('Erro ao conectar com o servidor')
-      setLoading(false)
     }
   }
 
   const handleClose = () => {
-    if (!loading) {
+    if (canClose) {
       setMotivo("")
       setProvasUrls([])
       setNovaProva("")
-      setError("")
+      reset()
       onOpenChange(false)
     }
   }
