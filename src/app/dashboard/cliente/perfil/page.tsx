@@ -11,6 +11,7 @@ import { LocationSelects } from "@/components/LocationSelects"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Briefcase, CheckCircle2, Clock, Upload, FileText, X, GraduationCap, Loader2, Eye, EyeOff } from "lucide-react"
 import { compressImage } from "@/lib/compressImage"
+import { isValidCep, cleanDigits } from "@/lib/validations"
 
 interface Cliente {
   id: string
@@ -105,10 +106,9 @@ export default function PerfilCliente() {
     return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
   }
 
-  // Buscar endereço pelo CEP via ViaCEP
   const buscarCep = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
+    const cepLimpo = cleanDigits(cep)
+    if (!isValidCep(cep)) return
 
     setBuscandoCep(true)
     try {
@@ -173,10 +173,9 @@ export default function PerfilCliente() {
     return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
   }
 
-  // Buscar endereço pelo CEP via ViaCEP para profissional
   const buscarCepProf = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
+    const cepLimpo = cleanDigits(cep)
+    if (!isValidCep(cep)) return
 
     setBuscandoCepProf(true)
     try {

@@ -1,3 +1,5 @@
+import { isValidCep, cleanDigits } from './validations'
+
 // Coordenadas centrais das cidades/estados brasileiros
 // Usaremos geocodificação para cidades específicas quando possível
 
@@ -56,12 +58,11 @@ function toRad(deg: number): number {
 // Cache de geocodificação para evitar chamadas repetidas
 const geocodeCache: Record<string, { lat: number; lng: number } | null> = {}
 
-// Buscar coordenadas pelo CEP usando ViaCEP + Nominatim
 export async function buscarCoordenadasPorCep(
   cep: string
 ): Promise<{ lat: number; lng: number } | null> {
-  const cepLimpo = cep?.replace(/\D/g, '')
-  if (!cepLimpo || cepLimpo.length !== 8) return null
+  const cepLimpo = cleanDigits(cep || '')
+  if (!isValidCep(cepLimpo)) return null
 
   const cacheKey = `cep-${cepLimpo}`
   if (geocodeCache[cacheKey] !== undefined) {

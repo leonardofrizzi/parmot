@@ -39,6 +39,7 @@ import {
   Shield,
   TrendingUp
 } from "lucide-react"
+import { LIMITS, ALLOWED_FILE_TYPES, isValidCep, cleanDigits } from "@/lib/validations"
 
 interface Avaliacao {
   id: string
@@ -274,10 +275,9 @@ export default function PerfilProfissional() {
     return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
   }
 
-  // Buscar endereço pelo CEP via ViaCEP
   const buscarCep = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
+    const cepLimpo = cleanDigits(cep)
+    if (!isValidCep(cep)) return
 
     setBuscandoCep(true)
     try {
@@ -398,12 +398,11 @@ export default function PerfilProfissional() {
     const file = e.target.files?.[0]
     if (!file || !profissional) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("A foto deve ter no máximo 5MB")
+    if (file.size > LIMITS.FILE_SIZE_BYTES) {
+      setError(`A foto deve ter no máximo ${LIMITS.FILE_SIZE_MB}MB`)
       return
     }
-    const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!imageTypes.includes(file.type)) {
+    if (!ALLOWED_FILE_TYPES.IMAGE.includes(file.type)) {
       setError("Foto deve ser JPG, PNG ou WebP")
       return
     }
@@ -448,12 +447,11 @@ export default function PerfilProfissional() {
   ) => {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError("O arquivo deve ter no máximo 5MB")
+      if (file.size > LIMITS.FILE_SIZE_BYTES) {
+        setError(`O arquivo deve ter no máximo ${LIMITS.FILE_SIZE_MB}MB`)
         return
       }
-      const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-      if (!allowedTypes.includes(file.type)) {
+      if (!ALLOWED_FILE_TYPES.DOCUMENT.includes(file.type)) {
         setError("Apenas arquivos PDF, JPG ou PNG são permitidos")
         return
       }

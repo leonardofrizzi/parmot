@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { LIMITS, ALLOWED_FILE_TYPES } from '@/lib/validations'
 
-// Tipos de documento suportados
 type TipoDocumento = 'identidade' | 'empresa' | 'diploma' | 'foto'
 
 export async function POST(request: NextRequest) {
@@ -26,27 +26,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar tamanho (max 5MB)
-    if (documento.size > 5 * 1024 * 1024) {
+    if (documento.size > LIMITS.FILE_SIZE_BYTES) {
       return NextResponse.json(
-        { error: 'O arquivo deve ter no máximo 5MB' },
+        { error: `O arquivo deve ter no máximo ${LIMITS.FILE_SIZE_MB}MB` },
         { status: 400 }
       )
     }
 
-    // Validar tipo
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
-    if (!allowedTypes.includes(documento.type)) {
+    if (!ALLOWED_FILE_TYPES.DOCUMENT.includes(documento.type)) {
       return NextResponse.json(
         { error: 'Apenas arquivos PDF, JPG ou PNG são permitidos' },
         { status: 400 }
       )
     }
 
-    // Para foto, validar que é imagem
     if (tipo_documento === 'foto') {
-      const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-      if (!imageTypes.includes(documento.type)) {
+      if (!ALLOWED_FILE_TYPES.IMAGE.includes(documento.type)) {
         return NextResponse.json(
           { error: 'Foto deve ser JPG, PNG ou WebP' },
           { status: 400 }

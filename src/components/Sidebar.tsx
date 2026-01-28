@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { compressImage } from "@/lib/compressImage"
+import { LIMITS, ALLOWED_FILE_TYPES } from "@/lib/validations"
 
 interface SidebarProps {
   tipo: "cliente" | "profissional"
@@ -223,12 +224,11 @@ export default function Sidebar({ tipo }: SidebarProps) {
   }
 
   const validarArquivo = (file: File): boolean => {
-    if (file.size > 5 * 1024 * 1024) {
-      setModalError("O arquivo deve ter no máximo 5MB")
+    if (file.size > LIMITS.FILE_SIZE_BYTES) {
+      setModalError(`O arquivo deve ter no máximo ${LIMITS.FILE_SIZE_MB}MB`)
       return false
     }
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_FILE_TYPES.DOCUMENT.includes(file.type)) {
       setModalError("Apenas arquivos PDF, JPG ou PNG são permitidos")
       return false
     }

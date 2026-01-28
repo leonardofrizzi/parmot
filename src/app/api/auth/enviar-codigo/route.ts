@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { resend, FROM_EMAIL } from '@/lib/resend'
+import { isValidEmail } from '@/lib/validations'
 
 // Gerar código de 6 dígitos
 function gerarCodigo(): string {
@@ -23,9 +24,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar formato do email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: 'Email inválido' },
         { status: 400 }

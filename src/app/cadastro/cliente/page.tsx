@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { LocationSelects } from "@/components/LocationSelects"
 import { Mail, ArrowLeft, CheckCircle2, Loader2, Eye, EyeOff } from "lucide-react"
+import { isValidEmail, isValidCep, cleanDigits } from "@/lib/validations"
 
 type Etapa = "email" | "verificacao" | "dados"
 
@@ -45,9 +46,7 @@ function CadastroClienteContent() {
       return
     }
 
-    // Validar formato do email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
+    if (!isValidEmail(formData.email)) {
       setError("Email inválido")
       return
     }
@@ -165,9 +164,7 @@ function CadastroClienteContent() {
       return
     }
 
-    // Validar CEP obrigatório
-    const cepLimpo = formData.cep.replace(/\D/g, '')
-    if (!cepLimpo || cepLimpo.length !== 8) {
+    if (!isValidCep(formData.cep)) {
       setError("CEP é obrigatório e deve ter 8 dígitos")
       setLoading(false)
       return
@@ -240,10 +237,9 @@ function CadastroClienteContent() {
     return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
   }
 
-  // Buscar endereço pelo CEP
   const buscarCep = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
+    const cepLimpo = cleanDigits(cep)
+    if (!isValidCep(cep)) return
 
     setBuscandoCep(true)
     try {
