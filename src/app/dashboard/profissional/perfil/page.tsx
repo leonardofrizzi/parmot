@@ -89,7 +89,7 @@ interface Profissional {
   cliente_id?: string
   documento_url?: string | null
   documento_empresa_url?: string | null
-  diplomas_urls?: string[] | null
+  diplomas_urls?: (string | { frente: string; verso: string | null })[] | null
   foto_url?: string | null
   sobre?: string | null
   slug?: string | null
@@ -1071,33 +1071,39 @@ export default function PerfilProfissional() {
                         {/* Lista de diplomas */}
                         {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
                           <div className="space-y-2">
-                            {profissional.diplomas_urls.map((url, idx) => (
-                              <div key={idx} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
-                                <GraduationCap className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                                <span className="text-sm font-medium flex-1">Diploma {idx + 1}</span>
-                                <a
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-amber-700 hover:text-amber-800 font-medium"
-                                >
-                                  Ver
-                                </a>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoverDiploma(url)}
-                                  disabled={removingDiploma === url}
-                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-                                >
-                                  {removingDiploma === url ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              </div>
-                            ))}
+                            {profissional.diplomas_urls.map((diploma, idx) => {
+                              // Suporta tanto strings quanto objetos { frente, verso }
+                              const isString = typeof diploma === 'string'
+                              const diplomaUrl = isString ? diploma : diploma.frente
+
+                              return (
+                                <div key={idx} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                                  <GraduationCap className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                                  <span className="text-sm font-medium flex-1">Diploma {idx + 1}</span>
+                                  <a
+                                    href={diplomaUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-amber-700 hover:text-amber-800 font-medium"
+                                  >
+                                    Ver
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRemoverDiploma(diplomaUrl)}
+                                    disabled={removingDiploma === diplomaUrl}
+                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                                  >
+                                    {removingDiploma === diplomaUrl ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              )
+                            })}
                           </div>
                         )}
 

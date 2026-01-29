@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { LIMITS, ALLOWED_FILE_TYPES } from '@/lib/validations'
 
@@ -49,8 +48,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Verificar se profissional existe
-    const { data: profissional, error: profError } = await supabase
+    // Verificar se profissional existe (usar admin para bypass RLS)
+    const { data: profissional, error: profError } = await supabaseAdmin
       .from('profissionais')
       .select('id, cpf_cnpj, documento_url, documento_empresa_url, diplomas_urls, foto_url')
       .eq('id', profissional_id)
@@ -136,6 +135,17 @@ export async function POST(request: NextRequest) {
 
     const documentoUrl = urlData.publicUrl
 
+    // Verificar se a URL foi gerada corretamente
+    if (!documentoUrl || typeof documentoUrl !== 'string') {
+      console.error('URL inválida gerada:', documentoUrl)
+      return NextResponse.json(
+        { error: 'Erro ao gerar URL do documento' },
+        { status: 500 }
+      )
+    }
+
+    console.log('URL do documento gerada:', documentoUrl)
+
     // Atualizar profissional com a nova URL
     let updateData: Record<string, unknown>
 
@@ -148,7 +158,8 @@ export async function POST(request: NextRequest) {
       updateData = { [fieldName]: documentoUrl }
     }
 
-    const { error: updateError } = await supabase
+    // Usar supabaseAdmin para bypass de RLS
+    const { error: updateError } = await supabaseAdmin
       .from('profissionais')
       .update(updateData)
       .eq('id', profissional_id)
@@ -188,8 +199,8 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Verificar se profissional existe
-    const { data: profissional, error: profError } = await supabase
+    // Verificar se profissional existe (usar admin para bypass RLS)
+    const { data: profissional, error: profError } = await supabaseAdmin
       .from('profissionais')
       .select('id, diplomas_urls')
       .eq('id', profissional_id)
@@ -212,8 +223,8 @@ export async function DELETE(request: NextRequest) {
       return diploma.frente !== diploma_url && diploma.verso !== diploma_url
     })
 
-    // Atualizar no banco
-    const { error: updateError } = await supabase
+    // Atualizar no banco (usar admin para bypass RLS)
+    const { error: updateError } = await supabaseAdmin
       .from('profissionais')
       .update({ diplomas_urls: updatedDiplomas.length > 0 ? updatedDiplomas : null })
       .eq('id', profissional_id)
