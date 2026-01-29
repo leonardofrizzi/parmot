@@ -140,9 +140,10 @@ export async function POST(request: NextRequest) {
     let updateData: Record<string, unknown>
 
     if (tipo_documento === 'diploma') {
-      // Para diplomas, adiciona ao array existente
+      // Para diplomas, adiciona ao array existente como objeto { frente, verso }
       const currentDiplomas = profissional.diplomas_urls || []
-      updateData = { diplomas_urls: [...currentDiplomas, documentoUrl] }
+      const novoDiploma = { frente: documentoUrl, verso: null }
+      updateData = { diplomas_urls: [...currentDiplomas, novoDiploma] }
     } else {
       updateData = { [fieldName]: documentoUrl }
     }
@@ -201,9 +202,15 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Remover URL do array
+    // Remover URL do array (suporta strings e objetos { frente, verso })
     const currentDiplomas = profissional.diplomas_urls || []
-    const updatedDiplomas = currentDiplomas.filter((url: string) => url !== diploma_url)
+    const updatedDiplomas = currentDiplomas.filter((diploma: string | { frente: string; verso: string | null }) => {
+      if (typeof diploma === 'string') {
+        return diploma !== diploma_url
+      }
+      // É um objeto { frente, verso }
+      return diploma.frente !== diploma_url && diploma.verso !== diploma_url
+    })
 
     // Atualizar no banco
     const { error: updateError } = await supabase

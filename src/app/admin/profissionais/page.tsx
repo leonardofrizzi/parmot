@@ -27,7 +27,7 @@ interface Profissional {
   identidade_frente_url?: string | null
   identidade_verso_url?: string | null
   documento_empresa_url?: string | null
-  diplomas_urls?: { frente: string; verso: string | null }[] | null
+  diplomas_urls?: (string | { frente: string; verso: string | null })[] | null
 }
 
 export default function AdminProfissionais() {
@@ -355,32 +355,39 @@ export default function AdminProfissionais() {
                     <p className="text-xs text-gray-500 mb-1">Diplomas/Certificados:</p>
                     {prof.diplomas_urls && prof.diplomas_urls.length > 0 ? (
                       <div className="space-y-1">
-                        {prof.diplomas_urls.map((diploma, idx) => (
-                          <div key={idx} className="space-y-1">
-                            <a
-                              href={diploma.frente}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
-                            >
-                              <GraduationCap size={14} />
-                              <span>Diploma {idx + 1} - Frente</span>
-                              <ExternalLink size={12} />
-                            </a>
-                            {diploma.verso && (
+                        {prof.diplomas_urls.map((diploma, idx) => {
+                          // Suporta tanto strings quanto objetos { frente, verso }
+                          const isString = typeof diploma === 'string'
+                          const frenteUrl = isString ? diploma : diploma.frente
+                          const versoUrl = isString ? null : diploma.verso
+
+                          return (
+                            <div key={idx} className="space-y-1">
                               <a
-                                href={diploma.verso}
+                                href={frenteUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
                               >
                                 <GraduationCap size={14} />
-                                <span>Diploma {idx + 1} - Verso</span>
+                                <span>Diploma {idx + 1}{!isString && versoUrl ? ' - Frente' : ''}</span>
                                 <ExternalLink size={12} />
                               </a>
-                            )}
-                          </div>
-                        ))}
+                              {versoUrl && (
+                                <a
+                                  href={versoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                  <GraduationCap size={14} />
+                                  <span>Diploma {idx + 1} - Verso</span>
+                                  <ExternalLink size={12} />
+                                </a>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     ) : (
                       <p className="text-xs text-gray-500 italic flex items-center gap-1">

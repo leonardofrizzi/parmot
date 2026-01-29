@@ -709,114 +709,140 @@ export default function PerfilProfissional() {
         {/* Coluna Direita - Tabs de Conteúdo */}
         <div className="lg:col-span-2">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full justify-start bg-white border mb-4">
-              <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil</TabsTrigger>
-              <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
-              <TabsTrigger value="selos" className="flex-1 sm:flex-none">
-                Selos {selos.length > 0 && <Award className="w-4 h-4 ml-1 text-amber-500" />}
+            <TabsList className="w-full grid grid-cols-4 bg-white border mb-4 h-auto p-1">
+              <TabsTrigger value="perfil" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                Perfil
               </TabsTrigger>
-              <TabsTrigger value="avaliacoes" className="flex-1 sm:flex-none">
-                Avaliações {avaliacoes.length > 0 && `(${avaliacoes.length})`}
+              <TabsTrigger value="documentos" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                Docs
+              </TabsTrigger>
+              <TabsTrigger value="selos" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                Selos {selos.length > 0 && <Award className="w-3 h-3 sm:w-4 sm:h-4 ml-1 text-amber-500" />}
+              </TabsTrigger>
+              <TabsTrigger value="avaliacoes" className="text-xs sm:text-sm py-2 px-1 sm:px-3">
+                <span className="hidden sm:inline">Avaliações</span>
+                <span className="sm:hidden">Aval.</span>
+                {avaliacoes.length > 0 && <span className="ml-1">({avaliacoes.length})</span>}
               </TabsTrigger>
             </TabsList>
 
             {/* Tab Perfil */}
             <TabsContent value="perfil" className="mt-0">
               <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold">Informações do Perfil</h3>
-                    <Button onClick={handleSaveProfile} disabled={loading}>
+                <CardContent className="pt-6 px-4 sm:px-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold">Informações do Perfil</h3>
+                      <p className="text-sm text-gray-500">Atualize seus dados pessoais</p>
+                    </div>
+                    <Button onClick={handleSaveProfile} disabled={loading} className="w-full sm:w-auto">
                       {loading ? (
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      Salvar
+                      Salvar alterações
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="nome">
-                        {profissional.tipo === 'autonomo' ? 'Nome Completo' : 'Nome do Responsável'}
-                      </Label>
-                      <Input
-                        id="nome"
-                        name="nome"
-                        value={formData.nome}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    {profissional.tipo === 'empresa' && (
+                  <div className="space-y-5">
+                    {/* Nome e Razão Social */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="razao_social">Razão Social</Label>
+                        <Label htmlFor="nome" className="text-sm font-medium">
+                          {profissional.tipo === 'autonomo' ? 'Nome Completo' : 'Nome do Responsável'}
+                        </Label>
                         <Input
-                          id="razao_social"
-                          name="razao_social"
-                          value={formData.razao_social}
+                          id="nome"
+                          name="nome"
+                          value={formData.nome}
                           onChange={handleChange}
+                          className="h-11"
                         />
                       </div>
-                    )}
 
-                    <div className="space-y-2">
-                      <Label>{profissional.tipo === 'autonomo' ? 'CPF' : 'CNPJ'}</Label>
-                      <Input value={profissional.cpf_cnpj} disabled className="bg-gray-50" />
+                      {profissional.tipo === 'empresa' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="razao_social" className="text-sm font-medium">Razão Social</Label>
+                          <Input
+                            id="razao_social"
+                            name="razao_social"
+                            value={formData.razao_social}
+                            onChange={handleChange}
+                            className="h-11"
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                      />
-                    </div>
+                    {/* CPF/CNPJ e Email */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">{profissional.tipo === 'autonomo' ? 'CPF' : 'CNPJ'}</Label>
+                        <Input value={profissional.cpf_cnpj} disabled className="bg-gray-100 h-11 text-gray-500" />
+                      </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="telefone">Telefone/WhatsApp</Label>
-                      <Input
-                        id="telefone"
-                        name="telefone"
-                        value={formData.telefone}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cep">CEP</Label>
-                      <div className="relative">
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm font-medium">E-mail</Label>
                         <Input
-                          id="cep"
-                          name="cep"
-                          placeholder="00000-000"
-                          value={formData.cep}
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
                           onChange={handleChange}
+                          className="h-11"
                         />
-                        {buscandoCep && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                          </div>
-                        )}
                       </div>
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="endereco">Endereço</Label>
+                    {/* Telefone e CEP */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="telefone" className="text-sm font-medium">Telefone/WhatsApp</Label>
+                        <Input
+                          id="telefone"
+                          name="telefone"
+                          value={formData.telefone}
+                          onChange={handleChange}
+                          className="h-11"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="cep" className="text-sm font-medium">CEP</Label>
+                        <div className="relative">
+                          <Input
+                            id="cep"
+                            name="cep"
+                            placeholder="00000-000"
+                            value={formData.cep}
+                            onChange={handleChange}
+                            className="h-11"
+                          />
+                          {buscandoCep && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Endereço */}
+                    <div className="space-y-2">
+                      <Label htmlFor="endereco" className="text-sm font-medium">Endereço</Label>
                       <Input
                         id="endereco"
                         name="endereco"
                         placeholder="Rua, número, bairro"
                         value={formData.endereco}
                         onChange={handleChange}
+                        className="h-11"
                       />
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
+                    {/* Estado e Cidade */}
+                    <div>
                       <LocationSelects
                         estado={formData.estado}
                         cidade={formData.cidade}
@@ -825,8 +851,9 @@ export default function PerfilProfissional() {
                       />
                     </div>
 
-                    <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="sobre">Sobre você</Label>
+                    {/* Sobre */}
+                    <div className="space-y-2">
+                      <Label htmlFor="sobre" className="text-sm font-medium">Sobre você</Label>
                       <Textarea
                         id="sobre"
                         name="sobre"
@@ -835,6 +862,7 @@ export default function PerfilProfissional() {
                         onChange={handleChange}
                         rows={4}
                         maxLength={1000}
+                        className="resize-none"
                       />
                       <p className="text-xs text-gray-500 text-right">{formData.sobre.length}/1000</p>
                     </div>
@@ -867,169 +895,191 @@ export default function PerfilProfissional() {
             {/* Tab Documentos */}
             <TabsContent value="documentos" className="mt-0">
               <Card>
-                <CardContent className="pt-6">
-                  <h3 className="text-lg font-semibold mb-6">Documentos</h3>
+                <CardContent className="pt-6 px-4 sm:px-6">
+                  <h3 className="text-lg font-semibold mb-2">Documentos</h3>
+                  <p className="text-sm text-gray-500 mb-6">Envie seus documentos para validação</p>
 
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* Documento de Identificação */}
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <IdCard className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium">Documento de Identificação</h4>
-                          <p className="text-sm text-gray-500">RG ou CNH {profissional.tipo === 'empresa' ? 'do responsável' : ''}</p>
-                        </div>
-                        {profissional.documento_url && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> Enviado
-                          </Badge>
-                        )}
-                      </div>
-
-                      {profissional.documento_url && (
-                        <a
-                          href={profissional.documento_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-primary-600 hover:underline flex items-center gap-1 mb-3"
-                        >
-                          Ver documento <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-
-                      {!documentoIdentidade ? (
-                        <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                          <Upload className="w-5 h-5 text-gray-400" />
-                          <span className="text-sm text-gray-600">
-                            {profissional.documento_url ? 'Atualizar documento' : 'Enviar documento'}
-                          </span>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handleFileSelect(e, setDocumentoIdentidade)}
-                          />
-                        </label>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                            <FileText className="w-4 h-4 text-primary-600" />
-                            <span className="text-sm truncate">{documentoIdentidade.name}</span>
+                    <div className="border rounded-xl overflow-hidden">
+                      <div className="p-4 bg-blue-50 border-b border-blue-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <IdCard className="w-6 h-6 text-blue-600" />
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDocumentoIdentidade(null)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleUploadDocumento(documentoIdentidade, 'identidade', setUploadingIdentidade, setDocumentoIdentidade)}
-                            disabled={uploadingIdentidade}
-                          >
-                            {uploadingIdentidade ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Documento da Empresa */}
-                    {profissional.tipo === 'empresa' && (
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <Building2 className="w-5 h-5 text-purple-600" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-blue-900">RG ou CNH</h4>
+                            <p className="text-xs text-blue-700">Documento de identificação</p>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">Documento da Empresa</h4>
-                            <p className="text-sm text-gray-500">Contrato Social ou Cartão CNPJ</p>
-                          </div>
-                          {profissional.documento_empresa_url && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                              <CheckCircle2 className="w-3 h-3 mr-1" /> Enviado
+                          {profissional.documento_url && (
+                            <Badge className="bg-green-500 text-white flex-shrink-0">
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> OK
                             </Badge>
                           )}
                         </div>
+                      </div>
 
-                        {profissional.documento_empresa_url && (
+                      <div className="p-4 space-y-3">
+                        {profissional.documento_url && (
                           <a
-                            href={profissional.documento_empresa_url}
+                            href={profissional.documento_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm text-primary-600 hover:underline flex items-center gap-1 mb-3"
+                            className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
                           >
-                            Ver documento <ExternalLink className="w-3 h-3" />
+                            <Eye className="w-4 h-4" />
+                            Ver documento atual
                           </a>
                         )}
 
-                        {!documentoEmpresa ? (
-                          <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                            <Upload className="w-5 h-5 text-gray-400" />
-                            <span className="text-sm text-gray-600">
-                              {profissional.documento_empresa_url ? 'Atualizar documento' : 'Enviar documento'}
+                        {!documentoIdentidade ? (
+                          <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-700">
+                              {profissional.documento_url ? 'Atualizar documento' : 'Enviar documento'}
                             </span>
+                            <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
                             <input
                               type="file"
                               className="hidden"
                               accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={(e) => handleFileSelect(e, setDocumentoEmpresa)}
+                              onChange={(e) => handleFileSelect(e, setDocumentoIdentidade)}
                             />
                           </label>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                              <FileText className="w-4 h-4 text-primary-600" />
-                              <span className="text-sm truncate">{documentoEmpresa.name}</span>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                              <span className="text-sm truncate flex-1">{documentoIdentidade.name}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setDocumentoIdentidade(null)}
+                                className="h-8 w-8 p-0 flex-shrink-0"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
                             </div>
                             <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDocumentoEmpresa(null)}
+                              className="w-full"
+                              onClick={() => handleUploadDocumento(documentoIdentidade, 'identidade', setUploadingIdentidade, setDocumentoIdentidade)}
+                              disabled={uploadingIdentidade}
                             >
-                              <X className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleUploadDocumento(documentoEmpresa, 'empresa', setUploadingEmpresa, setDocumentoEmpresa)}
-                              disabled={uploadingEmpresa}
-                            >
-                              {uploadingEmpresa ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
+                              {uploadingIdentidade ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                              Enviar documento
                             </Button>
                           </div>
                         )}
                       </div>
+                    </div>
+
+                    {/* Documento da Empresa */}
+                    {profissional.tipo === 'empresa' && (
+                      <div className="border rounded-xl overflow-hidden">
+                        <div className="p-4 bg-purple-50 border-b border-purple-100">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <Building2 className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-purple-900">Documento da Empresa</h4>
+                              <p className="text-xs text-purple-700">Contrato Social ou CNPJ</p>
+                            </div>
+                            {profissional.documento_empresa_url && (
+                              <Badge className="bg-green-500 text-white flex-shrink-0">
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> OK
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-3">
+                          {profissional.documento_empresa_url && (
+                            <a
+                              href={profissional.documento_empresa_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 p-3 bg-purple-50 text-purple-700 rounded-lg font-medium text-sm hover:bg-purple-100 transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver documento atual
+                            </a>
+                          )}
+
+                          {!documentoEmpresa ? (
+                            <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-purple-400 transition-all">
+                              <Upload className="w-8 h-8 text-gray-400" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {profissional.documento_empresa_url ? 'Atualizar documento' : 'Enviar documento'}
+                              </span>
+                              <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => handleFileSelect(e, setDocumentoEmpresa)}
+                              />
+                            </label>
+                          ) : (
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <FileText className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                                <span className="text-sm truncate flex-1">{documentoEmpresa.name}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setDocumentoEmpresa(null)}
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <Button
+                                className="w-full"
+                                onClick={() => handleUploadDocumento(documentoEmpresa, 'empresa', setUploadingEmpresa, setDocumentoEmpresa)}
+                                disabled={uploadingEmpresa}
+                              >
+                                {uploadingEmpresa ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                                Enviar documento
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
 
                     {/* Diplomas */}
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                          <GraduationCap className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium">Diplomas e Certificados</h4>
-                          <p className="text-sm text-gray-500">Opcional - adicione quantos quiser</p>
+                    <div className="border rounded-xl overflow-hidden">
+                      <div className="p-4 bg-amber-50 border-b border-amber-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <GraduationCap className="w-6 h-6 text-amber-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-amber-900">Diplomas e Certificados</h4>
+                            <p className="text-xs text-amber-700">Opcional - adicione quantos quiser</p>
+                          </div>
+                          {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
+                            <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-300 flex-shrink-0">
+                              {profissional.diplomas_urls.length}
+                            </Badge>
+                          )}
                         </div>
                       </div>
 
-                      {/* Lista de diplomas */}
-                      {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
-                        <div className="space-y-2 mb-3">
-                          {profissional.diplomas_urls.map((url, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <GraduationCap className="w-4 h-4 text-amber-600" />
-                                <span className="text-sm">Diploma {idx + 1}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
+                      <div className="p-4 space-y-3">
+                        {/* Lista de diplomas */}
+                        {profissional.diplomas_urls && profissional.diplomas_urls.length > 0 && (
+                          <div className="space-y-2">
+                            {profissional.diplomas_urls.map((url, idx) => (
+                              <div key={idx} className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                                <GraduationCap className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                                <span className="text-sm font-medium flex-1">Diploma {idx + 1}</span>
                                 <a
                                   href={url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-sm text-primary-600 hover:underline"
+                                  className="text-sm text-amber-700 hover:text-amber-800 font-medium"
                                 >
                                   Ver
                                 </a>
@@ -1038,7 +1088,7 @@ export default function PerfilProfissional() {
                                   size="sm"
                                   onClick={() => handleRemoverDiploma(url)}
                                   disabled={removingDiploma === url}
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                                 >
                                   {removingDiploma === url ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1047,45 +1097,48 @@ export default function PerfilProfissional() {
                                   )}
                                 </Button>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Upload de diploma */}
-                      {!diploma ? (
-                        <label className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                          <Upload className="w-5 h-5 text-gray-400" />
-                          <span className="text-sm text-gray-600">Adicionar diploma/certificado</span>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            onChange={(e) => handleFileSelect(e, setDiploma)}
-                          />
-                        </label>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                            <FileText className="w-4 h-4 text-amber-600" />
-                            <span className="text-sm truncate">{diploma.name}</span>
+                            ))}
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setDiploma(null)}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleUploadDocumento(diploma, 'diploma', setUploadingDiploma, setDiploma)}
-                            disabled={uploadingDiploma}
-                          >
-                            {uploadingDiploma ? <Loader2 className="w-4 h-4 animate-spin" /> : "Enviar"}
-                          </Button>
-                        </div>
-                      )}
+                        )}
+
+                        {/* Upload de diploma */}
+                        {!diploma ? (
+                          <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-amber-400 transition-all">
+                            <Upload className="w-8 h-8 text-gray-400" />
+                            <span className="text-sm font-medium text-gray-700">Adicionar diploma</span>
+                            <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={(e) => handleFileSelect(e, setDiploma)}
+                            />
+                          </label>
+                        ) : (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                              <FileText className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                              <span className="text-sm truncate flex-1">{diploma.name}</span>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setDiploma(null)}
+                                className="h-8 w-8 p-0 flex-shrink-0"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <Button
+                              className="w-full bg-amber-500 hover:bg-amber-600"
+                              onClick={() => handleUploadDocumento(diploma, 'diploma', setUploadingDiploma, setDiploma)}
+                              disabled={uploadingDiploma}
+                            >
+                              {uploadingDiploma ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                              Enviar diploma
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

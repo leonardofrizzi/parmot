@@ -66,16 +66,16 @@ export function LocationSelects({
   }, [estado])
 
   return (
-    <>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label htmlFor="estado">Estado</Label>
+        <Label htmlFor="estado" className="text-sm font-medium">Estado</Label>
         <select
           id="estado"
           name="estado"
           value={estado}
           onChange={(e) => onEstadoChange(e.target.value)}
           required={required}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <option value="">Selecione o estado</option>
           {estados.map(estado => (
@@ -87,7 +87,7 @@ export function LocationSelects({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="cidade">Cidade</Label>
+        <Label htmlFor="cidade" className="text-sm font-medium">Cidade</Label>
         <select
           id="cidade"
           name="cidade"
@@ -95,7 +95,7 @@ export function LocationSelects({
           onChange={(e) => onCidadeChange(e.target.value)}
           required={required}
           disabled={!estado || loadingCidades}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <option value="">
             {loadingCidades ? "Carregando..." : !estado ? "Selecione o estado primeiro" : "Selecione a cidade"}
@@ -107,6 +107,6 @@ export function LocationSelects({
           ))}
         </select>
       </div>
-    </>
+    </div>
   )
 }
