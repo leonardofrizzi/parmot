@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { LIMITS, ALLOWED_FILE_TYPES } from '@/lib/validations'
 
-type TipoDocumento = 'identidade' | 'empresa' | 'diploma' | 'foto'
+type TipoDocumento = 'identidade' | 'identidade_frente' | 'identidade_verso' | 'empresa' | 'diploma' | 'foto'
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,7 +83,13 @@ export async function POST(request: NextRequest) {
         fieldName = 'foto_url'
         oldUrl = profissional.foto_url
         break
-      default: // 'identidade'
+      case 'identidade_verso':
+        folder = 'identidades'
+        fieldName = 'identidade_verso_url'
+        oldUrl = profissional.identidade_verso_url
+        break
+      case 'identidade_frente':
+      default: // 'identidade' ou 'identidade_frente'
         folder = 'identidades'
         fieldName = 'identidade_frente_url'
         oldUrl = profissional.identidade_frente_url

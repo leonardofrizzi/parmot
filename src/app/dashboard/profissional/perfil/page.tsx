@@ -141,10 +141,12 @@ export default function PerfilProfissional() {
   const [clienteConfirmarSenha, setClienteConfirmarSenha] = useState("")
 
   // Estados para upload de documentos
-  const [documentoIdentidade, setDocumentoIdentidade] = useState<File | null>(null)
+  const [identidadeFrente, setIdentidadeFrente] = useState<File | null>(null)
+  const [identidadeVerso, setIdentidadeVerso] = useState<File | null>(null)
   const [documentoEmpresa, setDocumentoEmpresa] = useState<File | null>(null)
   const [diploma, setDiploma] = useState<File | null>(null)
-  const [uploadingIdentidade, setUploadingIdentidade] = useState(false)
+  const [uploadingIdentidadeFrente, setUploadingIdentidadeFrente] = useState(false)
+  const [uploadingIdentidadeVerso, setUploadingIdentidadeVerso] = useState(false)
   const [uploadingEmpresa, setUploadingEmpresa] = useState(false)
   const [uploadingDiploma, setUploadingDiploma] = useState(false)
   const [uploadingFoto, setUploadingFoto] = useState(false)
@@ -467,7 +469,7 @@ export default function PerfilProfissional() {
   // Upload de documento
   const handleUploadDocumento = async (
     file: File,
-    tipoDocumento: 'identidade' | 'empresa' | 'diploma',
+    tipoDocumento: 'identidade' | 'identidade_frente' | 'identidade_verso' | 'empresa' | 'diploma',
     setUploading: (v: boolean) => void,
     setFile: (f: File | null) => void
   ) => {
@@ -923,10 +925,12 @@ export default function PerfilProfissional() {
                         </div>
                       </div>
 
-                      <div className="p-4 space-y-3">
-                        {/* Documentos do cadastro (frente/verso) */}
-                        {profissional.identidade_frente_url && (
-                          <div className="space-y-2">
+                      <div className="p-4 space-y-4">
+                        {/* Frente do documento */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">Frente do documento <span className="text-red-500">*</span></p>
+
+                          {profissional.identidade_frente_url && (
                             <a
                               href={profissional.identidade_frente_url}
                               target="_blank"
@@ -934,72 +938,117 @@ export default function PerfilProfissional() {
                               className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
                             >
                               <Eye className="w-4 h-4" />
-                              Ver frente do documento
+                              Ver frente atual
                             </a>
-                            {profissional.identidade_verso_url && (
-                              <a
-                                href={profissional.identidade_verso_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
-                              >
-                                <Eye className="w-4 h-4" />
-                                Ver verso do documento
-                              </a>
-                            )}
-                          </div>
-                        )}
-                        {/* Legacy: documento_url (uploads antigos) */}
-                        {!profissional.identidade_frente_url && profissional.documento_url && (
-                          <a
-                            href={profissional.documento_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Ver documento atual
-                          </a>
-                        )}
+                          )}
+                          {/* Legacy: documento_url */}
+                          {!profissional.identidade_frente_url && profissional.documento_url && (
+                            <a
+                              href={profissional.documento_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver documento atual
+                            </a>
+                          )}
 
-                        {!documentoIdentidade ? (
-                          <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
-                            <Upload className="w-8 h-8 text-gray-400" />
-                            <span className="text-sm font-medium text-gray-700">
-                              {(profissional.identidade_frente_url || profissional.documento_url) ? 'Atualizar documento' : 'Enviar documento'}
-                            </span>
-                            <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={(e) => handleFileSelect(e, setDocumentoIdentidade)}
-                            />
-                          </label>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                              <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                              <span className="text-sm truncate flex-1">{documentoIdentidade.name}</span>
+                          {!identidadeFrente ? (
+                            <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
+                              <Upload className="w-6 h-6 text-gray-400" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {profissional.identidade_frente_url ? 'Atualizar frente' : 'Enviar frente'}
+                              </span>
+                              <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => handleFileSelect(e, setIdentidadeFrente)}
+                              />
+                            </label>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                <span className="text-sm truncate flex-1">{identidadeFrente.name}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setIdentidadeFrente(null)}
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
                               <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setDocumentoIdentidade(null)}
-                                className="h-8 w-8 p-0 flex-shrink-0"
+                                className="w-full"
+                                onClick={() => handleUploadDocumento(identidadeFrente, 'identidade_frente', setUploadingIdentidadeFrente, setIdentidadeFrente)}
+                                disabled={uploadingIdentidadeFrente}
                               >
-                                <X className="w-4 h-4" />
+                                {uploadingIdentidadeFrente ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                                Enviar frente
                               </Button>
                             </div>
-                            <Button
-                              className="w-full"
-                              onClick={() => handleUploadDocumento(documentoIdentidade, 'identidade', setUploadingIdentidade, setDocumentoIdentidade)}
-                              disabled={uploadingIdentidade}
+                          )}
+                        </div>
+
+                        {/* Verso do documento */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">Verso do documento <span className="text-gray-400">(opcional)</span></p>
+
+                          {profissional.identidade_verso_url && (
+                            <a
+                              href={profissional.identidade_verso_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
                             >
-                              {uploadingIdentidade ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                              Enviar documento
-                            </Button>
-                          </div>
-                        )}
+                              <Eye className="w-4 h-4" />
+                              Ver verso atual
+                            </a>
+                          )}
+
+                          {!identidadeVerso ? (
+                            <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
+                              <Upload className="w-6 h-6 text-gray-400" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {profissional.identidade_verso_url ? 'Atualizar verso' : 'Enviar verso'}
+                              </span>
+                              <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => handleFileSelect(e, setIdentidadeVerso)}
+                              />
+                            </label>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                <span className="text-sm truncate flex-1">{identidadeVerso.name}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setIdentidadeVerso(null)}
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <Button
+                                className="w-full"
+                                onClick={() => handleUploadDocumento(identidadeVerso, 'identidade_verso', setUploadingIdentidadeVerso, setIdentidadeVerso)}
+                                disabled={uploadingIdentidadeVerso}
+                              >
+                                {uploadingIdentidadeVerso ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                                Enviar verso
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
