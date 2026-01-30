@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(
   request: NextRequest,
@@ -13,13 +14,15 @@ export async function GET(
 
     // Se for UUID, retornar todos os dados (uso interno do dashboard)
     if (isUUID) {
-      const { data: profissional, error } = await supabase
+      // Usar supabaseAdmin para bypass de RLS e garantir acesso a todos os campos
+      const { data: profissional, error } = await supabaseAdmin
         .from('profissionais')
         .select('*')
         .eq('id', slug)
         .single()
 
       if (error || !profissional) {
+        console.error('Erro ao buscar profissional:', error)
         return NextResponse.json(
           { error: 'Profissional não encontrado' },
           { status: 404 }

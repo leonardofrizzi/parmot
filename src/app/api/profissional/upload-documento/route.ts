@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Verificar se profissional existe (usar admin para bypass RLS)
     const { data: profissional, error: profError } = await supabaseAdmin
       .from('profissionais')
-      .select('id, cpf_cnpj, documento_url, documento_empresa_url, diplomas_urls, foto_url')
+      .select('id, cpf_cnpj, identidade_frente_url, identidade_verso_url, documento_empresa_url, diplomas_urls, foto_url')
       .eq('id', profissional_id)
       .single()
 
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
         break
       default: // 'identidade'
         folder = 'identidades'
-        fieldName = 'documento_url'
-        oldUrl = profissional.documento_url
+        fieldName = 'identidade_frente_url'
+        oldUrl = profissional.identidade_frente_url
     }
 
     // Se não é diploma e já tem documento, deletar o antigo

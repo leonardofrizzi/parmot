@@ -87,6 +87,10 @@ interface Profissional {
   estado: string
   saldo_moedas: number
   cliente_id?: string
+  // Documento de identidade (frente/verso - usado pelo cadastro)
+  identidade_frente_url?: string | null
+  identidade_verso_url?: string | null
+  // Legacy: documento_url (usado por uploads antigos)
   documento_url?: string | null
   documento_empresa_url?: string | null
   diplomas_urls?: (string | { frente: string; verso: string | null })[] | null
@@ -911,7 +915,7 @@ export default function PerfilProfissional() {
                             <h4 className="font-semibold text-blue-900">RG ou CNH</h4>
                             <p className="text-xs text-blue-700">Documento de identificação</p>
                           </div>
-                          {profissional.documento_url && (
+                          {(profissional.identidade_frente_url || profissional.documento_url) && (
                             <Badge className="bg-green-500 text-white flex-shrink-0">
                               <CheckCircle2 className="w-3 h-3 mr-1" /> OK
                             </Badge>
@@ -920,7 +924,33 @@ export default function PerfilProfissional() {
                       </div>
 
                       <div className="p-4 space-y-3">
-                        {profissional.documento_url && (
+                        {/* Documentos do cadastro (frente/verso) */}
+                        {profissional.identidade_frente_url && (
+                          <div className="space-y-2">
+                            <a
+                              href={profissional.identidade_frente_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver frente do documento
+                            </a>
+                            {profissional.identidade_verso_url && (
+                              <a
+                                href={profissional.identidade_verso_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg font-medium text-sm hover:bg-blue-100 transition-colors"
+                              >
+                                <Eye className="w-4 h-4" />
+                                Ver verso do documento
+                              </a>
+                            )}
+                          </div>
+                        )}
+                        {/* Legacy: documento_url (uploads antigos) */}
+                        {!profissional.identidade_frente_url && profissional.documento_url && (
                           <a
                             href={profissional.documento_url}
                             target="_blank"
@@ -936,7 +966,7 @@ export default function PerfilProfissional() {
                           <label className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 hover:border-blue-400 transition-all">
                             <Upload className="w-8 h-8 text-gray-400" />
                             <span className="text-sm font-medium text-gray-700">
-                              {profissional.documento_url ? 'Atualizar documento' : 'Enviar documento'}
+                              {(profissional.identidade_frente_url || profissional.documento_url) ? 'Atualizar documento' : 'Enviar documento'}
                             </span>
                             <span className="text-xs text-gray-500">PDF, JPG ou PNG (máx. 5MB)</span>
                             <input
