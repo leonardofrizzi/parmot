@@ -251,6 +251,11 @@ export async function POST(request: NextRequest) {
 
     // Inserir profissional
     console.log('Inserindo profissional no banco...')
+
+    // Capturar IP do usuário para registro do aceite dos termos
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown'
+
     const insertData = {
       tipo,
       nome,
@@ -271,7 +276,11 @@ export async function POST(request: NextRequest) {
       // Diplomas com frente e verso
       diplomas_urls: diplomaUrls.length > 0 ? diplomaUrls : null,
       aprovado: false,
-      email_verificado: emailVerificado
+      email_verificado: emailVerificado,
+      // Registro do aceite dos termos de uso
+      termos_aceitos_em: new Date().toISOString(),
+      termos_versao: '2026.1',
+      termos_ip: clientIp
     }
     console.log('Dados a inserir:', { ...insertData, senha_hash: '***' })
 

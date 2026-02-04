@@ -38,8 +38,25 @@ export default function DashboardProfissional() {
       const user = JSON.parse(usuarioData)
       setProfissional(user)
       fetchStats(user.id)
+      // Buscar dados atualizados do banco (incluindo saldo de moedas)
+      fetchProfissionalAtualizado(user.id)
     }
   }, [])
+
+  const fetchProfissionalAtualizado = async (profissionalId: string) => {
+    try {
+      const response = await fetch(`/api/profissional/${profissionalId}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.profissional) {
+          setProfissional(data.profissional)
+          localStorage.setItem('usuario', JSON.stringify(data.profissional))
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao buscar profissional atualizado:', err)
+    }
+  }
 
   const fetchStats = async (profissionalId: string) => {
     try {

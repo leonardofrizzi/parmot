@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Solicitacao } from "@/types/database"
 import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building, Navigation, Phone, Mail, User, MessageCircle } from "lucide-react"
 import { IconRenderer } from "@/components/IconRenderer"
@@ -38,6 +40,9 @@ export default function DetalheSolicitacaoProfissional() {
   const [unlocking, setUnlocking] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [showDialogLiberar, setShowDialogLiberar] = useState(false)
+  const [tipoLiberacao, setTipoLiberacao] = useState<'normal' | 'exclusivo'>('normal')
+  const [aceitouTermos, setAceitouTermos] = useState(false)
   const [config, setConfig] = useState<Configuracoes>({
     custo_contato_normal: 15,
     custo_contato_exclusivo: 50,
@@ -82,7 +87,7 @@ export default function DetalheSolicitacaoProfissional() {
     }
   }
 
-  const handleLiberar = async (exclusivo: boolean) => {
+  const abrirDialogLiberar = (exclusivo: boolean) => {
     const custo = exclusivo ? config.custo_contato_exclusivo : config.custo_contato_normal
 
     if (profissional.saldo_moedas < custo) {
@@ -90,53 +95,60 @@ export default function DetalheSolicitacaoProfissional() {
       return
     }
 
-    if (window.confirm(
-      `Deseja liberar o contato ${exclusivo ? 'COM EXCLUSIVIDADE' : ''} por ${custo} moedas?\n\n` +
-      (exclusivo ? 'Apenas você terá acesso ao contato do cliente!' : `Até ${config.max_profissionais_por_solicitacao} profissionais podem liberar este contato.`)
-    )) {
-      setError("")
-      setSuccess("")
-      setUnlocking(true)
+    setTipoLiberacao(exclusivo ? 'exclusivo' : 'normal')
+    setAceitouTermos(false)
+    setShowDialogLiberar(true)
+  }
 
-      try {
-        const response = await fetch('/api/profissional/liberar-contato', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            profissional_id: profissional.id,
-            solicitacao_id: solicitacaoId,
-            exclusivo
-          })
+  const handleConfirmarLiberar = async () => {
+    if (!aceitouTermos) return
+
+    const exclusivo = tipoLiberacao === 'exclusivo'
+    const custo = exclusivo ? config.custo_contato_exclusivo : config.custo_contato_normal
+
+    setShowDialogLiberar(false)
+    setError("")
+    setSuccess("")
+    setUnlocking(true)
+
+    try {
+      const response = await fetch('/api/profissional/liberar-contato', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          profissional_id: profissional.id,
+          solicitacao_id: solicitacaoId,
+          exclusivo
         })
+      })
 
-        const data = await response.json()
+      const data = await response.json()
 
-        if (!response.ok) {
-          setError(data.error || "Erro ao liberar contato")
-          setUnlocking(false)
-          return
-        }
-
-        // Atualizar saldo de moedas no localStorage
-        const novoSaldo = profissional.saldo_moedas - custo
-        const updatedUser = { ...profissional, saldo_moedas: novoSaldo }
-        localStorage.setItem('usuario', JSON.stringify(updatedUser))
-        setProfissional(updatedUser)
-
-        setSuccess("Contato liberado com sucesso!")
+      if (!response.ok) {
+        setError(data.error || "Erro ao liberar contato")
         setUnlocking(false)
-
-        // Recarregar página após 1.5s
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-
-      } catch (err) {
-        setError("Erro ao conectar com o servidor")
-        setUnlocking(false)
+        return
       }
+
+      // Atualizar saldo de moedas no localStorage
+      const novoSaldo = profissional.saldo_moedas - custo
+      const updatedUser = { ...profissional, saldo_moedas: novoSaldo }
+      localStorage.setItem('usuario', JSON.stringify(updatedUser))
+      setProfissional(updatedUser)
+
+      setSuccess("Contato liberado com sucesso!")
+      setUnlocking(false)
+
+      // Recarregar página após 1.5s
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+
+    } catch (err) {
+      setError("Erro ao conectar com o servidor")
+      setUnlocking(false)
     }
   }
 
@@ -412,7 +424,7 @@ export default function DetalheSolicitacaoProfissional() {
             {/* Botões rápidos para mobile - aparecem primeiro */}
             <div className="md:hidden space-y-3">
               <Button
-                onClick={() => handleLiberar(false)}
+                onClick={() => abrirDialogLiberar(false)}
                 disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_normal || !profissional.aprovado}
                 className="w-full h-14 text-base"
                 size="lg"
@@ -421,7 +433,7 @@ export default function DetalheSolicitacaoProfissional() {
                 {unlocking ? "Liberando..." : `Liberar por ${config.custo_contato_normal} moedas`}
               </Button>
               <Button
-                onClick={() => handleLiberar(true)}
+                onClick={() => abrirDialogLiberar(true)}
                 disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_exclusivo || !profissional.aprovado}
                 className="w-full h-14 text-base bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
                 size="lg"
@@ -473,7 +485,7 @@ export default function DetalheSolicitacaoProfissional() {
                     </li>
                   </ul>
                   <Button
-                    onClick={() => handleLiberar(false)}
+                    onClick={() => abrirDialogLiberar(false)}
                     disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_normal || !profissional.aprovado}
                     className="w-full"
                   >
@@ -522,7 +534,7 @@ export default function DetalheSolicitacaoProfissional() {
                     </li>
                   </ul>
                   <Button
-                    onClick={() => handleLiberar(true)}
+                    onClick={() => abrirDialogLiberar(true)}
                     disabled={!podeLiberar || unlocking || profissional.saldo_moedas < config.custo_contato_exclusivo || !profissional.aprovado}
                     className="w-full bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800"
                   >
@@ -574,6 +586,85 @@ export default function DetalheSolicitacaoProfissional() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dialog de Confirmação para Liberar Contato */}
+        <Dialog open={showDialogLiberar} onOpenChange={(open) => {
+          setShowDialogLiberar(open)
+          if (!open) setAceitouTermos(false)
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {tipoLiberacao === 'exclusivo' ? (
+                  <>
+                    <Shield className="w-5 h-5 text-orange-500" />
+                    Liberar com Exclusividade
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="w-5 h-5 text-primary-500" />
+                    Liberar Contato
+                  </>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                {tipoLiberacao === 'exclusivo'
+                  ? 'Você será o único profissional com acesso a este contato.'
+                  : `Até ${config.max_profissionais_por_solicitacao} profissionais podem liberar este contato.`}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-4">
+              {/* Custo */}
+              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <span className="text-gray-700">Custo:</span>
+                <span className="flex items-center gap-1 font-bold text-orange-600">
+                  <Coins size={18} />
+                  {tipoLiberacao === 'exclusivo' ? config.custo_contato_exclusivo : config.custo_contato_normal} moedas
+                </span>
+              </div>
+
+              {/* Aviso dos Termos */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="aceite-termos"
+                    checked={aceitouTermos}
+                    onCheckedChange={(checked) => setAceitouTermos(checked === true)}
+                  />
+                  <label htmlFor="aceite-termos" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
+                    Ao liberar este contato, confirmo que seguirei as <strong>diretrizes da plataforma</strong> para contato com clientes, mantendo comunicação respeitosa e profissional. Estou ciente de que a <strong>Parmot não se responsabiliza</strong> por negociações, acordos ou eventuais problemas entre profissionais e clientes, conforme estabelecido nos Termos de Uso.
+                  </label>
+                </div>
+              </div>
+
+              {/* Saldo atual */}
+              <p className="text-sm text-gray-500 text-center">
+                Seu saldo após a liberação: <strong>{profissional?.saldo_moedas - (tipoLiberacao === 'exclusivo' ? config.custo_contato_exclusivo : config.custo_contato_normal)} moedas</strong>
+              </p>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDialogLiberar(false)
+                  setAceitouTermos(false)
+                }}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleConfirmarLiberar}
+                disabled={!aceitouTermos || unlocking}
+                className={`w-full sm:w-auto ${tipoLiberacao === 'exclusivo' ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800' : ''}`}
+              >
+                {unlocking ? 'Liberando...' : 'Confirmar Liberação'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

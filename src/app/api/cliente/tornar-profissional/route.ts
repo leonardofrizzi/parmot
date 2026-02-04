@@ -75,9 +75,10 @@ export async function POST(request: NextRequest) {
       senha = body.senha
     }
 
-    if (!cliente_id || !tipo || !cpf_cnpj || !telefone || !senha || !cep || !cidade || !estado) {
+    // Validação inicial básica
+    if (!cliente_id || !tipo || !cpf_cnpj || !telefone || !senha) {
       return NextResponse.json(
-        { error: 'Todos os campos são obrigatórios (incluindo telefone, CEP, cidade e estado)' },
+        { error: 'Todos os campos obrigatórios devem ser preenchidos' },
         { status: 400 }
       )
     }
@@ -93,6 +94,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Cliente não encontrado' },
         { status: 404 }
+      )
+    }
+
+    // Usar dados do cliente se não foram enviados
+    if (!cep) cep = cliente.cep || ''
+    if (!cidade) cidade = cliente.cidade || ''
+    if (!estado) estado = cliente.estado || ''
+    if (!endereco) endereco = cliente.endereco || null
+
+    // Validar se temos todos os dados necessários
+    if (!cep || !cidade || !estado) {
+      return NextResponse.json(
+        { error: 'CEP, cidade e estado são obrigatórios. Atualize seu perfil de cliente primeiro.' },
+        { status: 400 }
       )
     }
 
@@ -120,6 +135,10 @@ export async function POST(request: NextRequest) {
 
     // Hash da senha
     const senhaHash = await bcrypt.hash(senha, 10)
+
+    // Capturar IP do usuário para registro do aceite dos termos
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown'
 
     // Função auxiliar para fazer upload de arquivo
     const uploadFile = async (file: File, folder: string): Promise<string | null> => {
@@ -227,7 +246,11 @@ export async function POST(request: NextRequest) {
         identidade_frente_url: identidadeFrenteUrl,
         identidade_verso_url: identidadeVersoUrl,
         documento_empresa_url: documentoEmpresaUrl,
-        diplomas_urls: diplomaUrls.length > 0 ? diplomaUrls : null
+        diplomas_urls: diplomaUrls.length > 0 ? diplomaUrls : null,
+        // Registro do aceite dos termos de uso
+        termos_aceitos_em: new Date().toISOString(),
+        termos_versao: '2026.1',
+        termos_ip: clientIp
       })
       .select()
       .single()

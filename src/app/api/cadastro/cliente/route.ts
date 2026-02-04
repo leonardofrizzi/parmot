@@ -39,6 +39,10 @@ export async function POST(request: NextRequest) {
     // Hash da senha
     const senhaHash = await bcrypt.hash(body.senha, 10)
 
+    // Capturar IP do usuário para registro do aceite dos termos
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : request.headers.get('x-real-ip') || 'unknown'
+
     // Inserir cliente (telefone e endereco são opcionais)
     const { data, error } = await supabase
       .from('clientes')
@@ -52,6 +56,10 @@ export async function POST(request: NextRequest) {
         estado: body.estado,
         senha_hash: senhaHash,
         email_verificado: body.email_verificado || false,
+        // Registro do aceite dos termos de uso
+        termos_aceitos_em: new Date().toISOString(),
+        termos_versao: '2026.1',
+        termos_ip: clientIp
       })
       .select()
       .single()

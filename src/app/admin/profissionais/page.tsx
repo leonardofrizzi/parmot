@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard, GraduationCap, Building2, Ban, ShieldOff } from "lucide-react"
+import { CheckCircle2, XCircle, User, Mail, Phone, MapPin, Briefcase, Clock, FileText, ExternalLink, IdCard, GraduationCap, Building2, Ban, ShieldOff, FileCheck, Coins, Download } from "lucide-react"
+import { gerarComprovantePDF } from "@/lib/gerarComprovantePDF"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 interface Profissional {
   id: string
@@ -28,6 +32,10 @@ interface Profissional {
   identidade_verso_url?: string | null
   documento_empresa_url?: string | null
   diplomas_urls?: (string | { frente: string; verso: string | null })[] | null
+  // Aceite dos termos
+  termos_aceitos_em?: string | null
+  termos_versao?: string | null
+  termos_ip?: string | null
 }
 
 export default function AdminProfissionais() {
@@ -37,7 +45,10 @@ export default function AdminProfissionais() {
   const [showDialog, setShowDialog] = useState(false)
   const [showDialogReprovar, setShowDialogReprovar] = useState(false)
   const [showDialogBanir, setShowDialogBanir] = useState(false)
+  const [showDialogMoedas, setShowDialogMoedas] = useState(false)
   const [motivoBanimento, setMotivoBanimento] = useState('')
+  const [quantidadeMoedas, setQuantidadeMoedas] = useState('')
+  const [motivoMoedas, setMotivoMoedas] = useState('')
   const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null)
   const [loadingAcao, setLoadingAcao] = useState(false)
 
@@ -128,6 +139,49 @@ export default function AdminProfissionais() {
       }
     } catch (err) {
       console.error('Erro ao banir profissional:', err)
+    }
+    setLoadingAcao(false)
+  }
+
+  const handleCreditarMoedas = async () => {
+    if (!profissionalSelecionado || !quantidadeMoedas) return
+
+    const quantidade = parseInt(quantidadeMoedas)
+    if (isNaN(quantidade) || quantidade <= 0) {
+      alert('Informe uma quantidade válida de moedas')
+      return
+    }
+
+    setLoadingAcao(true)
+    try {
+      const adminData = localStorage.getItem('admin')
+      const admin = adminData ? JSON.parse(adminData) : null
+
+      const response = await fetch('/api/admin/profissionais/creditar-moedas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profissional_id: profissionalSelecionado.id,
+          quantidade,
+          motivo: motivoMoedas || 'Crédito de cortesia',
+          admin_id: admin?.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(data.message)
+        setShowDialogMoedas(false)
+        setProfissionalSelecionado(null)
+        setQuantidadeMoedas('')
+        setMotivoMoedas('')
+      } else {
+        alert(data.error || 'Erro ao creditar moedas')
+      }
+    } catch (err) {
+      console.error('Erro ao creditar moedas:', err)
+      alert('Erro ao creditar moedas')
     }
     setLoadingAcao(false)
   }
@@ -397,6 +451,48 @@ export default function AdminProfissionais() {
                     )}
                   </div>
 
+                  {/* Aceite dos Termos */}
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-gray-500 mb-1">Aceite dos Termos:</p>
+                    {prof.termos_aceitos_em ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-xs">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1 text-green-700 font-medium">
+                            <FileCheck size={14} />
+                            <span>Termos aceitos</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs border-green-400 text-green-700 hover:bg-green-100"
+                            onClick={() => gerarComprovantePDF({
+                              nome: prof.nome,
+                              cpf_cnpj: prof.cpf_cnpj,
+                              email: prof.email,
+                              tipo: prof.tipo,
+                              termos_aceitos_em: prof.termos_aceitos_em!,
+                              termos_versao: prof.termos_versao || 'N/A',
+                              termos_ip: prof.termos_ip || 'N/A'
+                            })}
+                          >
+                            <Download size={12} className="mr-1" />
+                            PDF
+                          </Button>
+                        </div>
+                        <div className="text-gray-600 space-y-0.5">
+                          <p>Data: {new Date(prof.termos_aceitos_em).toLocaleString('pt-BR')}</p>
+                          <p>Versão: {prof.termos_versao || 'N/A'}</p>
+                          <p>IP: {prof.termos_ip || 'N/A'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-amber-600 italic flex items-center gap-1">
+                        <FileCheck size={12} />
+                        Cadastro anterior (sem registro de aceite)
+                      </p>
+                    )}
+                  </div>
+
                   <div className="pt-3 flex flex-col gap-2">
                     {prof.banido ? (
                       // Profissional banido - opção de remover banimento
@@ -440,31 +536,45 @@ export default function AdminProfissionais() {
                         </Button>
                       </div>
                     ) : (
-                      // Profissional aprovado - opções revogar/banir
-                      <div className="flex gap-2">
+                      // Profissional aprovado - opções dar moedas/revogar/banir
+                      <div className="space-y-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1"
+                          className="w-full border-amber-400 text-amber-700 hover:bg-amber-50"
                           onClick={() => {
                             setProfissionalSelecionado(prof)
-                            setShowDialogReprovar(true)
+                            setShowDialogMoedas(true)
                           }}
                         >
-                          Revogar
+                          <Coins size={16} className="mr-1" />
+                          Dar Moedas
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1 border-red-500 text-red-700 hover:bg-red-50"
-                          onClick={() => {
-                            setProfissionalSelecionado(prof)
-                            setShowDialogBanir(true)
-                          }}
-                        >
-                          <Ban size={16} className="mr-1" />
-                          Banir
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => {
+                              setProfissionalSelecionado(prof)
+                              setShowDialogReprovar(true)
+                            }}
+                          >
+                            Revogar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 border-red-500 text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              setProfissionalSelecionado(prof)
+                              setShowDialogBanir(true)
+                            }}
+                          >
+                            <Ban size={16} className="mr-1" />
+                            Banir
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -601,6 +711,74 @@ export default function AdminProfissionais() {
                   ? (profissionalSelecionado?.banido ? 'Removendo...' : 'Banindo...')
                   : (profissionalSelecionado?.banido ? 'Remover Banimento' : 'Confirmar Banimento')
                 }
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Dar Moedas */}
+        <Dialog open={showDialogMoedas} onOpenChange={(open) => {
+          setShowDialogMoedas(open)
+          if (!open) {
+            setQuantidadeMoedas('')
+            setMotivoMoedas('')
+          }
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Coins className="w-5 h-5 text-amber-500" />
+                Dar Moedas
+              </DialogTitle>
+              <DialogDescription>
+                Creditar moedas para <strong>{profissionalSelecionado?.nome}</strong>.
+                Esta ação será registrada no histórico de transações.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="quantidade">Quantidade de moedas <span className="text-red-500">*</span></Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 10"
+                  value={quantidadeMoedas}
+                  onChange={(e) => setQuantidadeMoedas(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="motivo">Motivo (opcional)</Label>
+                <Textarea
+                  id="motivo"
+                  placeholder="Ex: Compensação por problema com cliente, cortesia, etc."
+                  value={motivoMoedas}
+                  onChange={(e) => setMotivoMoedas(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDialogMoedas(false)
+                  setQuantidadeMoedas('')
+                  setMotivoMoedas('')
+                }}
+                disabled={loadingAcao}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="bg-amber-500 hover:bg-amber-600"
+                onClick={handleCreditarMoedas}
+                disabled={loadingAcao || !quantidadeMoedas}
+              >
+                {loadingAcao ? 'Creditando...' : 'Creditar Moedas'}
               </Button>
             </DialogFooter>
           </DialogContent>

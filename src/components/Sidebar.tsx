@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
 import { compressImage } from "@/lib/compressImage"
 import { LIMITS, ALLOWED_FILE_TYPES } from "@/lib/validations"
@@ -31,6 +32,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
   const [modalLoading, setModalLoading] = useState(false)
   const [modalSuccess, setModalSuccess] = useState(false)
   const [modalError, setModalError] = useState("")
+  const [aceiteTermos, setAceiteTermos] = useState(false)
 
   const [profForm, setProfForm] = useState({
     tipo: "autonomo" as "autonomo" | "empresa",
@@ -196,6 +198,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
       setShowModal(true)
       setModalError("")
       setModalSuccess(false)
+      setAceiteTermos(false)
     }
   }
 
@@ -314,6 +317,12 @@ export default function Sidebar({ tipo }: SidebarProps) {
   const handleCriarProfissional = async () => {
     setModalError("")
     setModalLoading(true)
+
+    if (!aceiteTermos) {
+      setModalError("Você deve aceitar os Termos de Uso para continuar")
+      setModalLoading(false)
+      return
+    }
 
     if (profForm.senha !== profForm.confirmarSenha) {
       setModalError("As senhas não coincidem")
@@ -434,6 +443,12 @@ export default function Sidebar({ tipo }: SidebarProps) {
   const handleCriarCliente = async () => {
     setModalError("")
     setModalLoading(true)
+
+    if (!aceiteTermos) {
+      setModalError("Você deve aceitar os Termos de Uso para continuar")
+      setModalLoading(false)
+      return
+    }
 
     if (clienteForm.senha !== clienteForm.confirmarSenha) {
       setModalError("As senhas não coincidem")
@@ -1080,6 +1095,24 @@ export default function Sidebar({ tipo }: SidebarProps) {
                         </div>
                       )}
                     </div>
+
+                    {/* Termos de Uso */}
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="aceite-termos-modal"
+                          checked={aceiteTermos}
+                          onCheckedChange={(checked) => setAceiteTermos(checked === true)}
+                        />
+                        <label htmlFor="aceite-termos-modal" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
+                          Li e concordo com os{" "}
+                          <a href="/termos" target="_blank" className="text-primary-600 hover:underline font-medium">
+                            Termos de Uso
+                          </a>
+                          . A Parmot atua como intermediária e não se responsabiliza por eventuais problemas entre as partes.
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1122,6 +1155,24 @@ export default function Sidebar({ tipo }: SidebarProps) {
                         </button>
                       </div>
                     </div>
+
+                    {/* Termos de Uso */}
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="aceite-termos-cliente-modal"
+                          checked={aceiteTermos}
+                          onCheckedChange={(checked) => setAceiteTermos(checked === true)}
+                        />
+                        <label htmlFor="aceite-termos-cliente-modal" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
+                          Li e concordo com os{" "}
+                          <a href="/termos" target="_blank" className="text-primary-600 hover:underline font-medium">
+                            Termos de Uso
+                          </a>
+                          . A Parmot atua como intermediária e não se responsabiliza por eventuais problemas entre as partes.
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1138,7 +1189,7 @@ export default function Sidebar({ tipo }: SidebarProps) {
                 </Button>
                 <Button
                   onClick={tipo === "cliente" ? handleCriarProfissional : handleCriarCliente}
-                  disabled={modalLoading}
+                  disabled={modalLoading || !aceiteTermos}
                 >
                   {modalLoading ? "Criando..." : "Criar conta"}
                 </Button>

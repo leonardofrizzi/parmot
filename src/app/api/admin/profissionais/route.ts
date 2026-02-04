@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
         identidade_frente_url,
         identidade_verso_url,
         documento_empresa_url,
-        diplomas_urls
+        diplomas_urls,
+        termos_aceitos_em,
+        termos_versao,
+        termos_ip
       `)
       .order('created_at', { ascending: false })
 
