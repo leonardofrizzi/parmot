@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
         diplomas_urls,
         termos_aceitos_em,
         termos_versao,
-        termos_ip
+        termos_ip,
+        saldo_moedas
       `)
       .order('created_at', { ascending: false })
 

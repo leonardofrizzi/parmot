@@ -36,6 +36,8 @@ interface Profissional {
   termos_aceitos_em?: string | null
   termos_versao?: string | null
   termos_ip?: string | null
+  // Saldo de moedas
+  saldo_moedas?: number
 }
 
 export default function AdminProfissionais() {
@@ -172,6 +174,7 @@ export default function AdminProfissionais() {
 
       if (response.ok) {
         alert(data.message)
+        fetchProfissionais() // Atualizar lista para mostrar novo saldo
         setShowDialogMoedas(false)
         setProfissionalSelecionado(null)
         setQuantidadeMoedas('')
@@ -319,6 +322,31 @@ export default function AdminProfissionais() {
                       <IdCard size={14} />
                       <span>{prof.tipo === 'empresa' ? 'CNPJ' : 'CPF'}: {prof.cpf_cnpj}</span>
                     </div>
+                  </div>
+
+                  {/* Saldo de Moedas - Destaque */}
+                  <div className="mt-3 p-3 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-amber-700 font-medium">Saldo de Moedas</span>
+                      <div className="flex items-center gap-1.5 text-amber-600 font-bold text-lg">
+                        <Coins size={18} className="text-amber-500" />
+                        <span>{prof.saldo_moedas ?? 0}</span>
+                      </div>
+                    </div>
+                    {prof.aprovado && !prof.banido && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-amber-400 text-amber-700 hover:bg-amber-100 bg-white/50"
+                        onClick={() => {
+                          setProfissionalSelecionado(prof)
+                          setShowDialogMoedas(true)
+                        }}
+                      >
+                        <Coins size={16} className="mr-1" />
+                        Dar Moedas
+                      </Button>
+                    )}
                   </div>
 
                   {prof.categorias && prof.categorias.length > 0 && (
@@ -536,46 +564,19 @@ export default function AdminProfissionais() {
                         </Button>
                       </div>
                     ) : (
-                      // Profissional aprovado - opções dar moedas/revogar/banir
-                      <div className="space-y-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="w-full border-amber-400 text-amber-700 hover:bg-amber-50"
-                          onClick={() => {
-                            setProfissionalSelecionado(prof)
-                            setShowDialogMoedas(true)
-                          }}
-                        >
-                          <Coins size={16} className="mr-1" />
-                          Dar Moedas
-                        </Button>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => {
-                              setProfissionalSelecionado(prof)
-                              setShowDialogReprovar(true)
-                            }}
-                          >
-                            Revogar
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 border-red-500 text-red-700 hover:bg-red-50"
-                            onClick={() => {
-                              setProfissionalSelecionado(prof)
-                              setShowDialogBanir(true)
-                            }}
-                          >
-                            <Ban size={16} className="mr-1" />
-                            Banir
-                          </Button>
-                        </div>
-                      </div>
+                      // Profissional aprovado - opção banir
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-red-500 text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          setProfissionalSelecionado(prof)
+                          setShowDialogBanir(true)
+                        }}
+                      >
+                        <Ban size={16} className="mr-1" />
+                        Banir Profissional
+                      </Button>
                     )}
                   </div>
 

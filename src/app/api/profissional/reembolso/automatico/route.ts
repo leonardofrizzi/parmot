@@ -146,6 +146,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Atualizar status da solicitação para cancelada (não fechou negócio)
+    await supabaseAdmin
+      .from('solicitacoes')
+      .update({ status: 'cancelada' })
+      .eq('id', resposta.solicitacao_id)
+
     return NextResponse.json({
       message: `Reembolso de ${moedas_reembolso} moedas creditado automaticamente!`,
       moedas_reembolsadas: moedas_reembolso,

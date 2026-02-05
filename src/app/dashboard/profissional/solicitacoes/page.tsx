@@ -7,16 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Solicitacao } from "@/types/database"
-import { Calendar, MapPin, Search, Lock, CheckCircle2, Users, Coins, MessageCircle, Mail, DollarSign, AlertCircle, Handshake } from "lucide-react"
+import { Calendar, MapPin, Search, Lock, Users, Coins } from "lucide-react"
 import { IconRenderer } from "@/components/IconRenderer"
 import { EmptyState } from "@/components/EmptyState"
 import DistanciaIndicador from "@/components/DistanciaIndicador"
 
-type FiltroStatus = "todos" | "nao_liberados" | "liberados" | "com_vagas"
+type FiltroStatus = "todos" | "com_vagas"
 type FiltroModalidade = "todos" | "minha_cidade" | "online"
 
 interface Profissional {
@@ -57,20 +54,6 @@ export default function SolicitacoesProfissional() {
     custo_contato_exclusivo: 50
   })
 
-  // Modal de reembolso
-  const [showReembolsoModal, setShowReembolsoModal] = useState(false)
-  const [reembolsoSolicitacao, setReembolsoSolicitacao] = useState<SolicitacaoComStatus | null>(null)
-  const [reembolsoMotivo, setReembolsoMotivo] = useState("")
-  const [reembolsoLoading, setReembolsoLoading] = useState(false)
-  const [reembolsoError, setReembolsoError] = useState("")
-  const [reembolsoSuccess, setReembolsoSuccess] = useState(false)
-
-  // Modal fechei negócio
-  const [showFecheiNegocioModal, setShowFecheiNegocioModal] = useState(false)
-  const [fecheiNegocioSolicitacao, setFecheiNegocioSolicitacao] = useState<SolicitacaoComStatus | null>(null)
-  const [fecheiNegocioLoading, setFecheiNegocioLoading] = useState(false)
-  const [fecheiNegocioSuccess, setFecheiNegocioSuccess] = useState(false)
-  
   useEffect(() => {
     // Buscar configurações de moedas
     fetch('/api/configuracoes')
@@ -137,13 +120,12 @@ export default function SolicitacoesProfissional() {
       )
     }
 
-    // Aplicar filtro de status
-    if (filtroStatus === "nao_liberados") {
-      resultado = resultado.filter((s) => !s.ja_liberou)
-    } else if (filtroStatus === "liberados") {
-      resultado = resultado.filter((s) => s.ja_liberou)
-    } else if (filtroStatus === "com_vagas") {
-      resultado = resultado.filter((s) => !s.ja_liberou && (s.vagas_disponiveis || 0) > 0)
+    // SEMPRE filtrar apenas as NÃO liberadas (as liberadas ficam em "Meus Atendimentos")
+    resultado = resultado.filter((s) => !s.ja_liberou)
+
+    // Aplicar filtro adicional de status
+    if (filtroStatus === "com_vagas") {
+      resultado = resultado.filter((s) => (s.vagas_disponiveis || 0) > 0)
     }
 
     // Aplicar filtro de pesquisa
@@ -160,107 +142,6 @@ export default function SolicitacoesProfissional() {
 
     return resultado
   }, [solicitacoes, searchTerm, filtroStatus, filtroModalidade, profissional])
-
-  const abrirModalReembolso = (solicitacao: SolicitacaoComStatus) => {
-    setReembolsoSolicitacao(solicitacao)
-    setReembolsoMotivo("")
-    setReembolsoError("")
-    setReembolsoSuccess(false)
-    setShowReembolsoModal(true)
-  }
-
-  const handleSolicitarReembolso = async () => {
-    if (!profissional || !reembolsoSolicitacao?.resposta_id) return
-
-    if (reembolsoMotivo.trim().length < 20) {
-      setReembolsoError("O motivo deve ter no mínimo 20 caracteres")
-      return
-    }
-
-    setReembolsoLoading(true)
-    setReembolsoError("")
-
-    try {
-      const response = await fetch('/api/profissional/reembolso/solicitar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profissional_id: profissional.id,
-          resposta_id: reembolsoSolicitacao.resposta_id,
-          motivo: reembolsoMotivo.trim(),
-          provas_urls: []
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setReembolsoError(data.error || "Erro ao solicitar reembolso")
-        setReembolsoLoading(false)
-        return
-      }
-
-      setReembolsoSuccess(true)
-      setReembolsoLoading(false)
-    } catch (err) {
-      setReembolsoError("Erro ao conectar com o servidor")
-      setReembolsoLoading(false)
-    }
-  }
-
-  const fecharModalReembolso = () => {
-    setShowReembolsoModal(false)
-    setReembolsoSolicitacao(null)
-    setReembolsoMotivo("")
-    setReembolsoError("")
-    setReembolsoSuccess(false)
-  }
-
-  const abrirModalFecheiNegocio = (solicitacao: SolicitacaoComStatus) => {
-    setFecheiNegocioSolicitacao(solicitacao)
-    setFecheiNegocioSuccess(false)
-    setShowFecheiNegocioModal(true)
-  }
-
-  const handleFecheiNegocio = async () => {
-    if (!profissional || !fecheiNegocioSolicitacao) return
-
-    setFecheiNegocioLoading(true)
-
-    try {
-      const response = await fetch('/api/profissional/fechar-negocio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profissional_id: profissional.id,
-          solicitacao_id: fecheiNegocioSolicitacao.id
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        setError(data.error || "Erro ao fechar negócio")
-        setFecheiNegocioLoading(false)
-        return
-      }
-
-      setFecheiNegocioSuccess(true)
-      setFecheiNegocioLoading(false)
-
-      // Recarregar solicitações
-      fetchSolicitacoes(profissional.estado, profissional.cidade)
-    } catch (err) {
-      setError("Erro ao conectar com o servidor")
-      setFecheiNegocioLoading(false)
-    }
-  }
-
-  const fecharModalFecheiNegocio = () => {
-    setShowFecheiNegocioModal(false)
-    setFecheiNegocioSolicitacao(null)
-    setFecheiNegocioSuccess(false)
-  }
 
   if (loading) {
     return (
@@ -357,8 +238,6 @@ export default function SolicitacoesProfissional() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas as solicitações</SelectItem>
-                    <SelectItem value="nao_liberados">Ainda não liberadas</SelectItem>
-                    <SelectItem value="liberados">Já liberadas por mim</SelectItem>
                     <SelectItem value="com_vagas">Com vagas disponíveis</SelectItem>
                   </SelectContent>
                 </Select>
@@ -416,12 +295,6 @@ export default function SolicitacoesProfissional() {
                         </div>
                         <CardTitle className="text-lg sm:text-xl">{solicitacao.titulo}</CardTitle>
                       </div>
-                      {solicitacao.ja_liberou && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium w-fit">
-                          <CheckCircle2 size={12} />
-                          Liberado
-                        </span>
-                      )}
                     </div>
                     <CardDescription className="flex items-center flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
                       <span className="flex items-center gap-1">
@@ -447,117 +320,35 @@ export default function SolicitacoesProfissional() {
                           estadoDestino={solicitacao.cliente_estado || ''}
                         />
                       )}
-                      {!solicitacao.ja_liberou && (
-                        <span className="flex items-center gap-1 text-orange-600">
-                          <Users size={14} />
-                          {solicitacao.vagas_disponiveis || 0} vaga(s) disponível(eis)
-                        </span>
-                      )}
+                      <span className="flex items-center gap-1 text-orange-600">
+                        <Users size={14} />
+                        {solicitacao.vagas_disponiveis || 0} vaga(s) disponível(eis)
+                      </span>
                     </CardDescription>
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                   <p className="text-sm sm:text-base text-gray-700 mb-4 line-clamp-2 sm:line-clamp-none">{solicitacao.descricao}</p>
 
-                  {/* Dados do cliente quando já liberou */}
-                  {solicitacao.ja_liberou && (
-                    <div className="mb-4 p-3 sm:p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                        <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-                          <CheckCircle2 size={12} />
-                          Contato Liberado
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              abrirModalFecheiNegocio(solicitacao)
-                            }}
-                            className="text-green-600 border-green-300 hover:bg-green-50 text-xs h-7 px-2"
-                          >
-                            <Handshake size={12} className="mr-1" />
-                            Fechei Negócio
-                          </Button>
-                          {solicitacao.resposta_id && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                abrirModalReembolso(solicitacao)
-                              }}
-                              className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs h-7 px-2"
-                            >
-                              <DollarSign size={12} className="mr-1" />
-                              Solicitar Reembolso
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      {(solicitacao as any).cliente_nome ? (
-                        <>
-                          <p className="font-semibold text-gray-900 mb-3">{(solicitacao as any).cliente_nome}</p>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            {(solicitacao as any).cliente_telefone && (
-                              <a
-                                href={`https://wa.me/55${(solicitacao as any).cliente_telefone.replace(/\D/g, '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MessageCircle size={16} />
-                                WhatsApp
-                              </a>
-                            )}
-                            {(solicitacao as any).cliente_email && (
-                              <a
-                                href={`mailto:${(solicitacao as any).cliente_email}`}
-                                className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Mail size={16} />
-                                Email
-                              </a>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-sm text-yellow-700 bg-yellow-50 p-2 rounded">
-                          Carregando dados do cliente...
-                        </p>
-                      )}
-                    </div>
-                  )}
-
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="text-sm text-gray-600">
-                      {solicitacao.ja_liberou ? (
-                        <span className="flex items-center gap-1 text-green-600">
-                          <CheckCircle2 size={14} />
-                          Você já tem acesso ao contato do cliente
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span className="flex items-center gap-1">
+                          <Lock size={14} />
+                          Liberar contato:
                         </span>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                          <span className="flex items-center gap-1">
-                            <Lock size={14} />
-                            Liberar contato:
+                        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                          <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium w-fit">
+                            <Coins size={12} />
+                            {config.custo_contato_normal} moedas
                           </span>
-                          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                            <span className="flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium w-fit">
-                              <Coins size={12} />
-                              {config.custo_contato_normal} moedas
-                            </span>
-                            <span className="text-gray-400 hidden sm:inline">ou</span>
-                            <span className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 rounded-full text-xs font-medium w-fit">
-                              <Coins size={12} />
-                              {config.custo_contato_exclusivo} exclusivo
-                            </span>
-                          </div>
+                          <span className="text-gray-400 hidden sm:inline">ou</span>
+                          <span className="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-700 rounded-full text-xs font-medium w-fit">
+                            <Coins size={12} />
+                            {config.custo_contato_exclusivo} exclusivo
+                          </span>
                         </div>
-                      )}
+                      </div>
                     </div>
                     <Button
                       size="sm"
@@ -575,149 +366,6 @@ export default function SolicitacoesProfissional() {
           </div>
         )}
       </div>
-
-      {/* Modal de Reembolso */}
-      <Dialog open={showReembolsoModal} onOpenChange={fecharModalReembolso}>
-        <DialogContent className="sm:max-w-[425px]">
-          {!reembolsoSuccess ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <DollarSign className="text-orange-500" size={20} />
-                  Solicitar Reembolso
-                </DialogTitle>
-                <DialogDescription>
-                  Descreva o motivo pelo qual você está solicitando o reembolso das moedas gastas neste contato.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                {reembolsoSolicitacao && (
-                  <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                    <p className="font-medium text-gray-900">{reembolsoSolicitacao.titulo}</p>
-                    <p className="text-gray-500 text-xs mt-1">
-                      Cliente: {(reembolsoSolicitacao as any).cliente_nome || 'N/A'}
-                    </p>
-                    <p className="text-orange-600 text-xs mt-1">
-                      Moedas gastas: {reembolsoSolicitacao.exclusivo ? config.custo_contato_exclusivo : config.custo_contato_normal}
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="motivo">Motivo do reembolso *</Label>
-                  <Textarea
-                    id="motivo"
-                    placeholder="Descreva detalhadamente o motivo (mínimo 20 caracteres)..."
-                    value={reembolsoMotivo}
-                    onChange={(e) => setReembolsoMotivo(e.target.value)}
-                    rows={4}
-                    maxLength={500}
-                  />
-                  <p className="text-xs text-gray-500 text-right">{reembolsoMotivo.length}/500</p>
-                </div>
-
-                {reembolsoError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start gap-2">
-                    <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-                    {reembolsoError}
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={fecharModalReembolso} className="w-full sm:w-auto">
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSolicitarReembolso}
-                  disabled={reembolsoLoading || reembolsoMotivo.trim().length < 20}
-                  className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600"
-                >
-                  {reembolsoLoading ? "Enviando..." : "Enviar Solicitação"}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 size={32} className="text-green-600" />
-                </div>
-                <DialogTitle className="text-center">Solicitação Enviada!</DialogTitle>
-                <DialogDescription className="text-center">
-                  Sua solicitação de reembolso foi enviada com sucesso e será analisada pelo administrador.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button onClick={fecharModalReembolso} className="w-full">
-                  Entendi
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Fechei Negócio */}
-      <Dialog open={showFecheiNegocioModal} onOpenChange={fecharModalFecheiNegocio}>
-        <DialogContent className="sm:max-w-[425px]">
-          {!fecheiNegocioSuccess ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Handshake className="text-green-500" size={20} />
-                  Fechei Negócio
-                </DialogTitle>
-                <DialogDescription>
-                  Ao confirmar, esta solicitação será marcada como concluída e não ficará mais disponível para outros profissionais.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="py-4">
-                {fecheiNegocioSolicitacao && (
-                  <div className="p-3 bg-gray-50 rounded-lg text-sm">
-                    <p className="font-medium text-gray-900">{fecheiNegocioSolicitacao.titulo}</p>
-                    <p className="text-gray-500 text-xs mt-1">
-                      Cliente: {(fecheiNegocioSolicitacao as any).cliente_nome || 'N/A'}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button variant="outline" onClick={fecharModalFecheiNegocio} className="w-full sm:w-auto">
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleFecheiNegocio}
-                  disabled={fecheiNegocioLoading}
-                  className="w-full sm:w-auto bg-green-500 hover:bg-green-600"
-                >
-                  {fecheiNegocioLoading ? "Confirmando..." : "Confirmar"}
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Handshake size={32} className="text-green-600" />
-                </div>
-                <DialogTitle className="text-center">Negócio Fechado!</DialogTitle>
-                <DialogDescription className="text-center">
-                  Parabéns! A solicitação foi marcada como concluída.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button onClick={fecharModalFecheiNegocio} className="w-full">
-                  Entendi
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
