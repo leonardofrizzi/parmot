@@ -563,23 +563,38 @@ function CadastroClienteContent() {
           </div>
 
           {/* Termos de Uso */}
-          <div className="flex items-start space-x-2">
-            <input
-              type="checkbox"
-              id="aceiteTermos"
-              checked={aceiteTermos}
-              onChange={(e) => setAceiteTermos(e.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            />
-            <label htmlFor="aceiteTermos" className="text-sm text-gray-600">
-              Li e concordo com os{" "}
-              <Link href="/termos" className="text-primary-600 hover:underline" target="_blank">
-                Termos de Uso
-              </Link>
-              . A Parmot atua como intermediária e não se responsabiliza por eventuais problemas entre as partes.
-              <span className="text-red-500"> *</span>
-            </label>
-          </div>
+          <label
+            htmlFor="aceiteTermos"
+            className={`block p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+              aceiteTermos
+                ? 'bg-green-50 border-green-500'
+                : 'bg-gray-50 border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            {!aceiteTermos && (
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Clique para aceitar</p>
+            )}
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="aceiteTermos"
+                checked={aceiteTermos}
+                onChange={(e) => setAceiteTermos(e.target.checked)}
+                className="mt-0.5 h-5 w-5 rounded border-2 border-gray-800 text-primary-600 focus:ring-primary-500 cursor-pointer accent-primary-600 shrink-0"
+              />
+              <span className="text-sm text-gray-700 leading-relaxed">
+                Li e concordo com os{" "}
+                <Link href="/termos" className="text-primary-600 hover:underline font-medium" target="_blank">
+                  Termos de Uso
+                </Link>
+                . A Parmot atua como intermediária e não se responsabiliza por eventuais problemas entre as partes.
+                <span className="text-red-500"> *</span>
+              </span>
+            </div>
+            {aceiteTermos && (
+              <p className="text-xs font-semibold text-green-600 mt-2">Termos aceitos</p>
+            )}
+          </label>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           {error && (

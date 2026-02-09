@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Solicitacao } from "@/types/database"
-import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building, Navigation, Phone, Mail, User } from "lucide-react"
+import { ArrowLeft, Calendar, MapPin, Coins, Lock, Unlock, Shield, Users, AlertCircle, Video, Building, Navigation, Phone, Mail, User, CheckCircle2 } from "lucide-react"
 
 // Ícone do WhatsApp
 const WhatsAppIcon = ({ size = 18, className = "" }: { size?: number; className?: string }) => (
@@ -638,18 +638,34 @@ export default function DetalheSolicitacaoProfissional() {
               </div>
 
               {/* Aviso dos Termos */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <label
+                htmlFor="aceite-termos"
+                className={`block p-4 rounded-lg border-2 cursor-pointer transition-colors ${
+                  aceitouTermos
+                    ? 'bg-green-50 border-green-500'
+                    : 'bg-gray-50 border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                {!aceitouTermos && (
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Clique para aceitar</p>
+                )}
                 <div className="flex items-start gap-3">
                   <Checkbox
                     id="aceite-termos"
                     checked={aceitouTermos}
                     onCheckedChange={(checked) => setAceitouTermos(checked === true)}
+                    className="mt-0.5"
                   />
-                  <label htmlFor="aceite-termos" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
+                  <span className="text-sm text-gray-700 leading-relaxed">
                     Ao liberar este contato, confirmo que seguirei as <strong>diretrizes da plataforma</strong> para contato com clientes, mantendo comunicação respeitosa e profissional. Estou ciente de que a <strong>Parmot não se responsabiliza</strong> por negociações, acordos ou eventuais problemas entre profissionais e clientes, conforme estabelecido nos Termos de Uso.
-                  </label>
+                  </span>
                 </div>
-              </div>
+                {aceitouTermos && (
+                  <p className="text-xs font-semibold text-green-600 mt-2 flex items-center gap-1">
+                    <CheckCircle2 size={14} /> Termos aceitos
+                  </p>
+                )}
+              </label>
 
               {/* Saldo atual */}
               <p className="text-sm text-gray-500 text-center">
