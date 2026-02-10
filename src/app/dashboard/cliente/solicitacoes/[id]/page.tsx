@@ -60,6 +60,7 @@ interface Avaliacao {
   id: string
   nota: number
   comentario: string
+  profissional_id: string
 }
 
 export default function DetalheSolicitacaoCliente() {
@@ -442,8 +443,8 @@ export default function DetalheSolicitacaoCliente() {
                             </div>
                           )}
 
-                          {/* Mostrar avaliação existente */}
-                          {solicitacao.status === 'finalizada' && avaliacaoExistente && (
+                          {/* Mostrar avaliação existente - apenas no profissional correto */}
+                          {solicitacao.status === 'finalizada' && avaliacaoExistente && avaliacaoExistente.profissional_id === (item.profissional?.id || item.profissional_id) && (
                             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-gray-700">Sua avaliação:</span>

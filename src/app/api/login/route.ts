@@ -36,6 +36,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      if (profissional.excluido) {
+        return NextResponse.json(
+          { error: 'Esta conta foi excluída' },
+          { status: 401 }
+        )
+      }
+
       const senhaCorreta = await bcrypt.compare(senha, profissional.senha_hash)
 
       if (!senhaCorreta) {
@@ -63,6 +70,13 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      if (cliente.excluido) {
+        return NextResponse.json(
+          { error: 'Esta conta foi excluída' },
+          { status: 401 }
+        )
+      }
+
       const senhaCorreta = await bcrypt.compare(senha, cliente.senha_hash)
 
       if (!senhaCorreta) {
@@ -82,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Sem tipo preferido: tentar cliente primeiro (comportamento padrão)
-    if (cliente) {
+    if (cliente && !cliente.excluido) {
       const senhaCorreta = await bcrypt.compare(senha, cliente.senha_hash)
 
       if (senhaCorreta) {
@@ -97,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Sem tipo preferido: tentar profissional
-    if (profissional) {
+    if (profissional && !profissional.excluido) {
       const senhaCorreta = await bcrypt.compare(senha, profissional.senha_hash)
 
       if (senhaCorreta) {

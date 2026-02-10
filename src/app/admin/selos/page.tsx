@@ -99,6 +99,7 @@ export default function AdminSelos() {
   const [tipoSeloSelecionado, setTipoSeloSelecionado] = useState<string>('')
   const [motivoSelo, setMotivoSelo] = useState('')
   const [buscaProf, setBuscaProf] = useState('')
+  const [showProfDropdown, setShowProfDropdown] = useState(false)
   const [loadingAtribuir, setLoadingAtribuir] = useState(false)
 
   // === State: Avaliações ===
@@ -116,7 +117,15 @@ export default function AdminSelos() {
     try {
       const res = await fetch('/api/admin/selos/tipos')
       const data = await res.json()
-      if (res.ok) setTiposSelo(data.tipos || [])
+      if (res.ok) {
+        const tipos = data.tipos || []
+        setTiposSelo(tipos)
+        // Auto-selecionar se só tem 1 tipo ativo
+        const ativos = tipos.filter((t: TipoSelo) => t.ativo)
+        if (ativos.length === 1 && !tipoSeloSelecionado) {
+          setTipoSeloSelecionado(ativos[0].id)
+        }
+      }
     } catch (err) {
       console.error('Erro ao buscar tipos de selo:', err)
     }
@@ -419,6 +428,9 @@ export default function AdminSelos() {
                     {/* Selecionar tipo de selo */}
                     <div className="space-y-2">
                       <Label>Tipo de Selo <span className="text-red-500">*</span></Label>
+                      {!tipoSeloSelecionado && tiposAtivos.length > 1 && (
+                        <p className="text-sm text-gray-500">Selecione um tipo de selo abaixo</p>
+                      )}
                       <div className="flex flex-col gap-2">
                         {tiposAtivos.map(tipo => {
                           const corConfig = getCorConfig(tipo.cor)
@@ -427,13 +439,19 @@ export default function AdminSelos() {
                             <button
                               key={tipo.id}
                               onClick={() => setTipoSeloSelecionado(tipo.id)}
-                              className={`w-full p-3 rounded-lg border-2 transition-colors text-left ${
+                              className={`w-full p-3 rounded-lg border-2 transition-all cursor-pointer text-left ${
                                 selecionado
-                                  ? `${corConfig.bg} ${corConfig.border}`
-                                  : 'bg-white border-gray-200 hover:border-gray-300'
+                                  ? `${corConfig.bg} ${corConfig.border} shadow-sm`
+                                  : 'bg-white border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                               }`}
                             >
                               <div className="flex items-center gap-3">
+                                {/* Radio visual */}
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                  selecionado ? `${corConfig.border} ${corConfig.bg}` : 'border-gray-300'
+                                }`}>
+                                  {selecionado && <div className={`w-2.5 h-2.5 rounded-full bg-gradient-to-br ${corConfig.gradient}`} />}
+                                </div>
                                 <div className={`w-8 h-8 bg-gradient-to-br ${corConfig.gradient} rounded-full flex items-center justify-center shrink-0`}>
                                   <Award size={14} className="text-white" />
                                 </div>
@@ -454,11 +472,20 @@ export default function AdminSelos() {
                         <Input
                           placeholder="Buscar profissional..."
                           value={buscaProf}
-                          onChange={(e) => setBuscaProf(e.target.value)}
+                          onChange={(e) => {
+                            setBuscaProf(e.target.value)
+                            setShowProfDropdown(true)
+                            if (!e.target.value) {
+                              setProfSelecionado('')
+                            }
+                          }}
+                          onFocus={() => {
+                            if (buscaProf) setShowProfDropdown(true)
+                          }}
                           className="pl-9"
                         />
                       </div>
-                      {buscaProf && (
+                      {showProfDropdown && buscaProf && (
                         <div className="max-h-48 overflow-y-auto border rounded-lg divide-y">
                           {profsFiltrados.length === 0 ? (
                             <p className="p-3 text-sm text-gray-500">Nenhum profissional encontrado</p>
@@ -469,6 +496,7 @@ export default function AdminSelos() {
                                 onClick={() => {
                                   setProfSelecionado(prof.id)
                                   setBuscaProf(prof.nome)
+                                  setShowProfDropdown(false)
                                 }}
                                 className={`w-full p-3 text-left hover:bg-gray-50 text-sm ${
                                   profSelecionado === prof.id ? 'bg-primary-50' : ''
@@ -482,7 +510,7 @@ export default function AdminSelos() {
                           )}
                         </div>
                       )}
-                      {profSelecionado && !buscaProf && (
+                      {profSelecionado && !showProfDropdown && (
                         <p className="text-sm text-green-600">
                           <CheckCircle2 size={14} className="inline mr-1" />
                           Profissional selecionado

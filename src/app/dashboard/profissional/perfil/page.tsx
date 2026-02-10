@@ -24,6 +24,7 @@ import {
   GraduationCap,
   IdCard,
   Trash2,
+  AlertTriangle,
   Loader2,
   Camera,
   Link as LinkIcon,
@@ -134,6 +135,12 @@ export default function PerfilProfissional() {
   const [selos, setSelos] = useState<Selo[]>([])
   const [elegibilidade, setElegibilidade] = useState<Elegibilidade | null>(null)
   const [loadingSelos, setLoadingSelos] = useState(false)
+
+  // Estados para modal de excluir conta
+  const [showExcluirModal, setShowExcluirModal] = useState(false)
+  const [excluirSenha, setExcluirSenha] = useState("")
+  const [excluirMotivo, setExcluirMotivo] = useState("")
+  const [excluirLoading, setExcluirLoading] = useState(false)
 
   // Estados para modal de tornar cliente
   const [showClienteModal, setShowClienteModal] = useState(false)
@@ -398,6 +405,46 @@ export default function PerfilProfissional() {
     } catch {
       setError("Erro ao conectar com o servidor")
       setClienteLoading(false)
+    }
+  }
+
+  const handleExcluirConta = async () => {
+    if (!excluirSenha) {
+      setError("Digite sua senha para confirmar")
+      return
+    }
+
+    setExcluirLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch("/api/conta/excluir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuario_id: profissional?.id,
+          tipo_usuario: "profissional",
+          senha: excluirSenha,
+          motivo: excluirMotivo || undefined
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Erro ao excluir conta")
+        setExcluirLoading(false)
+        return
+      }
+
+      // Limpar localStorage e redirecionar
+      localStorage.removeItem('usuario')
+      localStorage.removeItem('tipoUsuario')
+      router.push('/login')
+
+    } catch {
+      setError("Erro ao conectar com o servidor")
+      setExcluirLoading(false)
     }
   }
 
@@ -710,6 +757,18 @@ export default function PerfilProfissional() {
                   </div>
                 </div>
               )}
+
+              {/* Excluir conta */}
+              <div className="mt-6 pt-6 border-t">
+                <Button
+                  variant="ghost"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => setShowExcluirModal(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir minha conta
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -1482,6 +1541,74 @@ export default function PerfilProfissional() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para Excluir Conta */}
+      <Dialog open={showExcluirModal} onOpenChange={(open) => {
+        setShowExcluirModal(open)
+        if (!open) {
+          setExcluirSenha("")
+          setExcluirMotivo("")
+          setError("")
+        }
+      }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={32} className="text-red-600" />
+            </div>
+            <DialogTitle className="text-center">Excluir conta</DialogTitle>
+            <DialogDescription className="text-center">
+              Tem certeza que deseja excluir sua conta? Você não poderá mais acessar a plataforma.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Senha <span className="text-red-500">*</span></Label>
+              <Input
+                type="password"
+                placeholder="Digite sua senha para confirmar"
+                value={excluirSenha}
+                onChange={(e) => setExcluirSenha(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Motivo <span className="text-gray-400 text-xs font-normal">(opcional)</span></Label>
+              <textarea
+                className="w-full border rounded-md p-2 text-sm resize-none"
+                rows={3}
+                placeholder="Nos ajude a melhorar: por que você quer excluir sua conta?"
+                value={excluirMotivo}
+                onChange={(e) => setExcluirMotivo(e.target.value)}
+              />
+            </div>
+
+            {error && showExcluirModal && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowExcluirModal(false)}
+              disabled={excluirLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleExcluirConta}
+              disabled={excluirLoading}
+            >
+              {excluirLoading ? "Excluindo..." : "Excluir conta"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

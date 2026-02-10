@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const tipo = searchParams.get('tipo') || 'todos' // 'clientes', 'profissionais', 'todos'
-    const filtro = searchParams.get('filtro') || 'ativos' // 'ativos', 'banidos', 'todos'
+    const filtro = searchParams.get('filtro') || 'ativos' // 'ativos', 'banidos', 'excluidos', 'todos'
     const busca = searchParams.get('busca') || ''
 
     console.log('Tipo:', tipo, 'Filtro:', filtro, 'Busca:', busca)
@@ -19,10 +19,10 @@ export async function GET(request: NextRequest) {
       let clientes: any[] | null = null
       let erroClientes: any = null
 
-      // Tentar com colunas de banimento
+      // Tentar com colunas de banimento e exclusão
       const resultadoComBanido = await supabaseAdmin
         .from('clientes')
-        .select('id, nome, email, telefone, cidade, estado, banido, banido_em, motivo_banimento, created_at')
+        .select('id, nome, email, telefone, cidade, estado, banido, banido_em, motivo_banimento, excluido, excluido_em, motivo_exclusao, created_at')
         .order('created_at', { ascending: false })
 
       if (resultadoComBanido.error && resultadoComBanido.error.message?.includes('banido')) {
@@ -39,12 +39,14 @@ export async function GET(request: NextRequest) {
         clientes = resultadoComBanido.data
         erroClientes = resultadoComBanido.error
 
-        // Aplicar filtro de banimento se a coluna existe
+        // Aplicar filtros
         if (!erroClientes && clientes && filtro !== 'todos') {
           if (filtro === 'ativos') {
-            clientes = clientes.filter(c => !c.banido)
+            clientes = clientes.filter(c => !c.banido && !c.excluido)
           } else if (filtro === 'banidos') {
             clientes = clientes.filter(c => c.banido === true)
+          } else if (filtro === 'excluidos') {
+            clientes = clientes.filter(c => c.excluido === true)
           }
         }
       }
@@ -65,6 +67,7 @@ export async function GET(request: NextRequest) {
           usuarios.push({
             ...cliente,
             banido: cliente.banido || false,
+            excluido: cliente.excluido || false,
             tipo_usuario: 'cliente'
           })
         })
@@ -76,10 +79,10 @@ export async function GET(request: NextRequest) {
       let profissionais: any[] | null = null
       let erroProfs: any = null
 
-      // Tentar com colunas de banimento
+      // Tentar com colunas de banimento e exclusão
       const resultadoComBanido = await supabaseAdmin
         .from('profissionais')
-        .select('id, nome, email, telefone, cidade, estado, aprovado, banido, banido_em, motivo_banimento, created_at')
+        .select('id, nome, email, telefone, cidade, estado, aprovado, banido, banido_em, motivo_banimento, excluido, excluido_em, motivo_exclusao, created_at')
         .order('created_at', { ascending: false })
 
       if (resultadoComBanido.error && resultadoComBanido.error.message?.includes('banido')) {
@@ -96,12 +99,14 @@ export async function GET(request: NextRequest) {
         profissionais = resultadoComBanido.data
         erroProfs = resultadoComBanido.error
 
-        // Aplicar filtro de banimento se a coluna existe
+        // Aplicar filtros
         if (!erroProfs && profissionais && filtro !== 'todos') {
           if (filtro === 'ativos') {
-            profissionais = profissionais.filter(p => !p.banido)
+            profissionais = profissionais.filter(p => !p.banido && !p.excluido)
           } else if (filtro === 'banidos') {
             profissionais = profissionais.filter(p => p.banido === true)
+          } else if (filtro === 'excluidos') {
+            profissionais = profissionais.filter(p => p.excluido === true)
           }
         }
       }
@@ -122,6 +127,7 @@ export async function GET(request: NextRequest) {
           usuarios.push({
             ...prof,
             banido: prof.banido || false,
+            excluido: prof.excluido || false,
             tipo_usuario: 'profissional'
           })
         })

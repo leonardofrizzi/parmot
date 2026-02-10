@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { User, Users, Briefcase, Mail, Phone, MapPin, Ban, ShieldOff, Search, CheckCircle2 } from "lucide-react"
+import { User, Users, Briefcase, Mail, Phone, MapPin, Ban, ShieldOff, Search, CheckCircle2, Trash2, RotateCcw } from "lucide-react"
 
 interface Usuario {
   id: string
@@ -21,6 +21,9 @@ interface Usuario {
   banido?: boolean
   banido_em?: string
   motivo_banimento?: string
+  excluido?: boolean
+  excluido_em?: string
+  motivo_exclusao?: string
   created_at: string
 }
 
@@ -28,7 +31,7 @@ export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [tipo, setTipo] = useState<'todos' | 'clientes' | 'profissionais'>('todos')
-  const [filtro, setFiltro] = useState<'todos' | 'ativos' | 'banidos'>('ativos')
+  const [filtro, setFiltro] = useState<'todos' | 'ativos' | 'banidos' | 'excluidos'>('ativos')
   const [busca, setBusca] = useState('')
   const [showDialogBanir, setShowDialogBanir] = useState(false)
   const [motivoBanimento, setMotivoBanimento] = useState('')
@@ -178,6 +181,15 @@ export default function AdminUsuarios() {
             </Button>
             <Button
               size="sm"
+              variant={filtro === 'excluidos' ? 'default' : 'outline'}
+              onClick={() => setFiltro('excluidos')}
+              className={filtro === 'excluidos' ? 'bg-gray-600 hover:bg-gray-700' : 'border-gray-400 text-gray-700 hover:bg-gray-100'}
+            >
+              <Trash2 size={14} className="mr-1" />
+              Excluídos
+            </Button>
+            <Button
+              size="sm"
               variant={filtro === 'todos' ? 'default' : 'outline'}
               onClick={() => setFiltro('todos')}
             >
@@ -237,7 +249,12 @@ export default function AdminUsuarios() {
                       <Badge variant="outline" className={usuario.tipo_usuario === 'cliente' ? 'border-blue-300 text-blue-700' : 'border-green-300 text-green-700'}>
                         {usuario.tipo_usuario === 'cliente' ? 'Cliente' : 'Profissional'}
                       </Badge>
-                      {usuario.banido ? (
+                      {usuario.excluido ? (
+                        <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+                          <Trash2 size={12} className="mr-1" />
+                          Excluído
+                        </Badge>
+                      ) : usuario.banido ? (
                         <Badge className="bg-red-100 text-red-700 border-red-300">
                           <Ban size={12} className="mr-1" />
                           Banido
@@ -283,9 +300,55 @@ export default function AdminUsuarios() {
                     </div>
                   )}
 
+                  {/* Informações de exclusão */}
+                  {usuario.excluido && (
+                    <div className="bg-gray-100 rounded-md p-2 text-sm">
+                      {usuario.motivo_exclusao && (
+                        <p className="text-gray-700">
+                          <strong>Motivo:</strong> {usuario.motivo_exclusao}
+                        </p>
+                      )}
+                      {usuario.excluido_em && (
+                        <p className="text-gray-600 text-xs mt-1">
+                          Excluído em: {formatData(usuario.excluido_em)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Botões de ação */}
                   <div className="pt-3">
-                    {usuario.banido ? (
+                    {usuario.excluido ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                        onClick={async () => {
+                          setLoadingAcao(true)
+                          try {
+                            const tabela = usuario.tipo_usuario === 'cliente' ? 'clientes' : 'profissionais'
+                            const response = await fetch('/api/admin/usuarios/restaurar', {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                usuario_id: usuario.id,
+                                tipo_usuario: usuario.tipo_usuario
+                              })
+                            })
+                            if (response.ok) {
+                              fetchUsuarios()
+                            }
+                          } catch (err) {
+                            console.error('Erro ao restaurar:', err)
+                          }
+                          setLoadingAcao(false)
+                        }}
+                        disabled={loadingAcao}
+                      >
+                        <RotateCcw size={16} className="mr-1" />
+                        Restaurar Conta
+                      </Button>
+                    ) : usuario.banido ? (
                       <Button
                         size="sm"
                         variant="outline"
