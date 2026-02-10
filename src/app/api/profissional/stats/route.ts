@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       .from('transacoes_moedas')
       .select('quantidade')
       .eq('profissional_id', profissional_id)
-      .eq('tipo', 'gasto')
+      .eq('tipo', 'uso')
       .gte('created_at', inicioMes.toISOString())
 
     if (transacoesError) throw transacoesError
