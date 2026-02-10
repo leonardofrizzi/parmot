@@ -85,7 +85,6 @@ export async function GET(
         )
       `)
       .eq('profissional_id', profissional.id)
-      .eq('visivel', true)
       .order('created_at', { ascending: false })
 
     // Calcular média das avaliações
@@ -109,16 +108,29 @@ export async function GET(
       `)
       .eq('profissional_id', profissional.id)
 
-    // Buscar selo de qualidade ativo
-    const { data: seloAtivo } = await supabase
+    // Buscar selos de qualidade ativos
+    const { data: selosAtivos } = await supabase
       .from('selos_qualidade')
-      .select('*')
+      .select('id, tipo, data_fim, media_avaliacoes, total_avaliacoes, tipo_selo_id')
       .eq('profissional_id', profissional.id)
       .eq('ativo', true)
       .gte('data_fim', new Date().toISOString().split('T')[0])
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
+
+    // Buscar info dos tipos de selo
+    const selosComTipo = await Promise.all(
+      (selosAtivos || []).map(async (selo: any) => {
+        if (selo.tipo_selo_id) {
+          const { data: tipoSelo } = await supabase
+            .from('tipos_selo')
+            .select('nome, cor')
+            .eq('id', selo.tipo_selo_id)
+            .single()
+          return { ...selo, tipo_selo: tipoSelo || null }
+        }
+        return { ...selo, tipo_selo: null }
+      })
+    )
 
     return NextResponse.json({
       profissional: {
@@ -130,7 +142,8 @@ export async function GET(
         media: mediaAvaliacoes,
         total: totalAvaliacoes
       },
-      selo: seloAtivo || null
+      selo: selosComTipo[0] || null,
+      selos: selosComTipo
     })
 
   } catch (error) {

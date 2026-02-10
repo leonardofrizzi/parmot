@@ -465,13 +465,13 @@ export default function DetalheSolicitacaoCliente() {
         </Card>
 
         {/* Modal de Avaliação */}
-        {profissionalParaAvaliar && profissionalParaAvaliar.id && cliente && solicitacao && (
+        {profissionalParaAvaliar && (profissionalParaAvaliar.profissional?.id || profissionalParaAvaliar.profissional_id) && cliente && solicitacao && (
           <AvaliacaoModal
             open={showAvaliacaoModal}
             onOpenChange={setShowAvaliacaoModal}
             solicitacaoId={solicitacao.id}
-            profissionalId={profissionalParaAvaliar.id}
-            profissionalNome={profissionalParaAvaliar.nome || 'Profissional'}
+            profissionalId={profissionalParaAvaliar.profissional?.id || profissionalParaAvaliar.profissional_id}
+            profissionalNome={profissionalParaAvaliar.profissional?.nome || profissionalParaAvaliar.nome || 'Profissional'}
             clienteId={cliente.id}
             onAvaliacaoEnviada={handleAvaliacaoEnviada}
           />

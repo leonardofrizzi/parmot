@@ -60,6 +60,8 @@ interface Selo {
   media_avaliacoes: number
   total_avaliacoes: number
   ativo: boolean
+  tipo_selo_id?: string | null
+  tipo_selo?: { nome: string; cor: string } | null
 }
 
 interface Elegibilidade {
@@ -1245,25 +1247,28 @@ export default function PerfilProfissional() {
                       {/* Selo Ativo */}
                       {selos.length > 0 ? (
                         <div className="space-y-4">
-                          {selos.map((selo) => (
-                            <div key={selo.id} className="p-6 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl">
-                              <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <Award className="w-8 h-8 text-white" />
+                          {selos.map((selo) => {
+                            const seloNome = selo.tipo_selo?.nome || selo.tipo || 'Selo de Qualidade'
+                            return (
+                              <div key={selo.id} className="p-6 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+                                    <Award className="w-8 h-8 text-white" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="text-lg font-bold text-amber-800">{seloNome}</h4>
+                                    <p className="text-sm text-amber-700">
+                                      Média de {selo.media_avaliacoes.toFixed(1)} estrelas com {selo.total_avaliacoes} avaliações
+                                    </p>
+                                    <p className="text-xs text-amber-600 mt-1">
+                                      Válido até {new Date(selo.data_fim).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  </div>
+                                  <Badge className="bg-amber-500 text-white">Ativo</Badge>
                                 </div>
-                                <div className="flex-1">
-                                  <h4 className="text-lg font-bold text-amber-800">Selo de Qualidade</h4>
-                                  <p className="text-sm text-amber-700">
-                                    Média de {selo.media_avaliacoes.toFixed(1)} estrelas com {selo.total_avaliacoes} avaliações
-                                  </p>
-                                  <p className="text-xs text-amber-600 mt-1">
-                                    Válido até {new Date(selo.data_fim).toLocaleDateString('pt-BR')}
-                                  </p>
-                                </div>
-                                <Badge className="bg-amber-500 text-white">Ativo</Badge>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       ) : (
                         <div className="text-center py-8">
@@ -1272,7 +1277,7 @@ export default function PerfilProfissional() {
                           </div>
                           <h4 className="text-lg font-medium text-gray-700 mb-2">Nenhum selo ainda</h4>
                           <p className="text-sm text-gray-500 max-w-md mx-auto">
-                            Conquiste o Selo de Qualidade mantendo uma média de avaliações acima de 4 estrelas por 6 meses.
+                            Selos são atribuídos pela administração com base nas avaliações dos clientes.
                           </p>
                         </div>
                       )}
@@ -1328,26 +1333,18 @@ export default function PerfilProfissional() {
 
                             {/* Status */}
                             <div className="pt-2 border-t">
-                              {elegibilidade.temSeloAtivo ? (
+                              {selos.length > 0 ? (
                                 <div className="flex items-center gap-2 text-green-700">
                                   <CheckCircle2 className="w-5 h-5" />
                                   <span className="text-sm">
-                                    Você possui o Selo de Qualidade! Próxima verificação em{' '}
-                                    {elegibilidade.proximaVerificacao &&
-                                      new Date(elegibilidade.proximaVerificacao).toLocaleDateString('pt-BR')
-                                    }
+                                    Você possui {selos.length} selo{selos.length > 1 ? 's' : ''} ativo{selos.length > 1 ? 's' : ''}!
                                   </span>
-                                </div>
-                              ) : elegibilidade.elegivel ? (
-                                <div className="flex items-center gap-2 text-green-700">
-                                  <CheckCircle2 className="w-5 h-5" />
-                                  <span className="text-sm">Você está elegível para o Selo de Qualidade!</span>
                                 </div>
                               ) : (
                                 <div className="flex items-center gap-2 text-gray-600">
                                   <Shield className="w-5 h-5" />
                                   <span className="text-sm">
-                                    Continue prestando um bom serviço para conquistar o selo!
+                                    Continue prestando um bom serviço para ser premiado com um selo!
                                   </span>
                                 </div>
                               )}
@@ -1358,12 +1355,12 @@ export default function PerfilProfissional() {
 
                       {/* Informações sobre o selo */}
                       <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                        <h4 className="font-medium text-blue-800 mb-2">Como funciona o Selo de Qualidade?</h4>
+                        <h4 className="font-medium text-blue-800 mb-2">Como funcionam os Selos?</h4>
                         <ul className="text-sm text-blue-700 space-y-1">
-                          <li>• Mantenha média de avaliações ≥ 4 estrelas nos últimos 6 meses</li>
-                          <li>• Tenha pelo menos 3 avaliações no período</li>
-                          <li>• O selo é renovado automaticamente a cada 6 meses</li>
-                          <li>• Quem te contrata verá o selo no seu perfil, transmitindo mais confiança</li>
+                          <li>• Selos são concedidos pela administração com base nas avaliações dos clientes</li>
+                          <li>• A avaliação é feita semestralmente pela equipe Parmot</li>
+                          <li>• Mantenha boas avaliações para aumentar suas chances de ser premiado</li>
+                          <li>• O selo aparece no seu perfil público, transmitindo mais confiança</li>
                         </ul>
                       </div>
                     </div>

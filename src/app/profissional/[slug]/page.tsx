@@ -53,6 +53,8 @@ interface Selo {
   data_fim: string
   media_avaliacoes: number
   total_avaliacoes: number
+  tipo_selo_id: string | null
+  tipo_selo: { nome: string; cor: string } | null
 }
 
 interface PerfilData {
@@ -63,6 +65,19 @@ interface PerfilData {
     total: number
   }
   selo: Selo | null
+  selos: Selo[]
+}
+
+function getSeloGradient(cor: string): string {
+  const map: Record<string, string> = {
+    amber: 'from-amber-400 to-yellow-500',
+    blue: 'from-blue-400 to-blue-600',
+    green: 'from-green-400 to-emerald-500',
+    purple: 'from-purple-400 to-purple-600',
+    red: 'from-red-400 to-red-600',
+    pink: 'from-pink-400 to-pink-600',
+  }
+  return map[cor] || map.amber
 }
 
 function StarRating({ rating, size = 20 }: { rating: number; size?: number }) {
@@ -209,7 +224,7 @@ export default function PerfilProfissional() {
     )
   }
 
-  const { profissional, avaliacoes, estatisticas, selo } = data
+  const { profissional, avaliacoes, estatisticas, selos = [] } = data
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -260,13 +275,17 @@ export default function PerfilProfissional() {
                       <p className="text-gray-600">Responsável: {profissional.nome}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {selo && (
-                      <Badge className="bg-gradient-to-r from-amber-400 to-yellow-500 text-white border-0 gap-1">
-                        <Award className="w-3.5 h-3.5" />
-                        Selo de Qualidade
-                      </Badge>
-                    )}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selos.map((s) => {
+                      const cor = s.tipo_selo?.cor || 'amber'
+                      const nome = s.tipo_selo?.nome || s.tipo || 'Selo de Qualidade'
+                      return (
+                        <Badge key={s.id} className={`bg-gradient-to-r ${getSeloGradient(cor)} text-white border-0 gap-1`}>
+                          <Award className="w-3.5 h-3.5" />
+                          {nome}
+                        </Badge>
+                      )
+                    })}
                     <Badge variant={profissional.tipo === "empresa" ? "secondary" : "outline"}>
                       {profissional.tipo === "empresa" ? "Empresa" : "Autônomo"}
                     </Badge>

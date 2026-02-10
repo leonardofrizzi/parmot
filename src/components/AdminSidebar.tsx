@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, Users, FileText, DollarSign, LogOut, ChevronRight, ChevronLeft, Shield, Settings, UserCog } from "lucide-react"
+import { Home, Users, FileText, DollarSign, LogOut, ChevronRight, ChevronLeft, Shield, Settings, UserCog, Award } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,7 @@ export default function AdminSidebar() {
   const menuItems = [
     { icon: Home, label: "Dashboard", href: "/admin/dashboard" },
     { icon: Users, label: "Profissionais", href: "/admin/profissionais" },
+    { icon: Award, label: "Selos", href: "/admin/selos" },
     { icon: FileText, label: "Solicitações", href: "/admin/solicitacoes" },
     { icon: DollarSign, label: "Reembolsos", href: "/admin/reembolsos" },
     { icon: UserCog, label: "Usuários", href: "/admin/usuarios" },

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar selos ativos
-    const { data: selosAtivos, error: selosError } = await supabase
+    const { data: selosAtivosRaw, error: selosError } = await supabase
       .from('selos_qualidade')
       .select('*')
       .eq('profissional_id', profissional_id)
@@ -52,58 +52,37 @@ export async function GET(request: NextRequest) {
       elegivel = mediaAtual >= 4 && totalAvaliacoes >= 3
     }
 
-    // Verificar se já tem selo ativo do tipo qualidade_6m
-    const seloQualidadeAtivo = selosAtivos?.find(s => s.tipo === 'qualidade_6m')
+    // Selos são agora atribuídos manualmente pela admin
+    // Buscar info dos tipos de selo
+    const selosAtivos = await Promise.all(
+      (selosAtivosRaw || []).map(async (selo: any) => {
+        if (selo.tipo_selo_id) {
+          const { data: tipoSelo } = await supabase
+            .from('tipos_selo')
+            .select('nome, cor')
+            .eq('id', selo.tipo_selo_id)
+            .single()
+          return { ...selo, tipo_selo: tipoSelo || null }
+        }
+        return { ...selo, tipo_selo: null }
+      })
+    )
 
-    // Se não tem selo ativo mas é elegível, criar automaticamente
-    if (!seloQualidadeAtivo && elegivel) {
-      const hoje = new Date()
-      const dataFim = new Date()
-      dataFim.setMonth(dataFim.getMonth() + 6)
-
-      const { data: novoSelo, error: createError } = await supabase
-        .from('selos_qualidade')
-        .insert({
-          profissional_id,
-          tipo: 'qualidade_6m',
-          data_inicio: hoje.toISOString().split('T')[0],
-          data_fim: dataFim.toISOString().split('T')[0],
-          media_avaliacoes: mediaAtual,
-          total_avaliacoes: totalAvaliacoes,
-          ativo: true
-        })
-        .select()
-        .single()
-
-      if (!createError && novoSelo) {
-        return NextResponse.json({
-          selos: [novoSelo],
-          elegibilidade: {
-            elegivel: true,
-            mediaAtual,
-            totalAvaliacoes,
-            minimoNecessario: 4,
-            minimoAvaliacoes: 3,
-            novoSeloConquistado: true
-          }
-        })
-      }
-    }
-
-    // Calcular próxima verificação (quando o selo atual expira)
-    if (seloQualidadeAtivo) {
-      proximaVerificacao = seloQualidadeAtivo.data_fim
+    // Calcular próxima verificação (quando o selo mais recente expira)
+    const seloMaisRecente = selosAtivos?.[0]
+    if (seloMaisRecente) {
+      proximaVerificacao = seloMaisRecente.data_fim
     }
 
     return NextResponse.json({
-      selos: selosAtivos || [],
+      selos: selosAtivos,
       elegibilidade: {
         elegivel,
         mediaAtual,
         totalAvaliacoes,
         minimoNecessario: 4,
         minimoAvaliacoes: 3,
-        temSeloAtivo: !!seloQualidadeAtivo,
+        temSeloAtivo: selosAtivos.length > 0,
         proximaVerificacao
       }
     })
