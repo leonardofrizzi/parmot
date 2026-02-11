@@ -117,11 +117,11 @@ export default function PerfilProfissional() {
   const [needsLogin, setNeedsLogin] = useState(false)
 
   useEffect(() => {
-    // Verificar se usuário está logado como cliente
+    // Verificar se usuário está logado (cliente ou profissional)
     const usuarioData = localStorage.getItem('usuario')
     const tipoUsuario = localStorage.getItem('tipoUsuario')
 
-    if (!usuarioData || tipoUsuario !== 'cliente') {
+    if (!usuarioData || !tipoUsuario) {
       setNeedsLogin(true)
       setLoading(false)
       return
@@ -226,7 +226,7 @@ export default function PerfilProfissional() {
     )
   }
 
-  const { profissional, avaliacoes, estatisticas, selos = [] } = data
+  const { profissional, avaliacoes = [], estatisticas = { media: 0, total: 0 }, selos = [] } = data
 
   return (
     <div className="min-h-screen bg-gray-50">

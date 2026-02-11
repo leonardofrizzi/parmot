@@ -12,9 +12,8 @@ export async function GET(
     // Verificar se é um UUID ou slug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)
 
-    // Se for UUID, retornar todos os dados (uso interno do dashboard)
+    // Se for UUID, retornar todos os dados (uso interno do dashboard + perfil público)
     if (isUUID) {
-      // Usar supabaseAdmin para bypass de RLS e garantir acesso a todos os campos
       const { data: profissional, error } = await supabaseAdmin
         .from('profissionais')
         .select('*')
@@ -29,11 +28,80 @@ export async function GET(
         )
       }
 
-      // Não retornar senha_hash
       const { senha_hash, ...profissionalSemSenha } = profissional
 
+      // Buscar avaliações
+      const { data: avaliacoesUUID } = await supabase
+        .from('avaliacoes')
+        .select('id, nota, comentario, resposta_profissional, created_at, solicitacao_id, clientes(nome)')
+        .eq('profissional_id', slug)
+        .order('created_at', { ascending: false })
+
+      const avalEnriquecidas = await Promise.all(
+        (avaliacoesUUID || []).map(async (av: any) => {
+          if (av.solicitacao_id) {
+            const { data: sol } = await supabase
+              .from('solicitacoes')
+              .select('titulo, categoria_id')
+              .eq('id', av.solicitacao_id)
+              .single()
+            let categoria_nome = ''
+            if (sol?.categoria_id) {
+              const { data: cat } = await supabase
+                .from('categorias')
+                .select('nome')
+                .eq('id', sol.categoria_id)
+                .single()
+              categoria_nome = cat?.nome || ''
+            }
+            return { ...av, solicitacao_titulo: sol?.titulo || '', categoria_nome }
+          }
+          return { ...av, solicitacao_titulo: '', categoria_nome: '' }
+        })
+      )
+
+      const totalAval = avaliacoesUUID?.length || 0
+      const somaNotas = avaliacoesUUID?.reduce((acc: number, av: any) => acc + av.nota, 0) || 0
+      const mediaAval = totalAval > 0 ? Math.round((somaNotas / totalAval) * 10) / 10 : 0
+
+      // Buscar categorias
+      const { data: categoriasUUID } = await supabase
+        .from('profissional_categorias')
+        .select('categorias(id, nome)')
+        .eq('profissional_id', slug)
+
+      // Buscar selos
+      const { data: selosUUID } = await supabase
+        .from('selos_qualidade')
+        .select('id, tipo, data_fim, media_avaliacoes, total_avaliacoes, tipo_selo_id')
+        .eq('profissional_id', slug)
+        .eq('ativo', true)
+        .gte('data_fim', new Date().toISOString().split('T')[0])
+        .order('created_at', { ascending: false })
+
+      const selosComTipoUUID = await Promise.all(
+        (selosUUID || []).map(async (selo: any) => {
+          if (selo.tipo_selo_id) {
+            const { data: tipoSelo } = await supabase
+              .from('tipos_selo')
+              .select('nome, cor')
+              .eq('id', selo.tipo_selo_id)
+              .single()
+            return { ...selo, tipo_selo: tipoSelo || null }
+          }
+          return { ...selo, tipo_selo: null }
+        })
+      )
+
       return NextResponse.json({
-        profissional: profissionalSemSenha
+        profissional: {
+          ...profissionalSemSenha,
+          categorias: categoriasUUID?.map((c: any) => c.categorias) || []
+        },
+        avaliacoes: avalEnriquecidas,
+        estatisticas: { media: mediaAval, total: totalAval },
+        selo: selosComTipoUUID[0] || null,
+        selos: selosComTipoUUID
       })
     }
 
