@@ -48,7 +48,10 @@ interface Avaliacao {
   comentario: string | null
   resposta_profissional: string | null
   created_at: string
-  clientes: {
+  cliente_nome?: string
+  solicitacao_titulo?: string
+  categoria_nome?: string
+  clientes?: {
     nome: string
   } | null
 }
@@ -240,13 +243,12 @@ export default function PerfilProfissional() {
 
   const fetchAvaliacoes = async (profissionalId: string) => {
     try {
-      const response = await fetch(`/api/avaliacoes?profissional_id=${profissionalId}`)
+      const response = await fetch(`/api/avaliacoes/profissional?profissional_id=${profissionalId}`)
       if (response.ok) {
         const data = await response.json()
-        setAvaliacoes(data)
-        if (data.length > 0) {
-          const soma = data.reduce((acc: number, av: Avaliacao) => acc + av.nota, 0)
-          setMediaAvaliacoes(Math.round((soma / data.length) * 10) / 10)
+        setAvaliacoes(data.avaliacoes || [])
+        if (data.estatisticas) {
+          setMediaAvaliacoes(data.estatisticas.media)
         }
       }
     } catch (err) {
@@ -1319,9 +1321,6 @@ export default function PerfilProfissional() {
                                     <p className="text-sm text-amber-700">
                                       Média de {selo.media_avaliacoes.toFixed(1)} estrelas com {selo.total_avaliacoes} avaliações
                                     </p>
-                                    <p className="text-xs text-amber-600 mt-1">
-                                      Válido até {new Date(selo.data_fim).toLocaleDateString('pt-BR')}
-                                    </p>
                                   </div>
                                   <Badge className="bg-amber-500 text-white">Ativo</Badge>
                                 </div>
@@ -1446,7 +1445,13 @@ export default function PerfilProfissional() {
                         <div key={avaliacao.id} className="p-4 border rounded-lg">
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <p className="font-medium">{avaliacao.clientes?.nome || "Cliente"}</p>
+                              <p className="font-medium">{avaliacao.cliente_nome || avaliacao.clientes?.nome || "Cliente"}</p>
+                              {avaliacao.solicitacao_titulo && (
+                                <p className="text-xs text-primary-600 font-medium">
+                                  {avaliacao.solicitacao_titulo}
+                                  {avaliacao.categoria_nome && <span className="text-gray-400"> · {avaliacao.categoria_nome}</span>}
+                                </p>
+                              )}
                               <p className="text-xs text-gray-500">
                                 {new Date(avaliacao.created_at).toLocaleDateString('pt-BR', {
                                   day: '2-digit',

@@ -80,12 +80,43 @@ export async function GET(
         comentario,
         resposta_profissional,
         created_at,
+        solicitacao_id,
         clientes (
           nome
         )
       `)
       .eq('profissional_id', profissional.id)
       .order('created_at', { ascending: false })
+
+    // Enriquecer avaliações com título da solicitação
+    const avaliacoesEnriquecidas = await Promise.all(
+      (avaliacoes || []).map(async (av: any) => {
+        if (av.solicitacao_id) {
+          const { data: solicitacao } = await supabase
+            .from('solicitacoes')
+            .select('titulo, categoria_id')
+            .eq('id', av.solicitacao_id)
+            .single()
+
+          let categoria_nome = ''
+          if (solicitacao?.categoria_id) {
+            const { data: categoria } = await supabase
+              .from('categorias')
+              .select('nome')
+              .eq('id', solicitacao.categoria_id)
+              .single()
+            categoria_nome = categoria?.nome || ''
+          }
+
+          return {
+            ...av,
+            solicitacao_titulo: solicitacao?.titulo || '',
+            categoria_nome
+          }
+        }
+        return { ...av, solicitacao_titulo: '', categoria_nome: '' }
+      })
+    )
 
     // Calcular média das avaliações
     let mediaAvaliacoes = 0
@@ -137,7 +168,7 @@ export async function GET(
         ...profissional,
         categorias: categorias?.map((c: any) => c.categorias) || []
       },
-      avaliacoes: avaliacoes || [],
+      avaliacoes: avaliacoesEnriquecidas || [],
       estatisticas: {
         media: mediaAvaliacoes,
         total: totalAvaliacoes

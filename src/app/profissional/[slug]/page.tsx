@@ -28,6 +28,8 @@ interface Avaliacao {
   comentario: string
   resposta_profissional: string | null
   created_at: string
+  solicitacao_titulo?: string
+  categoria_nome?: string
   clientes: {
     nome: string
   } | null
@@ -364,6 +366,12 @@ export default function PerfilProfissional() {
                         <p className="font-medium text-gray-900">
                           {avaliacao.clientes?.nome || "Cliente"}
                         </p>
+                        {avaliacao.solicitacao_titulo && (
+                          <p className="text-xs text-primary-600 font-medium">
+                            {avaliacao.solicitacao_titulo}
+                            {avaliacao.categoria_nome && <span className="text-gray-400"> · {avaliacao.categoria_nome}</span>}
+                          </p>
+                        )}
                         <p className="text-sm text-gray-500">
                           {formatDate(avaliacao.created_at)}
                         </p>
