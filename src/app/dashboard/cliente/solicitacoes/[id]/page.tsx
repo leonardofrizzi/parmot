@@ -54,6 +54,7 @@ interface Solicitacao {
   profissionais_interessados: Profissional[]
   total_profissionais?: number
   tem_exclusivo?: boolean
+  profissional_contratado_id?: string
 }
 
 interface Avaliacao {
@@ -76,6 +77,7 @@ export default function DetalheSolicitacaoCliente() {
   const [showStatusDialog, setShowStatusDialog] = useState(false)
   const [statusParaAtualizar, setStatusParaAtualizar] = useState<string>("")
   const [loadingStatus, setLoadingStatus] = useState(false)
+  const [profissionalSelecionadoId, setProfissionalSelecionadoId] = useState<string>("")
 
   useEffect(() => {
     const usuarioData = localStorage.getItem('usuario')
@@ -148,13 +150,18 @@ export default function DetalheSolicitacaoCliente() {
     setLoadingStatus(true)
 
     try {
+      const body: any = {
+        status: statusParaAtualizar,
+        cliente_id: cliente.id
+      }
+      if (statusParaAtualizar === 'finalizada' && profissionalSelecionadoId) {
+        body.profissional_contratado_id = profissionalSelecionadoId
+      }
+
       const response = await fetch(`/api/cliente/solicitacoes/${solicitacao.id}/atualizar-status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: statusParaAtualizar,
-          cliente_id: cliente.id
-        })
+        body: JSON.stringify(body)
       })
 
       const data = await response.json()
@@ -340,6 +347,116 @@ export default function DetalheSolicitacaoCliente() {
           </CardContent>
         </Card>
 
+        {/* Profissional Contratado - quando finalizada */}
+        {solicitacao.status === 'finalizada' && solicitacao.profissional_contratado_id && (() => {
+          const contratado = solicitacao.profissionais_interessados.find(
+            p => p.profissional?.id === solicitacao.profissional_contratado_id
+          )
+          if (!contratado) return null
+          return (
+            <Card className="mb-6 border-green-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle size={20} className="text-green-600" />
+                  Profissional Contratado
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Card className="border-2 border-green-100 bg-green-50/30">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        {contratado.profissional?.foto_url ? (
+                          <Image
+                            src={contratado.profissional.foto_url}
+                            alt={contratado.profissional?.nome || 'Profissional'}
+                            width={64}
+                            height={64}
+                            className="w-16 h-16 rounded-full object-cover border-2 border-green-200"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center border-2 border-green-200">
+                            {contratado.profissional?.tipo === 'empresa' ? (
+                              <Building2 className="w-7 h-7 text-primary-600" />
+                            ) : (
+                              <GraduationCap className="w-7 h-7 text-primary-600" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold text-lg">
+                              {contratado.profissional?.tipo === 'empresa'
+                                ? contratado.profissional?.razao_social || contratado.profissional?.nome
+                                : contratado.profissional?.nome
+                              }
+                            </h4>
+                            <span className="text-xs text-gray-500">
+                              {contratado.profissional?.tipo === 'empresa' ? 'Empresa' : 'Autônomo'}
+                            </span>
+                          </div>
+                          <Link
+                            href={`/profissional/${contratado.profissional?.slug || contratado.profissional?.id}`}
+                            target="_blank"
+                            className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                          >
+                            Ver perfil
+                            <ExternalLink size={14} />
+                          </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone size={14} className="text-gray-400" />
+                            <a href={`tel:${contratado.profissional?.telefone}`} className="text-primary-600 hover:underline">
+                              {contratado.profissional?.telefone}
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail size={14} className="text-gray-400" />
+                            <a href={`mailto:${contratado.profissional?.email}`} className="text-primary-600 hover:underline truncate">
+                              {contratado.profissional?.email}
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Avaliar apenas o contratado */}
+                        {!avaliacaoExistente && (
+                          <div className="mt-4">
+                            <Button
+                              size="sm"
+                              onClick={() => handleAvaliar(contratado as Profissional)}
+                              className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                            >
+                              <Star size={16} className="mr-2" />
+                              Avaliar
+                            </Button>
+                          </div>
+                        )}
+
+                        {avaliacaoExistente && (
+                          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-gray-700">Sua avaliação:</span>
+                              <StarRating rating={avaliacaoExistente.nota} readonly size={18} />
+                            </div>
+                            {avaliacaoExistente.comentario && (
+                              <p className="text-sm text-gray-600 italic">&quot;{avaliacaoExistente.comentario}&quot;</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          )
+        })()}
+
+        {/* Profissionais Interessados */}
         <Card>
           <CardHeader>
             <CardTitle>Profissionais Interessados</CardTitle>
@@ -355,11 +472,12 @@ export default function DetalheSolicitacaoCliente() {
               </div>
             ) : (
               <div className="space-y-4">
-                {solicitacao.profissionais_interessados.map((item) => (
+                {solicitacao.profissionais_interessados
+                  .filter(item => item.profissional?.id !== solicitacao.profissional_contratado_id)
+                  .map((item) => (
                   <Card key={item.resposta_id} className="border-2 hover:shadow-md transition-shadow">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-4">
-                        {/* Foto do profissional */}
                         <div className="flex-shrink-0">
                           {item.profissional?.foto_url ? (
                             <Image
@@ -401,17 +519,14 @@ export default function DetalheSolicitacaoCliente() {
                                 </span>
                               </div>
                             </div>
-                            {/* Link para ver perfil */}
-                            {item.profissional?.slug && (
-                              <Link
-                                href={`/profissional/${item.profissional.slug}`}
-                                target="_blank"
-                                className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
-                              >
-                                Ver perfil
-                                <ExternalLink size={14} />
-                              </Link>
-                            )}
+                            <Link
+                              href={`/profissional/${item.profissional?.slug || item.profissional?.id}`}
+                              target="_blank"
+                              className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                            >
+                              Ver perfil
+                              <ExternalLink size={14} />
+                            </Link>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
@@ -428,33 +543,6 @@ export default function DetalheSolicitacaoCliente() {
                               </a>
                             </div>
                           </div>
-
-                          {/* Botão de avaliar para serviços concluídos */}
-                          {solicitacao.status === 'finalizada' && !avaliacaoExistente && item.profissional && (
-                            <div className="mt-4">
-                              <Button
-                                size="sm"
-                                onClick={() => handleAvaliar(item as Profissional)}
-                                className="bg-yellow-500 hover:bg-yellow-600 text-white"
-                              >
-                                <Star size={16} className="mr-2" />
-                                Avaliar
-                              </Button>
-                            </div>
-                          )}
-
-                          {/* Mostrar avaliação existente - apenas no profissional correto */}
-                          {solicitacao.status === 'finalizada' && avaliacaoExistente && avaliacaoExistente.profissional_id === (item.profissional?.id || item.profissional_id) && (
-                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-gray-700">Sua avaliação:</span>
-                                <StarRating rating={avaliacaoExistente.nota} readonly size={18} />
-                              </div>
-                              {avaliacaoExistente.comentario && (
-                                <p className="text-sm text-gray-600 italic">"{avaliacaoExistente.comentario}"</p>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -479,7 +567,10 @@ export default function DetalheSolicitacaoCliente() {
         )}
 
         {/* Dialog de Confirmação de Status */}
-        <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <Dialog open={showStatusDialog} onOpenChange={(open) => {
+          setShowStatusDialog(open)
+          if (!open) setProfissionalSelecionadoId('')
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -493,6 +584,56 @@ export default function DetalheSolicitacaoCliente() {
                 {getStatusInfo(statusParaAtualizar)?.descricao}
               </DialogDescription>
             </DialogHeader>
+
+            {/* Selecionar profissional ao concluir */}
+            {statusParaAtualizar === 'finalizada' && solicitacao.profissionais_interessados.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700">Qual profissional realizou o serviço?</p>
+                <div className="space-y-2">
+                  {solicitacao.profissionais_interessados.map((item) => (
+                    <button
+                      key={item.resposta_id}
+                      onClick={() => setProfissionalSelecionadoId(item.profissional?.id || '')}
+                      className={`w-full p-3 rounded-lg border-2 text-left transition-all cursor-pointer flex items-center gap-3 ${
+                        profissionalSelecionadoId === item.profissional?.id
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        profissionalSelecionadoId === item.profissional?.id ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                      }`}>
+                        {profissionalSelecionadoId === item.profissional?.id && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        {item.profissional?.foto_url ? (
+                          <Image
+                            src={item.profissional.foto_url}
+                            alt={item.profissional?.nome || ''}
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                            <User size={14} className="text-primary-600" />
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-medium text-sm">
+                        {item.profissional?.tipo === 'empresa'
+                          ? item.profissional?.razao_social || item.profissional?.nome
+                          : item.profissional?.nome
+                        }
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
               <Button
                 variant="outline"
@@ -503,7 +644,7 @@ export default function DetalheSolicitacaoCliente() {
               </Button>
               <Button
                 onClick={handleAtualizarStatus}
-                disabled={loadingStatus}
+                disabled={loadingStatus || (statusParaAtualizar === 'finalizada' && !profissionalSelecionadoId && solicitacao.profissionais_interessados.length > 0)}
                 className={
                   statusParaAtualizar === 'finalizada'
                     ? 'bg-green-600 hover:bg-green-700'

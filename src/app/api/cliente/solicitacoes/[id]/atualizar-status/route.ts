@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { status, cliente_id } = await request.json()
+    const { status, cliente_id, profissional_contratado_id } = await request.json()
     const { id: solicitacao_id } = await params
 
     if (!status || !cliente_id) {
@@ -46,12 +46,17 @@ export async function PATCH(
     }
 
     // Atualizar status
+    const updateData: any = {
+      status,
+      updated_at: new Date().toISOString()
+    }
+    if (status === 'finalizada' && profissional_contratado_id) {
+      updateData.profissional_contratado_id = profissional_contratado_id
+    }
+
     const { data, error } = await supabase
       .from('solicitacoes')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', solicitacao_id)
       .select()
       .single()
