@@ -553,7 +553,7 @@ export default function AdminSelos() {
                   onClick={() => setFiltroSelos(f)}
                   size="sm"
                 >
-                  {f === 'ativos' ? 'Ativos' : f === 'revogados' ? 'Revogados' : 'Todos'}
+                  {f === 'ativos' ? 'Ativos' : f === 'revogados' ? 'Excluídos' : 'Todos'}
                 </Button>
               ))}
             </div>
@@ -616,12 +616,12 @@ export default function AdminSelos() {
                                     setShowDialogRevogar(true)
                                   }}
                                 >
-                                  <XCircle size={14} className="mr-1" />
-                                  Revogar
+                                  <Trash2 size={14} className="mr-1" />
+                                  Excluir Selo
                                 </Button>
                               </>
                             ) : (
-                              <Badge className="bg-gray-100 text-gray-500">Revogado</Badge>
+                              <Badge className="bg-gray-100 text-gray-500">Excluído</Badge>
                             )}
                           </div>
                         </div>
@@ -807,13 +807,13 @@ export default function AdminSelos() {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog: Revogar Selo */}
+        {/* Dialog: Excluir Selo */}
         <Dialog open={showDialogRevogar} onOpenChange={setShowDialogRevogar}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Revogar Selo</DialogTitle>
+              <DialogTitle>Excluir Selo</DialogTitle>
               <DialogDescription>
-                Tem certeza que deseja revogar o selo <strong>{seloParaRevogar?.tipo_selo_nome}</strong> de <strong>{seloParaRevogar?.profissional_nome}</strong>?
+                Tem certeza que deseja excluir o selo <strong>{seloParaRevogar?.tipo_selo_nome}</strong> de <strong>{seloParaRevogar?.profissional_nome}</strong>?
                 O selo deixará de aparecer no perfil do profissional.
               </DialogDescription>
             </DialogHeader>
@@ -822,7 +822,7 @@ export default function AdminSelos() {
                 Cancelar
               </Button>
               <Button variant="destructive" onClick={handleRevogarSelo} disabled={loadingAcao}>
-                {loadingAcao ? 'Revogando...' : 'Confirmar Revogação'}
+                {loadingAcao ? 'Excluindo...' : 'Confirmar Exclusão'}
               </Button>
             </DialogFooter>
           </DialogContent>

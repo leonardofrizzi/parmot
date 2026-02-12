@@ -310,17 +310,6 @@ export default function DetalheSolicitacaoCliente() {
               <div className="pt-4 border-t">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Ações</h4>
                 <div className="flex flex-wrap gap-2">
-                  {solicitacao.status === 'aberta' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleAbrirDialogStatus('em_andamento')}
-                      className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    >
-                      <PlayCircle size={16} className="mr-2" />
-                      Marcar Em Andamento
-                    </Button>
-                  )}
                   {(solicitacao.status === 'aberta' || solicitacao.status === 'em_andamento') && (
                     <Button
                       size="sm"
@@ -590,9 +579,13 @@ export default function DetalheSolicitacaoCliente() {
               <div className="space-y-3">
                 <p className="text-sm font-medium text-gray-700">Qual profissional realizou o serviço?</p>
                 <div className="space-y-2">
-                  {solicitacao.profissionais_interessados.map((item) => (
+                  {solicitacao.profissionais_interessados
+                    .filter((item, index, self) =>
+                      index === self.findIndex(t => t.profissional?.id === item.profissional?.id)
+                    )
+                    .map((item) => (
                     <button
-                      key={item.resposta_id}
+                      key={item.profissional?.id || item.resposta_id}
                       onClick={() => setProfissionalSelecionadoId(item.profissional?.id || '')}
                       className={`w-full p-3 rounded-lg border-2 text-left transition-all cursor-pointer flex items-center gap-3 ${
                         profissionalSelecionadoId === item.profissional?.id
