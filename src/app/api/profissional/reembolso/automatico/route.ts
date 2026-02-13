@@ -45,6 +45,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verificar se o cliente já confirmou contratação deste profissional
+    const { data: solicitacaoCheck } = await supabaseAdmin
+      .from('solicitacoes')
+      .select('profissional_contratado_id, status')
+      .eq('id', resposta.solicitacao_id)
+      .single()
+
+    if (solicitacaoCheck?.profissional_contratado_id === profissional_id) {
+      return NextResponse.json(
+        { error: 'O cliente confirmou que contratou você. Não é possível pedir garantia.' },
+        { status: 400 }
+      )
+    }
+
     // Verificar se já existe reembolso para esta resposta
     const { data: reembolsoExistente } = await supabaseAdmin
       .from('solicitacoes_reembolso')
@@ -146,11 +160,46 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Atualizar status da solicitação para cancelada (não fechou negócio)
-    await supabaseAdmin
+    // Buscar status atual da solicitação
+    const { data: solicitacaoAtual } = await supabaseAdmin
       .from('solicitacoes')
-      .update({ status: 'cancelada' })
+      .select('status')
       .eq('id', resposta.solicitacao_id)
+      .single()
+
+    // Se já está finalizada (outro profissional fechou), NÃO muda o status
+    if (solicitacaoAtual?.status !== 'finalizada') {
+      // Verificar quantas respostas ativas restam (com contato liberado e SEM reembolso aprovado)
+      const { data: todasRespostas } = await supabaseAdmin
+        .from('respostas')
+        .select('id')
+        .eq('solicitacao_id', resposta.solicitacao_id)
+        .eq('contato_liberado', true)
+
+      // Buscar reembolsos aprovados para essas respostas
+      const respostaIds = todasRespostas?.map((r: any) => r.id) || []
+      let respostasComReembolso = 0
+      if (respostaIds.length > 0) {
+        const { data: reembolsos } = await supabaseAdmin
+          .from('solicitacoes_reembolso')
+          .select('resposta_id')
+          .in('resposta_id', respostaIds)
+          .eq('status', 'aprovado')
+
+        respostasComReembolso = reembolsos?.length || 0
+      }
+
+      const respostasAtivas = (todasRespostas?.length || 0) - respostasComReembolso
+
+      if (respostasAtivas <= 0) {
+        // Nenhuma resposta ativa restante → reabrir solicitação para novos profissionais
+        await supabaseAdmin
+          .from('solicitacoes')
+          .update({ status: 'aberta' })
+          .eq('id', resposta.solicitacao_id)
+      }
+      // Se ainda há respostas ativas, não muda o status
+    }
 
     return NextResponse.json({
       message: `Reembolso de ${moedas_reembolso} moedas creditado automaticamente!`,

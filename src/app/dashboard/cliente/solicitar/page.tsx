@@ -287,19 +287,21 @@ export default function SolicitarServico() {
                 <CheckCircle2 size={40} className="text-green-600" />
               </div>
               <DialogTitle className="text-center text-2xl">Solicitação Enviada com Sucesso!</DialogTitle>
-              <DialogDescription className="text-center space-y-3 pt-4">
-                <p className="text-base">
-                  Obrigado por utilizar nossos serviços! Sua solicitação já está disponível para os profissionais da sua região.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
-                  <div className="flex items-start gap-2">
-                    <Clock className="text-blue-600 mt-0.5 flex-shrink-0" size={18} />
-                    <div className="text-sm text-blue-900">
-                      <p className="font-semibold mb-1">Próximos passos:</p>
-                      <p>
-                        Profissionais interessados entrarão em contato com você em breve.
-                        Você pode acompanhar as respostas na aba <strong>Minhas Solicitações</strong>.
-                      </p>
+              <DialogDescription asChild>
+                <div className="text-sm text-muted-foreground text-center space-y-3 pt-4">
+                  <p className="text-base">
+                    Obrigado por utilizar nossos serviços! Sua solicitação já está disponível para os profissionais da sua região.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                    <div className="flex items-start gap-2">
+                      <Clock className="text-blue-600 mt-0.5 flex-shrink-0" size={18} />
+                      <div className="text-sm text-blue-900">
+                        <p className="font-semibold mb-1">Próximos passos:</p>
+                        <p>
+                          Profissionais interessados entrarão em contato com você em breve.
+                          Você pode acompanhar as respostas na aba <strong>Minhas Solicitações</strong>.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

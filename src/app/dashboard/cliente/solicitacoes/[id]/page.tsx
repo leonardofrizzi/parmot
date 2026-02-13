@@ -37,6 +37,7 @@ interface Profissional {
   media_avaliacoes: number | null
   total_avaliacoes: number
   exclusivo: boolean
+  usou_garantia?: boolean
   ja_avaliou?: boolean
 }
 
@@ -583,6 +584,7 @@ export default function DetalheSolicitacaoCliente() {
                     .filter((item, index, self) =>
                       index === self.findIndex(t => t.profissional?.id === item.profissional?.id)
                     )
+                    .filter(item => !item.usou_garantia)
                     .map((item) => (
                     <button
                       key={item.profissional?.id || item.resposta_id}

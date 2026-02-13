@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
         solicitacao_id,
         contato_liberado,
         exclusivo,
+        negocio_fechado,
         created_at
       `)
       .eq('profissional_id', profissional_id)
@@ -48,7 +49,8 @@ export async function GET(request: NextRequest) {
             created_at,
             categoria_id,
             subcategoria_id,
-            cliente_id
+            cliente_id,
+            profissional_contratado_id
           `)
           .eq('id', resposta.solicitacao_id)
           .single()
@@ -114,6 +116,11 @@ export async function GET(request: NextRequest) {
         cliente_telefone: item.cliente?.telefone || '',
         cliente_cidade: item.cliente?.cidade || '',
         cliente_estado: item.cliente?.estado || '',
+
+        // Quem fechou o negócio (do lado do profissional)
+        negocio_fechado: item.resposta.negocio_fechado || false,
+        // Quem o cliente selecionou como contratado
+        profissional_contratado_id: item.solicitacao?.profissional_contratado_id || null,
 
         // Dados de reembolso
         tem_reembolso: !!item.reembolso,

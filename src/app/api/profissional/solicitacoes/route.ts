@@ -63,16 +63,33 @@ export async function GET(request: NextRequest) {
       respostasLiberadas?.map((r: any) => r.solicitacao_id) || []
     )
 
-    // Contar quantos profissionais liberaram cada solicitação
+    // Contar quantos profissionais liberaram cada solicitação (excluindo quem pediu reembolso)
+    const solicitacaoIds = solicitacoesFiltradas.map((s: any) => s.id)
     const { data: todasRespostas } = await supabase
       .from('respostas')
-      .select('solicitacao_id')
+      .select('id, solicitacao_id')
       .eq('contato_liberado', true)
-      .in('solicitacao_id', solicitacoesFiltradas.map((s: any) => s.id))
+      .in('solicitacao_id', solicitacaoIds)
 
+    // Buscar reembolsos aprovados para descontar das vagas ocupadas
+    const todasRespostaIds = todasRespostas?.map((r: any) => r.id) || []
+    let respostasReembolsadas = new Set<string>()
+    if (todasRespostaIds.length > 0) {
+      const { data: reembolsos } = await supabase
+        .from('solicitacoes_reembolso')
+        .select('resposta_id')
+        .in('resposta_id', todasRespostaIds)
+        .eq('status', 'aprovado')
+
+      reembolsos?.forEach((r: any) => respostasReembolsadas.add(r.resposta_id))
+    }
+
+    // Contar apenas respostas ativas (sem reembolso aprovado)
     const contadorLiberacoes: Record<string, number> = {}
     todasRespostas?.forEach((r: any) => {
-      contadorLiberacoes[r.solicitacao_id] = (contadorLiberacoes[r.solicitacao_id] || 0) + 1
+      if (!respostasReembolsadas.has(r.id)) {
+        contadorLiberacoes[r.solicitacao_id] = (contadorLiberacoes[r.solicitacao_id] || 0) + 1
+      }
     })
 
     // Formatar dados com informações de liberação

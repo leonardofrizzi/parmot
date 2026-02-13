@@ -63,11 +63,25 @@ export async function GET(
       console.error('Erro ao buscar respostas:', errorRespostas)
     }
 
+    // Buscar reembolsos aprovados para essas respostas (profissionais que usaram garantia)
+    const respostaIds = respostas?.map((r: any) => r.id) || []
+    let respostasComGarantia = new Set<string>()
+    if (respostaIds.length > 0) {
+      const { data: reembolsos } = await supabase
+        .from('solicitacoes_reembolso')
+        .select('resposta_id')
+        .in('resposta_id', respostaIds)
+        .eq('status', 'aprovado')
+
+      reembolsos?.forEach((r: any) => respostasComGarantia.add(r.resposta_id))
+    }
+
     // Formatar dados
     const profissionaisInteressados = respostas?.map((resposta: any) => ({
       resposta_id: resposta.id,
       data_liberacao: resposta.created_at,
       exclusivo: resposta.exclusivo,
+      usou_garantia: respostasComGarantia.has(resposta.id),
       profissional: resposta.profissionais
     })) || []
 

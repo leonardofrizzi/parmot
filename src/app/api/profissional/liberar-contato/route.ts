@@ -83,7 +83,20 @@ export async function POST(request: NextRequest) {
         .eq('solicitacao_id', solicitacao_id)
         .eq('contato_liberado', true)
 
-      if (respostas && respostas.length >= MAX_PROFISSIONAIS) {
+      // Descontar respostas que tiveram reembolso aprovado (vaga reaberta)
+      let respostasAtivas = respostas?.length || 0
+      if (respostas && respostas.length > 0) {
+        const respostaIds = respostas.map((r: any) => r.id)
+        const { data: reembolsos } = await supabase
+          .from('solicitacoes_reembolso')
+          .select('resposta_id')
+          .in('resposta_id', respostaIds)
+          .eq('status', 'aprovado')
+
+        respostasAtivas = respostas.length - (reembolsos?.length || 0)
+      }
+
+      if (respostasAtivas >= MAX_PROFISSIONAIS) {
         return NextResponse.json(
           { error: 'Limite de profissionais atingido' },
           { status: 400 }

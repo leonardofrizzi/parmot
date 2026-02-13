@@ -33,11 +33,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Atualizar status da solicitação para finalizada
+    // Marcar a resposta do profissional como negócio fechado (NÃO muda status da solicitação)
+    // Quem controla o status da solicitação é somente o cliente
     const { error: updateError } = await supabase
-      .from('solicitacoes')
-      .update({ status: 'finalizada' })
-      .eq('id', solicitacao_id)
+      .from('respostas')
+      .update({ negocio_fechado: true })
+      .eq('id', resposta.id)
 
     if (updateError) {
       console.error('Erro ao fechar negócio:', updateError)
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'Negócio fechado com sucesso! A solicitação foi marcada como concluída.',
+      message: 'Negócio registrado com sucesso!',
       success: true
     })
 
