@@ -22,14 +22,8 @@ export async function POST(request: NextRequest) {
     // Criar instância de Preference
     const preference = new Preference(client)
 
-    // URL base para retornos
-    const baseUrl = 'http://localhost:3000'
-
-    console.log('URLs de retorno:', {
-      success: `${baseUrl}/dashboard/profissional/moedas/sucesso`,
-      failure: `${baseUrl}/dashboard/profissional/moedas/falha`,
-      pending: `${baseUrl}/dashboard/profissional/moedas/pendente`,
-    })
+    // URL base para retornos (usar variável de ambiente em produção)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
     // Criar preferência de pagamento
     const preferenceData = await preference.create({

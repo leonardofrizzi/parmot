@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Buscar dados da resposta
     const { data: resposta, error: respostaError } = await supabaseAdmin
       .from('respostas')
-      .select('id, profissional_id, solicitacao_id, exclusivo, contato_liberado')
+      .select('id, profissional_id, solicitacao_id, exclusivo, contato_liberado, negocio_fechado')
       .eq('id', resposta_id)
       .eq('profissional_id', profissional_id)
       .single()
@@ -41,6 +41,14 @@ export async function POST(request: NextRequest) {
     if (!resposta.contato_liberado) {
       return NextResponse.json(
         { error: 'Você não liberou o contato desta solicitação' },
+        { status: 400 }
+      )
+    }
+
+    // Anti-fraude: bloquear garantia se profissional já marcou "fechei negócio"
+    if (resposta.negocio_fechado) {
+      return NextResponse.json(
+        { error: 'Você já marcou este atendimento como negócio fechado. Não é possível pedir garantia.' },
         { status: 400 }
       )
     }

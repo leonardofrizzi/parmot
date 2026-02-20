@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { ReembolsoModal } from "@/components/ReembolsoModal"
-import { Calendar, MapPin, Search, Phone, Mail, User, Crown, ExternalLink, Clock, CheckCircle2, XCircle, ThumbsDown, Loader2 } from "lucide-react"
+import { Calendar, MapPin, Search, Phone, Mail, User, Crown, ExternalLink, Clock, CheckCircle2, XCircle, ThumbsDown, Handshake, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { IconRenderer } from "@/components/IconRenderer"
 import { EmptyState } from "@/components/EmptyState"
@@ -53,6 +53,8 @@ export default function AtendimentosProfissional() {
   const [loadingReembolso, setLoadingReembolso] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [reembolsoResult, setReembolsoResult] = useState<{ moedas: number; saldo: number } | null>(null)
+  const [showFecheiNegocioDialog, setShowFecheiNegocioDialog] = useState(false)
+  const [loadingFecheiNegocio, setLoadingFecheiNegocio] = useState(false)
 
 
   useEffect(() => {
@@ -107,6 +109,45 @@ export default function AtendimentosProfissional() {
   const handleNaoFecheiNegocio = (atendimento: Atendimento) => {
     setAtendimentoSelecionado(atendimento)
     setShowConfirmDialog(true)
+  }
+
+  const handleFecheiNegocio = (atendimento: Atendimento) => {
+    setAtendimentoSelecionado(atendimento)
+    setShowFecheiNegocioDialog(true)
+  }
+
+  const confirmarFecheiNegocio = async () => {
+    if (!atendimentoSelecionado || !profissional) return
+
+    setLoadingFecheiNegocio(true)
+
+    try {
+      const response = await fetch('/api/profissional/fechar-negocio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profissional_id: profissional.id,
+          solicitacao_id: atendimentoSelecionado.solicitacao_id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Erro ao fechar negócio')
+        setShowFecheiNegocioDialog(false)
+        return
+      }
+
+      setShowFecheiNegocioDialog(false)
+      fetchAtendimentos(profissional.id)
+
+    } catch (err) {
+      console.error('Erro ao fechar negócio:', err)
+      setError('Erro ao conectar com o servidor')
+    } finally {
+      setLoadingFecheiNegocio(false)
+    }
   }
 
   const confirmarReembolsoAutomatico = async () => {
@@ -428,18 +469,17 @@ export default function AtendimentosProfissional() {
                     {/* Botões de Ação */}
                     <div className="flex flex-wrap gap-2">
                       {(() => {
-                        const clienteContratouEu = atendimento.status === 'finalizada' && atendimento.profissional_contratado_id === profissional?.id
-
-                        if (clienteContratouEu) {
-                          // Cliente confirmou que contratou ESTE profissional
+                        // Profissional já marcou como negócio fechado
+                        if (atendimento.negocio_fechado) {
                           return (
                             <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
                               <CheckCircle2 size={16} />
-                              Contratado pelo cliente
+                              Negócio Fechado
                             </span>
                           )
                         }
 
+                        // Garantia aprovada
                         if (atendimento.tem_reembolso && atendimento.reembolso_status === 'aprovado') {
                           return (
                             <Button
@@ -455,6 +495,7 @@ export default function AtendimentosProfissional() {
                           )
                         }
 
+                        // Garantia pendente ou negada
                         if (atendimento.tem_reembolso) {
                           return (
                             <Button
@@ -476,17 +517,27 @@ export default function AtendimentosProfissional() {
                           )
                         }
 
-                        // Sem ação tomada - mostrar apenas botão de garantia
+                        // Sem ação tomada - mostrar os dois botões
                         return (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleNaoFecheiNegocio(atendimento)}
-                            className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                          >
-                            <ThumbsDown size={16} className="mr-2" />
-                            Não fechei negócio
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              onClick={() => handleFecheiNegocio(atendimento)}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Handshake size={16} className="mr-2" />
+                              Fechei negócio
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleNaoFecheiNegocio(atendimento)}
+                              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                            >
+                              <ThumbsDown size={16} className="mr-2" />
+                              Não fechei negócio
+                            </Button>
+                          </>
                         )
                       })()}
                     </div>
@@ -559,6 +610,58 @@ export default function AtendimentosProfissional() {
                   </>
                 ) : (
                   'Confirmar e receber 30%'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Confirmação - Fechei negócio */}
+        <Dialog open={showFecheiNegocioDialog} onOpenChange={setShowFecheiNegocioDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <Handshake className="text-green-600" size={24} />
+                Confirmar: Fechei negócio
+              </DialogTitle>
+              <DialogDescription>
+                Você está confirmando que fechou negócio com <strong>{atendimentoSelecionado?.cliente_nome}</strong>.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  A solicitação será marcada como <strong>finalizada</strong> e você será registrado como o profissional contratado.
+                </p>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Atenção:</strong> Após confirmar, não será mais possível solicitar garantia (reembolso de 30%) para este atendimento.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowFecheiNegocioDialog(false)}
+                disabled={loadingFecheiNegocio}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={confirmarFecheiNegocio}
+                disabled={loadingFecheiNegocio}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {loadingFecheiNegocio ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  'Confirmar'
                 )}
               </Button>
             </DialogFooter>
